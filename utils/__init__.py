@@ -1,4 +1,4 @@
-"""Utility modules for the Manufacturing Analytics API."""
+"""Utility modules for the Cortex Workflow Agent."""
 
 from utils.error_handling import get_api_base_url, sanitize_error_message
 from utils.input_validation import (

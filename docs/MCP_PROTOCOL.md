@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Manufacturing Analytics API now supports **Model Context Protocol (MCP)** endpoints alongside the existing REST API. This enables LLM integration and MCP-compatible clients to interact with the server.
+The Cortex Workflow Agent now supports **Model Context Protocol (MCP)** endpoints alongside the existing REST API. This enables LLM integration and MCP-compatible clients to interact with the server.
 
 ## Architecture
 

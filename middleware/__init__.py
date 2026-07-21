@@ -1,4 +1,4 @@
-"""Middleware components for the Manufacturing Analytics API."""
+"""Middleware components for the Cortex Workflow Agent."""
 
 from middleware.rate_limiter import RateLimitMiddleware
 

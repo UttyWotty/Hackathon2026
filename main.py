@@ -1,23 +1,23 @@
 """
-Manufacturing Analytics API - Unified Server
+Cortex Workflow Agent - Unified Server
 
-Single FastAPI application serving all manufacturing analytics tools.
-All tools are accessible through one server on port 3020.
+Single FastAPI application hosting the autonomous manufacturing workflow agent and the
+analytics tools it reasons with, all on port 3020. The agent senses anomalies in shot-level
+manufacturing data, reasons over them with an LLM, and chains multi-step actions autonomously.
 
 Architecture:
-  - Single FastAPI app (no microservices complexity)
-  - Router-based organization (analytics, snowflake, visualization, etc.)
-  - Direct service calls (audit, cache, metrics - no HTTP overhead)
-  - Existing analysis/ folder used as-is
+  - Single FastAPI app (no microservices)
+  - 8 routers: analytics, chat, config, database, email, mcp, monitoring, scheduler
+  - Direct service calls (no HTTP overhead between layers)
+  - Analysis modules in analysis/, tool implementations in services/config/features/
 
-For future developers:
-  - Start server: python main.py
-  - View API docs: http://localhost:3020/docs
-  - Add new tools: Create function in routers/, register route
-  - All analysis logic: See analysis/ folder
-
-Author: Utku Gulbardak
-Date: 2025-11-24
+Notes for whoever works here next:
+  - Start server: python main.py    Docs: http://localhost:3020/docs
+  - Routers register inside try/except ImportError, so a broken import drops a router
+    silently instead of failing. Verify with the route count, not just a clean startup:
+    python -c "import main; print(len(main.app.routes))"  -> expect 67
+  - Tools are dispatched dynamically by name; see CLAUDE.md before deleting anything.
+  - All data is synthetic. Never point this at a production account.
 """
 
 import logging
@@ -48,7 +48,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
-        logging.FileHandler("logs/manufacturing_api.log"),
+        logging.FileHandler("logs/cortex_agent.log"),
         logging.StreamHandler(sys.stdout),
     ],
 )
@@ -72,7 +72,7 @@ async def lifespan(app: FastAPI):
     Startup and shutdown events.
     Initialize connections and clean up resources.
     """
-    logger.info("🚀 Manufacturing Analytics API starting...")
+    logger.info("Cortex Workflow Agent starting...")
 
     # Create logs directory
     Path("logs").mkdir(exist_ok=True)
@@ -81,7 +81,7 @@ async def lifespan(app: FastAPI):
     try:
         from models.database import get_database_info, init_database
 
-        logger.info("📦 Initializing database...")
+        logger.info("Initializing database...")
         if init_database():
             db_info = get_database_info()
             logger.info(f" Database ready: {db_info['database_path']}")
@@ -89,10 +89,10 @@ async def lifespan(app: FastAPI):
 
         else:
             logger.warning(
-                "⚠️  Database initialization failed - some features may not work"
+                "Database initialization failed - some features may not work"
             )
     except Exception as e:
-        logger.warning(f"⚠️  Database initialization error: {e}")
+        logger.warning("Database initialization error: %s", e)
 
     # Start background scheduler and monitoring
     import asyncio
@@ -135,14 +135,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Langfuse initialization skipped: %s", e)
 
-    logger.info("Manufacturing Analytics API ready")
+    logger.info("Cortex Workflow Agent ready")
     logger.info("API Documentation: http://localhost:%d/docs", SERVER_PORT)
     logger.info("Interactive API: http://localhost:%d/redoc", SERVER_PORT)
 
     yield
 
     # Cleanup
-    logger.info("Manufacturing Analytics API shutting down...")
+    logger.info("Cortex Workflow Agent shutting down...")
 
     # Flush Langfuse traces
     try:
@@ -181,45 +181,39 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
-    title="Manufacturing Analytics API",
+    title="Cortex Workflow Agent",
     description="""
-    # Manufacturing Analytics - Unified API
-    
-    Single unified server providing all manufacturing analytics capabilities.
-    
-    ## Features
-    
-    - **Analytics**: ROI, RunRate, RCA, CT Efficiency, Tooling EOL, etc.
-    - **Database**: Snowflake SQL queries and schema exploration
-    - **Cache**: Redis-based query caching for performance
-    - **Email**: Report delivery and notifications
-    - **Visualization**: Interactive Plotly charts and dashboards
-    - **Scheduler**: Automated jobs and recurring reports
-    - **Monitoring**: Health checks, metrics, and alerting
-    - **Audit**: Compliance logging and audit trails
-    
-    ## Quick Start
-    
-    1. Browse available endpoints below
-    2. Try the `/health` endpoint to verify server is running
-    3. Use `/analytics/roi` to run ROI analysis
-    4. Check `/docs` for interactive API documentation
-    
-    ## For Developers
-    
-    - **Add new tools**: Create function in `routers/`, add route decorator
-    - **Analysis logic**: All analysis code is in `analysis/` folder
-    - **Configuration**: Environment variables in `.env` file
-    - **Logs**: Check `logs/manufacturing_api.log`
-    
-    ## Architecture
-    
-    Simple and clean:
-    - Single FastAPI app (this file)
-    - Routers for organization (`routers/analytics.py`, etc.)
-    - Direct service calls (no HTTP overhead)
-    - Existing analysis code unchanged
-    
+    # Cortex Workflow Agent
+
+    An autonomous manufacturing workflow agent. It senses anomalies in shot-level
+    production data, reasons over them with an LLM, and chains multi-step actions
+    without waiting for a human turn.
+
+    ## Surfaces
+
+    - **Agent**: `/chat` and the WebSocket chat surface drive the tool-calling loop
+    - **Analytics**: cycle-time deviation, run rate, root cause, CT efficiency,
+      capacity, tooling end-of-life
+    - **Database**: read-only Snowflake queries and schema exploration
+    - **Scheduler**: cron jobs and background job queue, the agent's trigger
+    - **Email**: report delivery and notifications, one of the agent's actions
+    - **MCP**: tool contract exposed over the Model Context Protocol
+    - **Monitoring**: health checks and metrics
+
+    ## Quick start
+
+    1. `GET /health` to confirm the server is up
+    2. `GET /mcp/info` for the tool contract
+    3. `POST /chat` to exercise the agent loop
+
+    ## Data
+
+    All data is synthetic and generated by `synthetic_data/`. There is one fact table,
+    `MASTER_SHOT_TABLE`, and every analysis reads from it directly. Planted anomalies
+    are declared in `ground_truth.json`, so what the agent finds can be checked against
+    what was hidden.
+
+    Built for the Snowflake CoCo CLI Hackathon 2026.
     """,
     version=APP_VERSION,
     lifespan=lifespan,
@@ -307,7 +301,7 @@ async def root():
     API information and available endpoints.
     """
     return {
-        "service": "Manufacturing Analytics API",
+        "service": "Cortex Workflow Agent",
         "version": APP_VERSION,
         "status": "running",
         "environment": ENVIRONMENT,
@@ -490,7 +484,7 @@ except ImportError as e:
 
 if __name__ == "__main__":
     logger.info("=" * 70)
-    logger.info(" Manufacturing Analytics API")
+    logger.info("Cortex Workflow Agent")
     logger.info("=" * 70)
     logger.info(f" Starting server on http://{SERVER_HOST}:{SERVER_PORT}")
     logger.info(f" API Docs: http://localhost:{SERVER_PORT}/docs")

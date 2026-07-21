@@ -1,5 +1,5 @@
 """
-Test suite for Manufacturing Analytics API.
+Test suite for Cortex Workflow Agent.
 
 Run with: pytest tests/ -v
 """

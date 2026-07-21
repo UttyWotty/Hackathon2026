@@ -1,4 +1,4 @@
-"""Router package for Manufacturing Analytics API."""
+"""Router package for Cortex Workflow Agent."""
 
 from .analytics_router import router as analytics_router
 
