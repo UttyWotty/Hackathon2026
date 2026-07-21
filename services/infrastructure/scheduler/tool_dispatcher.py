@@ -53,10 +53,6 @@ _ANALYTICS_TOOL_IMPORTS: Dict[str, tuple] = {
         "services.config.features.analytics.tools.master_table_tools",
         "refresh_master_shot_table",
     ),
-    "refresh_run_rate_pipeline": (
-        "services.config.features.analytics.tools.runrate_pipeline_tools",
-        "refresh_run_rate_pipeline",
-    ),
     "generate_presentation": (
         "services.config.features.analytics.tools.ppt_tools",
         "generate_presentation",

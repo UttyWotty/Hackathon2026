@@ -87,15 +87,6 @@ async def lifespan(app: FastAPI):
             logger.info(f" Database ready: {db_info['database_path']}")
             logger.info(f"   Size: {db_info['database_size_mb']} MB")
 
-            # Run schema migrations (auto-update database)
-            try:
-                from models.database import get_session
-                from models.migrations import check_and_migrate
-
-                with get_session() as db_session:
-                    check_and_migrate(db_session)
-            except Exception as migration_error:
-                logger.error(f" Migration check failed: {migration_error}")
         else:
             logger.warning(
                 "⚠️  Database initialization failed - some features may not work"
@@ -110,17 +101,12 @@ async def lifespan(app: FastAPI):
         start_email_queue_processor,
         stop_email_queue_processor,
     )
-    from services.infrastructure.monitoring.background_monitor import (
-        start_monitor,
-        stop_monitor,
-    )
     from services.infrastructure.scheduler.background_scheduler import (
         start_scheduler,
         stop_scheduler,
     )
 
     scheduler_task = None
-    monitor_task = None
     email_queue_task = None
 
     try:
@@ -129,13 +115,6 @@ async def lifespan(app: FastAPI):
         logger.info(" Background scheduler started")
     except Exception as e:
         logger.error(f" Scheduler startup failed: {e}")
-
-    try:
-        logger.info(" Starting background monitoring...")
-        monitor_task = asyncio.create_task(start_monitor())
-        logger.info(" Background monitoring started")
-    except Exception as e:
-        logger.error(f" Monitoring startup failed: {e}")
 
     try:
         logger.info(" Starting email queue processor...")
@@ -186,18 +165,6 @@ async def lifespan(app: FastAPI):
             logger.info(" Scheduler stopped")
         except Exception as e:
             logger.error(f"Scheduler shutdown error: {e}")
-
-    # Stop monitor
-    if monitor_task:
-        logger.info(" Stopping background monitoring...")
-        stop_monitor()
-        monitor_task.cancel()
-        try:
-            await monitor_task
-        except asyncio.CancelledError:
-            logger.info(" Monitoring stopped")
-        except Exception as e:
-            logger.error(f"Monitoring shutdown error: {e}")
 
     # Stop email queue processor
     if email_queue_task:
@@ -453,15 +420,6 @@ try:
 except ImportError as e:
     logger.warning(f"  Database router not found: {e}")
 
-# Cache Router - Query result caching
-try:
-    from routers.cache_router import router as cache_router
-
-    app.include_router(cache_router, prefix="/cache", tags=["Cache"])
-    logger.info(" Cache router registered")
-except ImportError as e:
-    logger.warning(f"  Cache router not found: {e}")
-
 # Email Router - Email sending and templates
 try:
     from routers.email_router import router as email_router
@@ -470,17 +428,6 @@ try:
     logger.info(" Email router registered")
 except ImportError as e:
     logger.warning(f"  Email router not found: {e}")
-
-# Visualization Router - Chart generation
-try:
-    from routers.visualization_router import router as visualization_router
-
-    app.include_router(
-        visualization_router, prefix="/visualization", tags=["Visualization"]
-    )
-    logger.info(" Visualization router registered")
-except ImportError as e:
-    logger.warning(f" Visualization router not found: {e}")
 
 # Scheduler Router - Job scheduling
 try:
@@ -499,73 +446,6 @@ try:
     logger.info(" Monitoring router registered")
 except ImportError as e:
     logger.warning(f"  Monitoring router not found: {e}")
-
-# Audit Router - Compliance logging
-try:
-    from routers.audit_router import router as audit_router
-
-    app.include_router(audit_router, prefix="/audit", tags=["Audit"])
-    logger.info(" Audit router registered")
-except ImportError as e:
-    logger.warning(f" Audit router not found: {e}")
-
-# ML Router - AI-powered insights
-try:
-    from routers.ml_router import router as ml_router
-
-    app.include_router(ml_router, prefix="/ml", tags=["Machine Learning"])
-    logger.info("ML router registered")
-except ImportError as e:
-    logger.warning(f" ML router not found: {e}")
-
-# MLX Router - Local LLM inference
-try:
-    from routers.mlx_router import router as mlx_router
-
-    app.include_router(mlx_router, tags=["MLX LLM"])
-    logger.info("MLX router registered (local LLM inference)")
-except ImportError as e:
-    logger.warning("MLX router not found: %s", e)
-
-# Transformation Router - Data quality & ETL
-try:
-    from routers.transformation_router import router as transformation_router
-
-    app.include_router(
-        transformation_router, prefix="/transformation", tags=["Transformation"]
-    )
-    logger.info("Transformation router registered")
-except ImportError as e:
-    logger.warning(f" Transformation router not found: {e}")
-
-# Backup Router - Disaster recovery
-try:
-    from routers.backup_router import router as backup_router
-
-    app.include_router(backup_router, prefix="/backup", tags=["Backup"])
-    logger.info("Backup router registered")
-except ImportError as e:
-    logger.warning(f" Backup router not found: {e}")
-
-# Auth Router - Authentication (disabled by default)
-try:
-    from routers.auth_router import router as auth_router
-
-    app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
-    logger.info(
-        "Auth router registered (disabled by default - set AUTH_ENABLED=True to enable)"
-    )
-except ImportError as e:
-    logger.warning(f" Auth router not found: {e}")
-
-# Pipelines Router - Data pipeline operations
-try:
-    from routers.pipelines_router import router as pipelines_router
-
-    app.include_router(pipelines_router, prefix="/pipelines", tags=["Data Pipelines"])
-    logger.info("Pipelines router registered")
-except ImportError as e:
-    logger.warning(f" Pipelines router not found: {e}")
 
 # MCP Router - Model Context Protocol for LLM integration
 try:
@@ -594,24 +474,6 @@ try:
 except ImportError as e:
     logger.warning("WebSocket chat router not found: %s", e)
 
-# Documents Router - Document upload and RAG ingestion
-try:
-    from routers.documents_router import router as documents_router
-
-    app.include_router(documents_router, prefix="/documents", tags=["Documents"])
-    logger.info("Documents router registered")
-except ImportError as e:
-    logger.warning("Documents router not found: %s", e)
-
-# Files Router - Serve generated analysis files
-try:
-    from routers.files_router import router as files_router
-
-    app.include_router(files_router, prefix="/files", tags=["Files"])
-    logger.info("Files router registered")
-except ImportError as e:
-    logger.warning("Files router not found: %s", e)
-
 # Config Router - Dynamic prompts and feature flags
 try:
     from routers.config_router import router as config_router
@@ -620,63 +482,6 @@ try:
     logger.info("Config router registered")
 except ImportError as e:
     logger.warning("Config router not found: %s", e)
-
-# Notes Router - Knowledge base with FTS
-try:
-    from routers.notes_router import router as notes_router
-
-    app.include_router(notes_router, prefix="/notes", tags=["Notes"])
-    logger.info("Notes router registered")
-except ImportError as e:
-    logger.warning("Notes router not found: %s", e)
-
-# Notifications Router - Multi-channel notification hub
-try:
-    from routers.notifications_router import router as notifications_router
-
-    app.include_router(
-        notifications_router, prefix="/notifications", tags=["Notifications"]
-    )
-    logger.info("Notifications router registered")
-except ImportError as e:
-    logger.warning("Notifications router not found: %s", e)
-
-# Projects Router - Project management
-try:
-    from routers.projects_router import router as projects_router
-
-    app.include_router(projects_router, prefix="/projects", tags=["Projects"])
-    logger.info("Projects router registered")
-except ImportError as e:
-    logger.warning("Projects router not found: %s", e)
-
-# Tasks Router - Task tracking
-try:
-    from routers.tasks_router import router as tasks_router
-
-    app.include_router(tasks_router, prefix="/tasks", tags=["Tasks"])
-    logger.info("Tasks router registered")
-except ImportError as e:
-    logger.warning("Tasks router not found: %s", e)
-
-# Users Router - User profile management
-try:
-    from routers.users_router import router as users_router
-
-    app.include_router(users_router, prefix="/users", tags=["Users"])
-    logger.info("Users router registered")
-except ImportError as e:
-    logger.warning("Users router not found: %s", e)
-
-try:
-    from routers.sales_report_router import router as sales_report_router
-
-    app.include_router(
-        sales_report_router, prefix="/sales-reports", tags=["Sales Reports"]
-    )
-    logger.info("Sales Report router registered")
-except ImportError as e:
-    logger.warning("Sales Report router not found: %s", e)
 
 
 # ============================================================================

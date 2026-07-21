@@ -18,16 +18,12 @@ def initialize_database():
     checkout (e.g., CI). Safe to call repeatedly; create_all is idempotent.
     """
     # Import the app first so every model is registered on the metadata before
-    # create_all runs; otherwise the notes/documents tables are missing and the
-    # FTS sync triggers cannot be created (mirrors production, where main.py
-    # imports all routers before the lifespan runs).
+    # create_all runs (mirrors production, where main.py imports all routers
+    # before the lifespan runs).
     import main  # noqa: F401
-    from models.database import get_session, init_database
-    from models.migrations import check_and_migrate
+    from models.database import init_database
 
     init_database()
-    with get_session() as session:
-        check_and_migrate(session)
 
 
 @pytest.fixture(scope="session")
