@@ -6,13 +6,13 @@ assembly logic in every test module. Contains no I/O and no Snowflake access.
 
 from typing import List
 
-from hackathon.synthetic_data.dimensions import (
+from synthetic_data.dimensions import (
     build_companies,
     build_locations,
     part_code_by_id,
     part_name_by_code,
 )
-from hackathon.synthetic_data.models import Part, ShotContext
+from synthetic_data.models import Part, ShotContext
 
 
 def build_context(parts: List[Part]) -> ShotContext:

@@ -3,21 +3,21 @@
 Generates a reproducible, client-free manufacturing dataset whose schema matches the production
 `MASTER_SHOT_TABLE` contract, so the existing sense tools run against it unmodified. Every defect
 in the data is planted deliberately and declared up front, which turns the hackathon demo into a
-verifiable claim instead of an anecdote. This directory is staging: it moves into the sanitized
-fork at the start of Phase 1 and must never import from the production application.
+verifiable claim instead of an anecdote. Generation is pure and self-contained: this package
+must never import from the application it supplies data to.
 
 ## Usage
 
 ```bash
 # Write CSV files plus the ground-truth contract, no Snowflake needed
-python -m hackathon.synthetic_data.generate --output-dir ./synthetic_out
+python -m synthetic_data.generate --output-dir ./synthetic_out
 
 # Same, then create the objects and COPY INTO the hackathon account
 export SNOWFLAKE_ACCOUNT=... SNOWFLAKE_USER=... SNOWFLAKE_PASSWORD=... SNOWFLAKE_WAREHOUSE=...
-python -m hackathon.synthetic_data.generate --database MMS_DEMO --schema PUBLIC --load
+python -m synthetic_data.generate --database MMS_DEMO --schema PUBLIC --load
 
 # Tests (pure, no I/O, no Snowflake)
-pytest hackathon/synthetic_data/tests/ -v
+pytest synthetic_data/tests/ -v
 ```
 
 Defaults: 8 equipment, 6 weeks, 5 production days per week, one 8-hour run per day, seed 20260721.

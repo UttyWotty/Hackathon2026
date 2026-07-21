@@ -9,13 +9,13 @@ from dataclasses import dataclass
 from statistics import multimode
 from typing import List
 
-from hackathon.synthetic_data.constants import (
+from synthetic_data.constants import (
     GAP_TIME_TOLERANCE_SECONDS,
     HARD_STOP_CT,
     SESSION_GAP_SECONDS,
     STOP_DEVIATION_THRESHOLD,
 )
-from hackathon.synthetic_data.models import Shot, StopKind
+from synthetic_data.models import Shot, StopKind
 
 # Tolerance for float drift when recomputing inter-shot gaps from timestamps.
 TIME_EPSILON_SEC = 1e-6

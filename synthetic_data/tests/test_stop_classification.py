@@ -12,14 +12,14 @@ from typing import Dict, List
 
 import pytest
 
-from hackathon.synthetic_data.dimensions import build_molds, build_parts, build_profiles
-from hackathon.synthetic_data.models import (
+from synthetic_data.dimensions import build_molds, build_parts, build_profiles
+from synthetic_data.models import (
     GenerationConfig,
     ProfileKind,
     Shot,
     StopKind,
 )
-from hackathon.synthetic_data.shots import generate_equipment_shots
+from synthetic_data.shots import generate_equipment_shots
 
 from .conftest import build_context
 from .runrate_reference import (

@@ -109,7 +109,7 @@ Operational constraint: trial accounts without a payment method are throttled to
 
 ### 7c. Standard prep
 
-- [x] Synthetic dataset generator built and tested. Lives at `hackathon/synthetic_data/` (untracked staging; moves into the fork at Phase 1). Generates about 230,000 shots across 8 machines and 5 behavioural archetypes plus the MOLD, COMPANY, LOCATION, PART and WORK_ORDER dimensions, matching the production MASTER_SHOT_TABLE contract column for column. Each generation emits a `ground_truth.json` declaring the expected finding per machine, so the agent's autonomous output is scored against a contract. See that directory's README for the planted defects and the design constraints.
+- [x] Synthetic dataset generator built and tested. Lives at `synthetic_data/` (untracked staging; moves into the fork at Phase 1). Generates about 230,000 shots across 8 machines and 5 behavioural archetypes plus the MOLD, COMPANY, LOCATION, PART and WORK_ORDER dimensions, matching the production MASTER_SHOT_TABLE contract column for column. Each generation emits a `ground_truth.json` declaring the expected finding per machine, so the agent's autonomous output is scored against a contract. See that directory's README for the planted defects and the design constraints.
 - [ ] Confirm team registration status. Eligibility per the official terms is 18 or older (not 20) and legal residence in India, ASEAN, Australia, New Zealand, South Korea, Japan, Sri Lanka, Bangladesh or Nepal. Teams of 1-4, free to enter, 10,000 USD prize pool.
 - [ ] Run the Day-1 Path B validation call (Appendix A.6) to resolve the unconfirmed Cortex Agents details before committing to Path B. Note that under the compressed timeline in section 2, the default is to skip Path B entirely.
 

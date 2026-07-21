@@ -11,18 +11,18 @@ from typing import Dict, List
 
 import pytest
 
-from hackathon.synthetic_data.constants import (
+from synthetic_data.constants import (
     CT_DEVIATION_CRITICAL_PCT,
     CT_DEVIATION_WARNING_PCT,
     HARD_STOP_CT,
 )
-from hackathon.synthetic_data.dataset import build_dataset
-from hackathon.synthetic_data.ground_truth import (
+from synthetic_data.dataset import build_dataset
+from synthetic_data.ground_truth import (
     MTBF_FLEET_MULTIPLE,
     MTTR_FLEET_MULTIPLE,
     RISK_TOWER_DECLINE_THRESHOLD_PCT,
 )
-from hackathon.synthetic_data.models import GenerationConfig, ProfileKind, Shot
+from synthetic_data.models import GenerationConfig, ProfileKind, Shot
 
 from .runrate_reference import RunMetrics, run_metrics, split_runs
 
