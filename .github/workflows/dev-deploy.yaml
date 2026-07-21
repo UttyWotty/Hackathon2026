@@ -1,0 +1,78 @@
+# Deploy workflow for the manufacturing-api to AWS ECR.
+# Triggered on push to the dev-deploy branch, this workflow builds the Docker image,
+# injects secrets (Snowflake credentials, service keys), and pushes to Amazon ECR.
+
+name: Deploy API
+
+on:
+  push:
+    branches: [dev-deploy]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Create Snowflake private key
+        run: |
+          echo "${{ secrets.KEY }}" > snowflake_key.p8
+
+      - name: Create .env file
+        env:
+          SNOWFLAKE_PRIVATE_KEY_PASSWORD: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSWORD }}
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+        run: |
+          echo "SNOWFLAKE_ACCOUNT=${{ secrets.SNOWFLAKE_ACCOUNT }}" >> .env
+          echo "SNOWFLAKE_PRIVATE_KEY_PATH=snowflake_key.p8" >> .env
+          echo "SNOWFLAKE_USER=${{ secrets.SNOWFLAKE_USER }}" >> .env
+          echo "SNOWFLAKE_WAREHOUSE=${{ secrets.SNOWFLAKE_WAREHOUSE }}" >> .env
+          echo "SNOWFLAKE_ROLE=${{ secrets.SNOWFLAKE_ROLE }}" >> .env
+          echo "SNOWFLAKE_PRIVATE_KEY_PASSWORD=$SNOWFLAKE_PRIVATE_KEY_PASSWORD" >> .env
+          echo "SNOWFLAKE_DATABASE=${{ secrets.SNOWFLAKE_DATABASE }}" >> .env
+          echo "SNOWFLAKE_DEFAULT_SCHEMA=${{ secrets.SNOWFLAKE_DEFAULT_SCHEMA }}" >> .env
+          echo "SNOWFLAKE_SCHEMA=${{ secrets.SNOWFLAKE_SCHEMA }}" >> .env
+          echo "AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}" >> .env
+          echo "AWS_BEARER_TOKEN_BEDROCK=$AWS_BEARER_TOKEN_BEDROCK" >> .env
+          echo "API_HOST=${{ secrets.API_HOST }}" >> .env
+          echo "API_PORT=${{ secrets.API_PORT }}" >> .env
+          echo "DEBUG_MODE=true" >> .env
+          echo "LOG_LEVEL=INFO" >> .env
+          echo "CACHE_QUERY_TTL=300" >> .env
+          echo "CACHE_SUMMARY_TTL=600" >> .env
+          echo "CACHE_ANALYSIS_TTL=600" >> .env
+          echo "CACHE_MAX_SIZE=1000" >> .env
+          echo "CR_TOLERANCE=0.05" >> .env
+          echo "CR_DOWNTIME_GAP_TOLERANCE=2.0" >> .env
+          echo "CR_RUN_INTERVAL_HOURS=8.0" >> .env
+          echo "CR_TARGET_OUTPUT_PERC=90.0" >> .env
+          echo "CR_DEFAULT_CAVITIES=1" >> .env
+          echo "SERVER_PORT=3020" >> .env
+          echo "ENABLED_MODULES=runrate,roi,capacity,ct_efficiency" >> .env
+          echo "LANGFUSE_ENABLED=true" >> .env
+          echo "LANGFUSE_HOST=${{ secrets.LANGFUSE_HOST }}" >> .env
+          echo "LANGFUSE_PUBLIC_KEY=${{ secrets.LANGFUSE_PUBLIC_KEY }}" >> .env
+          echo "LANGFUSE_SECRET_KEY=${{ secrets.LANGFUSE_SECRET_KEY }}" >> .env
+          echo "LLM_PROVIDER=${{ secrets.LLM_PROVIDER }}" >> .env
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REPOSITORY: manufacturing-api
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CT Efficiency Analysis - Calculation Guide</title>
+<style>
+  :root { --bg: #f8f9fa; --card: #fff; --border: #dee2e6; --accent: #2563eb; --text: #1a1a2e; --muted: #6c757d; --green: #16a34a; --red: #dc2626; --orange: #ea580c; --code-bg: #f1f3f5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.4rem; margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--accent); color: var(--accent); }
+  h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem; }
+  .subtitle { color: var(--muted); margin-bottom: 2rem; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .formula { background: var(--code-bg); border-left: 4px solid var(--accent); padding: 1rem 1.2rem; margin: 0.8rem 0; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.9rem; border-radius: 0 6px 6px 0; overflow-x: auto; white-space: pre; }
+  .warning { background: #fef3c7; border-left: 4px solid var(--orange); padding: 1rem 1.2rem; margin: 0.8rem 0; border-radius: 0 6px 6px 0; }
+  .note { background: #dbeafe; border-left: 4px solid var(--accent); padding: 1rem 1.2rem; margin: 0.8rem 0; border-radius: 0 6px 6px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 0.8rem 0; font-size: 0.9rem; }
+  th, td { padding: 0.6rem 0.8rem; border: 1px solid var(--border); text-align: left; }
+  th { background: var(--code-bg); font-weight: 600; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+  .tag-green { background: #dcfce7; color: var(--green); }
+  .tag-red { background: #fee2e2; color: var(--red); }
+  .tag-orange { background: #ffedd5; color: var(--orange); }
+  .toc { columns: 2; }
+  .toc a { text-decoration: none; color: var(--accent); }
+  .toc li { margin-bottom: 0.3rem; }
+  ul, ol { margin-left: 1.5rem; margin-bottom: 0.5rem; }
+  li { margin-bottom: 0.3rem; }
+  p { margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<h1>CT Efficiency Analysis -- Calculation Guide</h1>
+<p class="subtitle">Complete reference for all formulas, metrics, and statistical measures used in the CT efficiency report.</p>
+
+<div class="card">
+<h3>Table of Contents</h3>
+<ol class="toc">
+  <li><a href="#core">Core Efficiency Formula</a></li>
+  <li><a href="#confidence">Confidence Intervals</a></li>
+  <li><a href="#shift">Shift Performance Analysis</a></li>
+  <li><a href="#variance">Variance Decomposition (Operator vs Machine)</a></li>
+  <li><a href="#operator">Operator Benchmarking</a></li>
+  <li><a href="#tool">Tool Comparison (Same Approved CT Groups)</a></li>
+  <li><a href="#windowed">Monthly Windowed Trends</a></li>
+  <li><a href="#staleness">Approved CT Staleness Detection</a></li>
+  <li><a href="#breaks">Break Schedule Detection</a></li>
+  <li><a href="#std">Understanding "std" Numbers</a></li>
+  <li><a href="#constants">All Constants</a></li>
+</ol>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="core">1. Core Efficiency Formula</h2>
+<div class="card">
+<p>The foundation of every metric in the report. Compares each shot's actual cycle time against the approved baseline.</p>
+
+<div class="formula">efficiency       = APPROVED_CT / actual_CT
+efficiency_pct   = (efficiency - 1) * 100</div>
+
+<table>
+<tr><th>Result</th><th>Meaning</th><th>Example</th></tr>
+<tr><td><span class="tag tag-green">+10%</span></td><td>10% faster than approved CT</td><td>Approved=10s, Actual=9.09s</td></tr>
+<tr><td><span class="tag tag-green">0%</span></td><td>Exactly at approved CT</td><td>Approved=10s, Actual=10s</td></tr>
+<tr><td><span class="tag tag-red">-20%</span></td><td>20% slower than approved CT</td><td>Approved=10s, Actual=12.5s</td></tr>
+</table>
+
+<p>Values are capped to the range <strong>[-50%, +100%]</strong> to prevent extreme outliers from skewing aggregations.</p>
+
+<h3>Per-Tool Aggregation</h3>
+<div class="formula">mean_efficiency   = avg(efficiency_pct)   -- average performance
+std_efficiency    = std(efficiency_pct)   -- consistency (lower = better)
+median_efficiency = P50(efficiency_pct)   -- robust center
+sample_size       = count(shots)</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="confidence">2. Confidence Intervals (95%)</h2>
+<div class="card">
+<p>How precise is the mean? The CI gives a range where the true mean likely falls.</p>
+
+<div class="formula">SE         = std_efficiency / sqrt(n)
+t_critical = t-distribution value at 97.5% with df = n - 1
+CI_lower   = mean_efficiency - (t_critical * SE)
+CI_upper   = mean_efficiency + (t_critical * SE)</div>
+
+<div class="note">
+<strong>Reading it:</strong> "We are 95% confident the true mean efficiency for this tool falls between CI_lower and CI_upper."
+A narrow CI = high confidence (lots of data). A wide CI = noisy or small sample.
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="shift">3. Shift Performance Analysis</h2>
+<div class="card">
+<p>Splits each day into shifts and measures performance per shift. Default boundaries: 6:00, 14:00, 22:00.</p>
+
+<h3>Step 1: Daily Shift Instances</h3>
+<p>For each (date, shift) combination on each equipment:</p>
+<div class="formula">shot_count              = count of shots in this shift on this day
+mean_efficiency_pct     = avg(efficiency_pct)     -- how well this shift did today
+std_efficiency_pct      = std(efficiency_pct)     -- within-shift variance today
+first_20_efficiency_pct = avg(efficiency_pct[0:20])  -- warmup/transition period
+steady_efficiency_pct   = avg(efficiency_pct[20:])   -- stable production</div>
+
+<h3>Step 2: Shift Summary (across all days)</h3>
+<p>For each shift label (Morning, Afternoon, Night):</p>
+<div class="formula">total_instances      = number of days with this shift
+total_shots          = sum of all shot_counts
+mean_of_daily_means  = avg(daily mean_efficiency_pct values)
+std_of_daily_means   = std(daily mean_efficiency_pct values)
+mean_transition_penalty = avg(steady_eff - first_20_eff)</div>
+
+<div class="warning">
+<strong>About "std_of_daily_means":</strong> This is NOT the standard deviation of individual shots.
+It is the standard deviation of <em>daily averages</em>. It measures how much the shift's performance
+bounces around from day to day. A std of 5 means daily shift averages typically vary by ~5 percentage
+points. This is the "operator signal" -- if operators change between days, this captures that effect.
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="variance">4. Variance Decomposition (Operator vs Machine)</h2>
+<div class="card">
+<p>The key question: do operators matter, or is the machine the dominant factor? This section isolates the two sources of variation using a simple trick.</p>
+
+<h3>The Idea (Plain English)</h3>
+<div class="note">
+<p>Imagine Equipment X runs 3 shifts every day for 30 days. Each shift has a different crew.</p>
+<p><strong>Within-day std</strong> asks: "On any single day, how different are the 3 shifts from each other?"
+Since the machine, tooling, and material are the same that day, any difference between shifts is likely caused by <strong>who is running it</strong> (the operator).</p>
+<p><strong>Across-day std</strong> asks: "How much does the whole day's average change from Monday to Tuesday to Wednesday...?"
+The operators rotate on a fixed schedule, so over many days the operator effect averages out. What remains is <strong>machine/tooling/material drift</strong> (wear, temperature, batch changes).</p>
+<p><strong>Operator ratio</strong> = within-day / across-day. It tells you which source of variation is bigger.</p>
+</div>
+
+<h3>Worked Example</h3>
+<table>
+<tr><th></th><th>Morning Shift</th><th>Afternoon Shift</th><th>Night Shift</th><th>Daily Avg</th></tr>
+<tr><td><strong>Monday</strong></td><td>-2%</td><td>-3%</td><td>-1%</td><td>-2.0%</td></tr>
+<tr><td><strong>Tuesday</strong></td><td>-8%</td><td>-9%</td><td>-7%</td><td>-8.0%</td></tr>
+<tr><td><strong>Wednesday</strong></td><td>-5%</td><td>-6%</td><td>-4%</td><td>-5.0%</td></tr>
+</table>
+
+<div class="formula">Within-day std (operator effect):
+  Monday:    std([-2, -3, -1])    = 1.0
+  Tuesday:   std([-8, -9, -7])    = 1.0
+  Wednesday: std([-5, -6, -4])    = 1.0
+  avg_within_day_std = (1.0 + 1.0 + 1.0) / 3 = 1.0
+
+Across-day std (machine effect):
+  daily_means = [-2.0, -8.0, -5.0]
+  across_day_std = std([-2.0, -8.0, -5.0]) = 3.0
+
+Operator ratio = 1.0 / 3.0 = 0.33</div>
+
+<p>In this example, shifts on the same day are very close to each other (std = 1), but the whole day's level swings a lot between days (std = 3). The machine/tooling condition is driving 3x more variation than the operators. Ratio = 0.33, borderline -- machine slightly dominates.</p>
+
+<h3>Contrast: What it Looks Like When Operators DO Matter</h3>
+<table>
+<tr><th></th><th>Morning Shift</th><th>Afternoon Shift</th><th>Night Shift</th><th>Daily Avg</th></tr>
+<tr><td><strong>Monday</strong></td><td>+5%</td><td>-10%</td><td>+3%</td><td>-0.7%</td></tr>
+<tr><td><strong>Tuesday</strong></td><td>+4%</td><td>-12%</td><td>+2%</td><td>-2.0%</td></tr>
+<tr><td><strong>Wednesday</strong></td><td>+6%</td><td>-9%</td><td>+4%</td><td>+0.3%</td></tr>
+</table>
+
+<div class="formula">Within-day std:
+  Monday:    std([+5, -10, +3])   = 8.1
+  Tuesday:   std([+4, -12, +2])   = 8.7
+  Wednesday: std([+6, -9, +4])    = 8.1
+  avg_within_day_std = 8.3
+
+Across-day std:
+  daily_means = [-0.7, -2.0, +0.3]
+  across_day_std = 1.2
+
+Operator ratio = 8.3 / 1.2 = 6.9   (operators dominate!)</div>
+
+<p>Here, the afternoon shift is consistently terrible while morning is great -- same machine, same day, huge difference. That is an operator/crew problem. The ratio is way above 0.7.</p>
+
+<h3>Scale and Limits</h3>
+<div class="warning">
+<strong>The ratio is NOT on a 0-100 or 0-1 scale.</strong> It ranges from <strong>0 to infinity</strong>.
+It is a simple division: within-day std divided by across-day std. Both are standard deviations
+(always >= 0), and the result has no upper cap.
+</div>
+
+<div class="formula">Ratio = 0.0  -->  All shifts perform identically every day. Zero operator effect.
+Ratio = 0.3  -->  Within-day spread is 30% of across-day spread.
+                   Machine effect is ~3x larger than operator effect.
+Ratio = 1.0  -->  Both effects are equal in magnitude.
+Ratio = 3.0  -->  Operator effect is 3x larger than machine effect.
+Ratio = 7.0  -->  Operators dominate almost entirely.</div>
+
+<p>Think of it like a ratio of two speeds. "0.3" means the operator effect is moving at 30 km/h while the machine effect is moving at 100 km/h. The machine is clearly the faster driver of change. You would not say 30 km/h is "very high" -- it depends on what you compare it to, and here the comparison is built into the formula.</p>
+
+<h3>How to Read the Ratio</h3>
+<table>
+<tr><th>Ratio</th><th>Plain English</th><th>What to Do</th></tr>
+<tr><td><strong>&lt; 0.3</strong></td><td>Day-to-day swings are much bigger than shift-to-shift differences. The machine drives performance, not the person running it.</td><td>Focus on tooling maintenance, material quality, and machine calibration.</td></tr>
+<tr><td><strong>0.3 - 0.7</strong></td><td>Both matter. Some shifts are notably better/worse, AND the machine condition changes day to day.</td><td>Investigate which specific shift lags. Could be training or process compliance.</td></tr>
+<tr><td><strong>&gt; 0.7</strong></td><td>Shifts differ wildly on the same day but day-to-day averages are stable. The operator/crew is the main driver.</td><td>Invest in operator training, standardize procedures, identify best-practice shifts.</td></tr>
+</table>
+
+<div class="note">
+<strong>Our finding:</strong> Most equipment shows operator_ratio &lt; 0.3, meaning operators are NOT the main
+driver of performance variation. The machine/tooling condition dominates. This means swapping
+operators between shifts would NOT improve overall performance -- fixing tooling issues would.
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="operator">5. Operator Benchmarking</h2>
+<div class="card">
+<p>Even though operators may not dominate overall variance, this module ranks them for completeness.</p>
+
+<h3>Session Detection</h3>
+<div class="formula">A new session starts when gap between shots > 8 hours.
+Only sessions with >= 100 shots are kept.</div>
+
+<h3>Warmup Penalty</h3>
+<div class="formula">For sessions after a >8h break:
+  warmup_eff  = avg(efficiency_pct for first 20 shots)
+  steady_eff  = avg(efficiency_pct for remaining shots)
+  penalty     = steady_eff - warmup_eff
+
+avg_warmup_penalty = avg(all penalties)</div>
+<p>Positive penalty = machine gets better after warmup (expected). Negative = performance drops over time (unexpected).</p>
+
+<h3>Consistency Scores</h3>
+<div class="formula">Within-Session Consistency:
+  CV = (std / |mean|) * 100   for each session
+  score = max(0, min(100, 100 - avg_CV * 2))
+
+Cross-Session Consistency:
+  session_means = [mean of each session]
+  CV = (std(session_means) / |mean(session_means)|) * 100
+  score = max(0, min(100, 100 - CV * 2))</div>
+
+<p>Both range 0-100. Score of 100 = perfectly consistent. Score near 0 = wildly erratic.</p>
+
+<h3>Overall Ranking</h3>
+<div class="formula">adjusted_score = 0.50 * mean_efficiency_pct
+               + 0.25 * within_session_consistency
+               + 0.25 * cross_session_consistency</div>
+
+<table>
+<tr><th>Tier</th><th>Meaning</th></tr>
+<tr><td>Excellent</td><td>Top performers -- high efficiency AND consistent</td></tr>
+<tr><td>Good</td><td>Above average</td></tr>
+<tr><td>Average</td><td>Middle of the pack</td></tr>
+<tr><td>Needs Improvement</td><td>Below average</td></tr>
+<tr><td>Poor</td><td>Lowest efficiency and/or highly inconsistent</td></tr>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="tool">6. Tool Comparison (Same Approved CT Groups)</h2>
+<div class="card">
+<p>The most meaningful comparison: equipment making the <em>same part</em> (same APPROVED_CT). This is the ground truth for identifying over/underperforming machines.</p>
+
+<h3>Grouping</h3>
+<div class="formula">Group by: APPROVED_CT (rounded to 2 decimals, exact match)
+Each group = machines producing the same part type
+Minimum: 200 shots per equipment, 2+ equipment per group</div>
+
+<h3>Per-Equipment Stats</h3>
+<div class="formula">For each equipment in an approved CT group:
+  mean_efficiency_pct    = avg(efficiency_pct)
+  std_efficiency_pct     = std(efficiency_pct)   -- machine consistency
+  rank_in_group          = rank by mean_efficiency (1 = best)
+  deviation_from_group   = mean_eff - group_mean</div>
+
+<h3>Group-Level Stats</h3>
+<div class="formula">equipment_means        = [mean_efficiency for each equipment]
+group_mean_efficiency  = avg(equipment_means)
+group_std_efficiency   = std(equipment_means)</div>
+
+<div class="warning">
+<strong>group_std_efficiency</strong> measures the spread <em>between machines</em>, not within a machine.
+A group_std of 8 means the best and worst machines in this group differ by roughly 16 pct points
+(2 standard deviations). This is the performance gap to close via maintenance or replacement.
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="windowed">7. Monthly Windowed Trends</h2>
+<div class="card">
+<p>Same tool comparison, but sliced by month. Shows if rankings are stable or shifting.</p>
+
+<h3>Monthly Stats</h3>
+<div class="formula">For each (month, approved CT group, equipment):
+  Same metrics as static tool comparison, scoped to that month only.</div>
+
+<h3>Trend Calculation</h3>
+<div class="formula">For equipment with >= 3 months of data:
+  slope = linear regression of mean_efficiency over months
+  efficiency_trend = slope (pct points gained/lost per month)
+
+  mean_rank = avg(monthly rank)
+  rank_std  = std(monthly rank)</div>
+
+<h3>Ranking Stability</h3>
+<div class="formula">avg_rank_std = avg(rank_std for all equipment in group)
+
+If avg_rank_std < 1.0:  rankings_stable = True
+                        (machines stay in same relative position)
+If avg_rank_std >= 1.0: rankings_stable = False
+                        (machines swap positions -- possible equipment rotation needed)</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="staleness">8. Approved CT Staleness Detection</h2>
+<div class="card">
+<p>Are the approved CT baselines still valid, or have they become outdated as tooling wears?</p>
+
+<h3>Monthly Group Aggregation</h3>
+<div class="formula">For each month in each approved CT group (min 100 shots/month):
+  group_mean_efficiency = avg(efficiency_pct)
+  group_std_efficiency  = std(efficiency_pct)
+  mean_ct              = avg(actual CT)</div>
+
+<h3>Trend</h3>
+<div class="formula">trend = linear regression slope of monthly group_mean_efficiency
+        (pct points per month; negative = degrading)</div>
+
+<h3>Severity Classification</h3>
+<table>
+<tr><th>Latest Efficiency</th><th>Trend (per month)</th><th>Severity</th></tr>
+<tr><td>Below -15%</td><td>&lt; -0.3%</td><td><span class="tag tag-red">severely_stale</span></td></tr>
+<tr><td>Below -15%</td><td>>= -0.3%</td><td><span class="tag tag-red">stale</span></td></tr>
+<tr><td>-15% to -8%</td><td>&lt; -0.3%</td><td><span class="tag tag-red">stale</span></td></tr>
+<tr><td>-15% to -8%</td><td>>= -0.3%</td><td><span class="tag tag-orange">warning</span></td></tr>
+<tr><td>Above -8%</td><td>&lt; -0.3%</td><td><span class="tag tag-orange">warning</span></td></tr>
+<tr><td>Above -8%</td><td>>= -0.3%</td><td><span class="tag tag-green">ok</span></td></tr>
+</table>
+
+<h3>Suggested CT Recalibration</h3>
+<div class="formula">target_improvement = 0.02  (2% buffer)
+suggested_ct = latest_mean_ct * (1.0 - target_improvement)</div>
+<p>The suggested CT is based on actual recent performance minus a 2% aspirational buffer.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="breaks">9. Break Schedule Detection</h2>
+<div class="card">
+<p>Detects recurring break patterns from gaps in production data.</p>
+
+<h3>Break Event Collection</h3>
+<div class="formula">A "break" = gap between consecutive shots where:
+  0.5 hours <= gap <= 8.0 hours</div>
+
+<h3>Clustering</h3>
+<div class="formula">Sort breaks by hour_of_day.
+Group breaks within 1-hour windows.
+A cluster is "planned" if it appears in >= 50% of sessions.</div>
+
+<h3>Classification</h3>
+<table>
+<tr><th>Hour Range</th><th>Duration</th><th>Label</th></tr>
+<tr><td>05:00 - 10:00</td><td>&lt; 1h</td><td>Morning Break</td></tr>
+<tr><td>10:00 - 14:00</td><td>>= 30min</td><td>Lunch Break</td></tr>
+<tr><td>14:00 - 17:00</td><td>&lt; 1h</td><td>Afternoon Break</td></tr>
+<tr><td>17:00 - 21:00</td><td>>= 30min</td><td>Dinner Break</td></tr>
+<tr><td>21:00 - 05:00</td><td>any</td><td>Night Break</td></tr>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="std">10. Understanding "std" Numbers</h2>
+<div class="card">
+<div class="warning">
+<strong>This is the section you want to read carefully.</strong> The "std" (standard deviation) numbers
+appear in many places, but they measure DIFFERENT things depending on context. Misreading them
+will lead to wrong conclusions.
+</div>
+
+<table>
+<tr><th>Where You See It</th><th>What It Measures</th><th>Unit</th><th>What "High" Means</th></tr>
+<tr>
+  <td><strong>std_efficiency_pct</strong><br>(per tool)</td>
+  <td>Shot-to-shot variability of a single machine</td>
+  <td>pct points</td>
+  <td>Machine is inconsistent -- some shots fast, some slow. Could indicate tooling wear, material variation, or process instability.</td>
+</tr>
+<tr>
+  <td><strong>std_of_daily_means</strong><br>(shift summary)</td>
+  <td>Day-to-day variability of shift averages</td>
+  <td>pct points</td>
+  <td>Shift performance bounces around between days. If this is high for ONE shift but low for others, that shift may have operator issues.</td>
+</tr>
+<tr>
+  <td><strong>within_day_std</strong><br>(variance decomposition)</td>
+  <td>Spread between shift means on the SAME day</td>
+  <td>pct points</td>
+  <td>Different shifts on the same day perform very differently = operator effect.</td>
+</tr>
+<tr>
+  <td><strong>across_day_std</strong><br>(variance decomposition)</td>
+  <td>Spread of daily averages over time</td>
+  <td>pct points</td>
+  <td>Performance changes significantly from day to day = machine/tooling/material effect.</td>
+</tr>
+<tr>
+  <td><strong>group_std_efficiency</strong><br>(tool comparison)</td>
+  <td>Spread between machines in same part group</td>
+  <td>pct points</td>
+  <td>Big performance gap between best and worst machine making the same part. Maintenance opportunity.</td>
+</tr>
+<tr>
+  <td><strong>rank_std</strong><br>(windowed trends)</td>
+  <td>How much a machine's rank changes month-to-month</td>
+  <td>rank positions</td>
+  <td>Machine is not consistently good or bad -- its relative position keeps changing.</td>
+</tr>
+</table>
+
+<h3>Why std can "look high"</h3>
+<div class="note">
+<p><strong>Context matters.</strong> A std_efficiency_pct of 15 on individual shots is normal -- individual
+cycle times naturally vary. But a std_of_daily_means of 15 for shift performance would be alarming,
+because daily averages (each based on hundreds of shots) should be much more stable.</p>
+
+<p><strong>Rule of thumb:</strong></p>
+<ul>
+<li>Shot-level std of 5-20 pct points = typical manufacturing noise</li>
+<li>Daily-mean std of 2-5 pct points = normal day-to-day variation</li>
+<li>Daily-mean std > 8 pct points = investigate (operator training, tooling, material changes)</li>
+<li>Group std between machines &lt; 3 pct points = machines are well-matched</li>
+<li>Group std between machines > 10 pct points = significant performance gap</li>
+</ul>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="constants">11. All Constants Used</h2>
+<div class="card">
+<table>
+<tr><th>Constant</th><th>Value</th><th>Used In</th></tr>
+<tr><td>CONFIDENCE_LEVEL</td><td>0.95</td><td>Confidence interval calculations</td></tr>
+<tr><td>PRODUCTION_END_BREAK_HOURS</td><td>8.0</td><td>Session splitting threshold</td></tr>
+<tr><td>WARMUP_SHOT_COUNT</td><td>20</td><td>First N shots treated as warmup</td></tr>
+<tr><td>MIN_SHOTS_PER_SESSION</td><td>100</td><td>Sessions with fewer shots are dropped</td></tr>
+<tr><td>MIN_SESSIONS_FOR_ANALYSIS</td><td>3</td><td>Minimum sessions to run operator benchmarking</td></tr>
+<tr><td>MIN_SESSIONS_FOR_SHIFT_REPORT</td><td>10</td><td>Minimum sessions for shift performance report</td></tr>
+<tr><td>PLANNED_DOWNTIME_MIN_RATIO</td><td>0.5</td><td>Break must appear in 50%+ of sessions to be "planned"</td></tr>
+<tr><td>BREAK_CLUSTER_WINDOW_HOURS</td><td>1.0</td><td>Breaks within 1 hour are clustered together</td></tr>
+<tr><td>Z_SCORE_THRESHOLD</td><td>2.0</td><td>Outlier detection threshold</td></tr>
+<tr><td>MIN_SAMPLE_SIZE</td><td>30</td><td>Minimum shots for statistical validity</td></tr>
+<tr><td>MIN_SHOTS_FOR_COMPARISON</td><td>200</td><td>Tool comparison: minimum shots per equipment</td></tr>
+<tr><td>MIN_EQUIPMENT_PER_GROUP</td><td>2</td><td>Tool comparison: minimum equipment in group</td></tr>
+<tr><td>APPROVED_CT_TOLERANCE</td><td>0.0</td><td>Exact match for approved CT grouping</td></tr>
+<tr><td>EFFICIENCY_CAP_UPPER</td><td>100%</td><td>Maximum efficiency value</td></tr>
+<tr><td>EFFICIENCY_CAP_LOWER</td><td>-50%</td><td>Minimum efficiency value</td></tr>
+<tr><td>MIN_MONTHS_FOR_STALENESS</td><td>3</td><td>Minimum months for staleness analysis</td></tr>
+<tr><td>MIN_SHOTS_PER_MONTH</td><td>100</td><td>Staleness: minimum shots for a month to count</td></tr>
+<tr><td>SEVERE_UNDERPERFORMANCE</td><td>-15%</td><td>Staleness severity threshold</td></tr>
+<tr><td>UNDERPERFORMANCE</td><td>-8%</td><td>Staleness warning threshold</td></tr>
+<tr><td>STALENESS_TREND</td><td>-0.3%/month</td><td>Degradation rate threshold</td></tr>
+<tr><td>MIN_WINDOWS_FOR_TREND</td><td>3</td><td>Minimum months for trend calculation</td></tr>
+<tr><td>NIGHT_ACTIVITY_THRESHOLD</td><td>0.4</td><td>Shift detection: 2-shift vs 3-shift cutoff</td></tr>
+<tr><td>MIN_DIP_RATIO</td><td>0.6</td><td>Shift detection: dip detection threshold</td></tr>
+</table>
+</div>
+
+<p style="text-align:center; color:var(--muted); margin-top:2rem; font-size:0.85rem;">
+  Generated from source code in analysis/ct_efficiency/ -- Manufacturing API
+</p>
+
+</body>
+</html>

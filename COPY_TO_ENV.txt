@@ -1,0 +1,184 @@
+# Manufacturing Analytics API - Environment Configuration
+# Copy this file to .env and fill in your actual values
+
+# ============================================================================
+# SERVER CONFIGURATION
+# ============================================================================
+SERVER_PORT=3020
+SERVER_HOST=0.0.0.0
+ENVIRONMENT=production
+
+# API Base URL (for internal tool calls)
+API_BASE_URL=http://localhost:3020
+
+# ============================================================================
+# SNOWFLAKE DATABASE (Required)
+# ============================================================================
+SNOWFLAKE_USER=your_username
+SNOWFLAKE_ACCOUNT=your_account_identifier
+SNOWFLAKE_WAREHOUSE=your_warehouse
+SNOWFLAKE_DATABASE=your_database
+SNOWFLAKE_SCHEMA=your_schema
+SNOWFLAKE_ROLE=your_role
+
+# Authentication: Use EITHER password OR private key
+SNOWFLAKE_PASSWORD=your_password
+
+# OR use private key authentication (recommended for production)
+# SNOWFLAKE_PRIVATE_KEY_PATH=/path/to/your/private_key.p8
+# SNOWFLAKE_PRIVATE_KEY_PASSWORD=your_key_password
+
+# Snowflake Connection Settings
+SNOWFLAKE_NETWORK_TIMEOUT=3600
+SNOWFLAKE_LOGIN_TIMEOUT=60
+SNOWFLAKE_OCSP_FAIL_OPEN=True
+SNOWFLAKE_INSECURE_MODE=False
+
+# ============================================================================
+# REDIS CACHE (Optional - Falls back to in-memory LRU if unavailable)
+# ============================================================================
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_PASSWORD=
+CACHE_TTL=3600
+
+# ============================================================================
+# EMAIL / SMTP (Optional - For notifications and reports)
+# ============================================================================
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_app_password
+SMTP_FROM_EMAIL=noreply@yourcompany.com
+SMTP_FROM_NAME=Manufacturing Analytics
+
+# Alert recipient for monitoring alerts
+ALERT_EMAIL=admin@yourcompany.com
+
+# ============================================================================
+# AUTHENTICATION (Disabled by default)
+# ============================================================================
+# Set to True to enable JWT-based authentication
+AUTH_ENABLED=False
+
+# JWT Configuration (required if AUTH_ENABLED=True)
+JWT_SECRET_KEY=your-super-secret-jwt-key-change-this-in-production
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# ============================================================================
+# CORS SECURITY
+# ============================================================================
+# Comma-separated list of allowed origins
+# Default allows localhost for development
+# In production, specify your actual frontend URLs
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3020
+
+# ============================================================================
+# RATE LIMITING (Optional but recommended for production)
+# ============================================================================
+RATE_LIMIT_ENABLED=True
+RATE_LIMIT_DEFAULT=100/minute
+
+# ============================================================================
+# AUDIT LOGGING
+# ============================================================================
+AUDIT_LOGGING_ENABLED=True
+AUDIT_BUFFER_SIZE=100
+
+# ============================================================================
+# MONITORING
+# ============================================================================
+METRICS_COLLECTION_INTERVAL=60
+ALERT_CHECK_INTERVAL=60
+
+# ============================================================================
+# BACKUP
+# ============================================================================
+BACKUP_DIRECTORY=backups
+AUTO_BACKUP_ENABLED=False
+AUTO_BACKUP_INTERVAL_HOURS=24
+
+# ============================================================================
+# AWS S3 (Optional - For backup storage)
+# ============================================================================
+# AWS_ACCESS_KEY_ID=your_access_key
+# AWS_SECRET_ACCESS_KEY=your_secret_key
+# AWS_S3_BUCKET=your-backup-bucket
+# AWS_REGION=us-east-1
+
+# ============================================================================
+# MLX LOCAL LLM (Required - For chat and embeddings on Apple Silicon)
+# ============================================================================
+# Uses mlx-lm for local LLM inference via OpenAI-compatible server.
+# Start the server:
+#   mlx_lm.server --model mlx-community/Qwen3-32B-4bit --port 8080
+#
+# Available models (cached via HuggingFace):
+#   mlx-community/Qwen3-32B-4bit                   (main - general tasks)
+#   mlx-community/QwQ-32B-4bit                      (reasoning - complex analysis)
+#   mlx-community/Qwen2.5-Coder-14B-Instruct-4bit  (code/SQL - technical tasks)
+#   mlx-community/Llama-3.2-3B-Instruct-4bit       (fast - simple queries)
+#   nomic-ai/nomic-embed-text-v1.5                  (embeddings for RAG)
+
+# MLX LM server URL (default: http://127.0.0.1:8080)
+MLX_HOST=http://127.0.0.1:8080
+
+# LLM Model Configuration
+# Default model for general tasks
+MLX_LLM_MODEL=mlx-community/Qwen3-32B-4bit
+
+# Reasoning model for complex analysis
+MLX_REASONING_MODEL=mlx-community/QwQ-32B-4bit
+
+# Fast model for simple/quick responses
+MLX_FAST_MODEL=mlx-community/Llama-3.2-3B-Instruct-4bit
+
+# Embedding model for semantic search/RAG (uses sentence-transformers)
+EMBEDDING_MODEL=nomic-ai/nomic-embed-text-v1.5
+
+# Embedding cache settings
+EMBEDDING_CACHE_MAX_ITEMS=256
+EMBEDDING_CACHE_TTL_SECONDS=3600
+
+# ============================================================================
+# LANGFUSE OBSERVABILITY (Optional - LLM tracing and evaluation)
+# ============================================================================
+# Self-hosted Langfuse for LLM call tracing, scoring, and evaluation.
+# Start via: docker-compose up -d langfuse langfuse-db
+# Then visit http://localhost:3001 to create account and get API keys.
+
+# Langfuse server URL (default: local Docker instance)
+LANGFUSE_HOST=http://localhost:3001
+
+# API keys (obtain from Langfuse UI after creating a project)
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+
+# Feature toggle (set to False to disable tracing without removing keys)
+LANGFUSE_ENABLED=True
+
+# Flush interval in seconds (how often buffered traces are sent)
+LANGFUSE_FLUSH_INTERVAL=5
+
+# Sample rate 0.0-1.0 (1.0 = trace every call, 0.1 = trace 10%)
+LANGFUSE_SAMPLE_RATE=1.0
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+LOG_LEVEL=INFO
+LOG_FILE=logs/manufacturing_api.log
+
+# ============================================================================
+# NOTES
+# ============================================================================
+# - Never commit .env to Git (it's in .gitignore)
+# - Store sensitive keys outside the repo
+# - Use strong passwords and rotate regularly
+# - Enable authentication (AUTH_ENABLED=True) in production
+# - Set specific CORS_ALLOWED_ORIGINS in production (not *)
+# - Review all settings before deploying
+

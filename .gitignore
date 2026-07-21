@@ -1,0 +1,169 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+*.env
+!env.example
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/*.log
+*.log
+log/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+!tests/*.db
+
+# Outputs & Results
+output/
+data/exports/
+data/temp/
+data/processed/
+data/results/
+data/vector_db/
+GM.pdf
+
+# Private Keys & Secrets
+*.p8
+*.pem
+*.key
+*.crt
+config/roi_key.p8
+config/*.p8
+config/*.pem
+
+# Test Coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Environments
+.venv
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# Distribution / Packaging
+.Python
+
+# Backups
+*.bak
+*.backup
+*.old
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ---------------------------------------------------------------------------
+# Hackathon fork hard rules. This repository is published as part of a public
+# contest submission. Nothing below may ever enter its history, regardless of
+# what a local workflow finds convenient.
+# ---------------------------------------------------------------------------
+
+# Credentials and key material
+.env
+*.env
+.env.*
+*.p8
+*.pem
+*.key
+*.jks
+*.pfx
+config/roi_key.p8
+
+# Real client data and generated artifacts from the production system
+data/
+backups/
+output/
+logs/
+assets/
+*.db
+*.sqlite
+*.sqlite3
+root_cause_analysis_report_*.json
+*.pdf
+
+# Synthetic dataset output (regenerate it; do not commit 230k rows)
+synthetic_out/
+
+# Local tooling
+.claude/
+.qodo/
+.mcp.json
