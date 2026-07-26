@@ -41,7 +41,9 @@ python -m synthetic_data.generate --database MMS_DEMO --schema PUBLIC --load
 python main.py
 ```
 
-Then: Swagger at http://localhost:3020/docs, health at `/health`, tool contract at `/mcp/info`.
+Then: Swagger at http://localhost:3020/docs, health at `/health`, MCP info at `/mcp/mcp/info`
+(the doubled segment is real - `mcp_router` declares its own `/mcp/*` paths and is mounted under
+the `/mcp` prefix).
 
 ```bash
 pytest tests/ -v                  # application suite
@@ -65,10 +67,15 @@ trigger (schedule or event)
     log      every decision and action recorded for inspection
 ```
 
-A single FastAPI application on port 3020 hosts all of it. Eight routers, mounted at `/analytics`,
-`/chat`, `/config`, `/database`, `/email`, `/mcp`, `/monitoring` and `/scheduler`. Tools are
-dispatched by name through a registry, so the same implementations serve the chat surface, the
-MCP contract and the autonomous loop.
+A single FastAPI application on port 3020 hosts all of it. Eight routers over seven prefixes:
+`/analytics`, `/chat`, `/config`, `/email`, `/mcp`, `/monitoring` and `/scheduler` (the WebSocket
+chat router shares the `/chat` prefix). Tools are dispatched by name through a registry, so the
+same implementations serve the chat surface, the MCP contract and the autonomous loop.
+
+The LLM client is pluggable behind a backend factory (`core/llm_backend.py`, selected by
+`LLM_BACKEND`): the Snowflake Cortex Messages API is the default and the submission path, with a
+local MLX client as an Apple-Silicon development stand-in that returns responses in the same
+Anthropic shape, so the loop and parsers never branch on backend.
 
 ## The data
 
@@ -92,11 +99,21 @@ See `synthetic_data/README.md` for the planted defects and the non-obvious desig
 ## Status
 
 Working: the analytics surface, the tool-calling loop, the tool dispatch registry, the scheduler
-and job queue, and the synthetic dataset with its verification contract. 500 tests pass.
+and job queue, and the synthetic dataset with its verification contract. 698 tests pass (658
+application, 40 generator).
 
-Outstanding: the LLM client currently targets AWS Bedrock and is being ported to the Snowflake
-Cortex REST Messages API, which is the same wire format and touches three call sites. The
-autonomous controller and the decision log build on top of that.
+Built: the LLM client is ported off AWS Bedrock to the Snowflake Cortex REST Messages API
+(`core/cortex_client.py` plus the pure `cortex_wire`/`cortex_adapter` helpers), behind a backend
+factory that also offers a local MLX stand-in for offline development. The autonomous controller
+(`services/workflow/`) runs the headless sense-reason-act loop and writes a decision trail
+(`models/decision_trail.py`); `scripts/run_agent.py` drives one run and self-grades it. Three
+agent skills, a shift-notes search surface, the Risk Tower detector, and an offline data seam
+(`LOCAL_DATA_DIR` serving the generator CSVs without Snowflake) are in place.
+
+Outstanding: Phase 4 - the end-to-end demo, the Cortex Analyst interactive surface, and the
+submission writeup and video. First contact against a live hackathon Snowflake account (PAT auth,
+PUT/COPY load, the exact GA Claude model id) is still untested; the code is written but has only
+run against synthetic CSVs and the MLX backend.
 
 `HACKATHON_PLAN.md` holds the build plan and the verified Cortex integration reference.
 `CLAUDE.md` holds the architecture and conventions, including several traps worth reading before

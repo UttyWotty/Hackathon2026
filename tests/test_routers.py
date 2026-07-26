@@ -46,5 +46,3 @@ def test_scheduler_router_info(client):
     assert response.status_code == 200
     data = response.json()
     assert data["service"] == "Scheduler Service"
-
-

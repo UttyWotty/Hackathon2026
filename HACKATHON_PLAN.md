@@ -2,14 +2,16 @@
 
 This document is the ready-to-start plan for entering the Snowflake CoCo (Cortex Code) CLI Hackathon 2026 by reusing the manufacturing-api repo as an Intelligent Workflow Automation Agent. It captures the locked decisions, the reuse map, the Bedrock-to-Cortex port strategy, a phased schedule against the Aug 2 2026 deadline, and the pre-build checklist. It is a staging artifact: it lives in the production repo for reference but the actual build happens in a separate sanitized fork.
 
+Revision note (2026-07-22): build status brought current. Phases 1-3 are substantially built in the working tree - the fork and trimmed demo surface, the Bedrock-to-Cortex port behind a backend factory (with an MLX local stand-in), and the autonomous controller with a decision trail. 698 tests pass. Phase 4 (live-account first contact, demo, Cortex Analyst surface, submission) is what remains. The "Not building yet" note in section 1 and the "no build has started" status in section 2 are superseded; per-phase status lines are inline below. See `readme.md` Status for the current summary.
+
 Revision note (2026-07-21): sections 2, 5, 7a, 7b, A.3 and A.4 were corrected against the official hackathon terms and current Snowflake docs. The material changes: the contest supplies the Snowflake account (it was never blocked on the CTO), and Claude Sonnet is not natively available in any AWS APJ region, which reverses the earlier region guidance.
 
 ## 1. Locked decisions (2026-07-16)
 
 - Track: Intelligent Workflow Automation Agent (sense anomalies, reason over them, autonomously trigger multi-step workflows).
 - Codebase: fresh sanitized fork with synthetic data in a Snowflake trial/hackathon account. The production repo, real credentials, and real client schemas (NORDPLAST, VANTIS, etc.) must never enter the submission or its git history.
-- LLM: port from AWS Bedrock (Claude) to Snowflake Cortex (Claude native).
-- Not building yet. This plan makes Day 1 a clean start.
+- LLM: port from AWS Bedrock (Claude) to Snowflake Cortex (Claude native). Done - see the
+  2026-07-22 revision note; the Cortex client and adapter are built behind a backend factory.
 
 ## 2. Timeline (source: hackathon brief)
 
@@ -17,7 +19,7 @@ Revision note (2026-07-21): sections 2, 5, 7a, 7b, A.3 and A.4 were corrected ag
 - Portal closes: Aug 2 2026.
 - Final shortlist: Aug 24 2026. Grand finale / demo day: Sep 1-4 2026. Contest period runs through Sep 4.
 
-Status at 2026-07-21: no build has started, leaving 12 days against a 12-16 day phased plan. The buffer in section 6 is gone, so treat the section 8 cut lines as the default scope rather than a contingency: Path A own-the-loop only, drop Cortex Agents and Cortex Analyst unless time is recovered.
+Status at 2026-07-22: Phases 1-3 are substantially built (see the revision note at the top); Phase 4 and live-account first contact remain. The section 8 cut lines held in practice - the build took Path A own-the-loop and has not yet added Cortex Agents or Cortex Analyst. (The 2026-07-21 reading of "no build has started, 12 days remaining" is superseded.)
 
 Trial account lifetime is a scheduling constraint in its own right. A trial is 30 days from signup, so one started on 2026-07-21 expires around Aug 20 - before both the Aug 24 shortlist and the Sep 1-4 finale. The terms state finalists may be issued a fresh sign-up link if theirs expired, so this is recoverable, but the demo environment must be reproducible from scratch (scripted DDL plus the synthetic data generator) rather than hand-built in an account that will die.
 
@@ -75,18 +77,18 @@ The per-phase estimates below are unchanged from the original scoping and total 
 
 Phase 0 - De-risk: complete. Cortex tool-calling and Agents capability, the client-side custom-tool flow, and copy-ready code shapes are confirmed. Outcome: feasible, GA, no technical blockers. The remaining Phase 0 unknown is the account's exact GA Claude model id, which resolves in one query once the account exists (7a).
 
-Phase 1 - Sanitized fork + synthetic data (2-3 days):
+Phase 1 - Sanitized fork + synthetic data (2-3 days) - DONE (CSV/local path; live-account load untested):
 - Fresh git init (no production .env in history; add it to .gitignore before the first commit, not after). Trim to the demo surface: session pool, tool loop, scheduler/jobs, sense/act tools, Streamlit UI. Drop unrelated routers and features.
 - Load the synthetic dataset. The generator is already written and tested (see 7c), so this phase is running `python -m synthetic_data.generate --load` against the hackathon account and verifying the sense tools return the planted findings, not authoring a generator. The PUT and COPY INTO path is written but has never run against a live account, so budget time for that first contact.
 
-Phase 2 - Bedrock to Cortex (3-4 days):
+Phase 2 - Bedrock to Cortex (3-4 days) - DONE (built and unit-tested; not yet run against a live Cortex endpoint):
 - Rewrite core/llm_client.py get_response against Path A (`/messages`) with PAT auth; keep the four parser helpers' contracts stable so the loop is untouched. Add a Cortex tool-format adapter beside bedrock_adapter.py. Only three call sites.
 
-Phase 3 - Autonomous controller + Cortex-native surface (4-5 days):
-- Headless sense-decide-act loop triggered by the existing scheduler; Cortex reasons over anomaly findings and chains actions; persist a decision log.
-- Add a Cortex Analyst semantic model over the synthetic schema for the interactive NL-query surface.
+Phase 3 - Autonomous controller + Cortex-native surface (4-5 days) - controller DONE, Cortex Analyst surface NOT STARTED:
+- Headless sense-decide-act loop triggered by the existing scheduler; Cortex reasons over anomaly findings and chains actions; persist a decision log. DONE - `services/workflow/` plus `models/decision_trail.py` and `scripts/run_agent.py`. Beyond the plan: three agent skills, a shift-notes search surface, and the Risk Tower detector were added.
+- Add a Cortex Analyst semantic model over the synthetic schema for the interactive NL-query surface. NOT STARTED (a section 8 cut-line candidate).
 
-Phase 4 - Demo and submission (3-4 days):
+Phase 4 - Demo and submission (3-4 days) - NOT STARTED (the remaining work):
 - Streamlit demo: the agent autonomously catches a seeded CT-deviation anomaly and fires the workflow end to end, plus a decision-log view. Record demo video and writeup. Buffer to Aug 2.
 
 ## 7. Pre-build checklist (do before Day 1)

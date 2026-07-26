@@ -14,9 +14,9 @@ The Cortex Workflow Agent now supports **Model Context Protocol (MCP)** endpoint
 │  │   REST API       │  │   MCP Protocol   │            │
 │  │   Endpoints      │  │   Endpoints      │            │
 │  │                  │  │                  │            │
-│  │ /analytics/roi   │  │ /tools/list      │            │
-│  │ /database/query  │  │ /tools/call      │            │
-│  │ /visualization/* │  │ /mcp/info        │            │
+│  │ /analytics/roi   │  │ /mcp/tools/list  │            │
+│  │ /analytics/rca   │  │ /mcp/tools/call  │            │
+│  │ /analytics/ct-*  │  │ /mcp/mcp/info    │            │
 │  └──────────────────┘  └──────────────────┘            │
 │           │                      │                       │
 │           └──────────┬───────────┘                       │

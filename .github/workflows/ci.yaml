@@ -81,5 +81,10 @@ jobs:
       - name: Run tests with pytest
         run: |
           pytest tests/ -v --tb=short -x \
-            -k "not snowflake and not redis and not langfuse and not langflow" \
-            --ignore=tests/pipelines
+            -k "not snowflake and not redis and not langfuse and not langflow"
+
+      # Pure logic, no I/O and no Snowflake, so it needs no filtering. Runs even
+      # when the suite above fails, since -x would otherwise mask its result.
+      - name: Run synthetic data generator tests
+        if: ${{ !cancelled() }}
+        run: pytest synthetic_data/tests/ -v --tb=short

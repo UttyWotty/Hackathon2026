@@ -71,8 +71,7 @@ def _table_body() -> Dict[str, Any]:
 # Pure-compute endpoints: no external dependency, so any code-level 5xx is a real
 # bug. These directly cover the v0.1.4 contract-bug class (ml/predict,
 # transformation/clean, mcp/tools/reason).
-_COMPUTE_CASES: List[ValidCase] = [
-]
+_COMPUTE_CASES: List[ValidCase] = []
 
 # Read-only I/O endpoints: valid inputs reach the query layer. In CI (no
 # Snowflake) these 5xx with a dependency signature and are tolerated; locally

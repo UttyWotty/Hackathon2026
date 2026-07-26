@@ -33,11 +33,16 @@ pip install -r requirements.txt
 python main.py
 ./start_server.sh          # or: ./restart_server.sh, ./stop_server.sh
 
-# Tests
+# Tests (698 collected across both suites: 658 application, 40 generator)
 pytest tests/ -v                       # application suite
 pytest synthetic_data/tests/ -v        # generator suite (pure, no I/O)
+pytest tests/test_tool_dispatcher.py -v                        # one file
+pytest tests/test_tool_dispatcher.py::test_name -v             # one test
+pytest tests/ -k "dispatcher and not snowflake" -v             # by expression
 
-# Lint (pinned; enforced in CI)
+# Lint. Versions are pinned in CI; install the same ones or formatting
+# checks drift as new tool releases change the default style.
+pip install ruff==0.15.16 black==26.5.1 isort==8.0.1
 ruff check . && black --check . && isort --check-only .
 
 # Generate the synthetic dataset
@@ -45,11 +50,37 @@ python -m synthetic_data.generate --output-dir ./synthetic_out
 python -m synthetic_data.generate --database MMS_DEMO --schema PUBLIC --load
 ```
 
+CI runs both suites as separate steps and currently covers all 698 tests:
+
+```bash
+pytest tests/ -v --tb=short -x -k "not snowflake and not redis and not langfuse and not langflow"
+pytest synthetic_data/tests/ -v --tb=short
+```
+
+The `-k` filter matches nothing today - no test name contains those substrings, so the
+application step collects all 658 either way. It is a guard for the future, not an active
+exclusion: the workflow's `env:` block blanks `SNOWFLAKE_*` and `REDIS_URL`, so an integration
+test named after one of those services would fail in CI without it. Do not read the filter as
+evidence that integration paths are being skipped, and do not delete it as dead weight.
+
+The generator step carries `if: ${{ !cancelled() }}` because the application step uses `-x`.
+Without it, one early application failure would abort the run before the generator suite
+reported at all.
+
 Use a fully provisioned interpreter. A bare Python missing sqlalchemy and friends will silently
-disable routers rather than fail (see Graceful degradation below).
+disable routers rather than fail (see Graceful degradation below). `preflight.sh` exists to catch
+exactly that: `start_server.sh` and `restart_server.sh` source it, and it hard-fails when fastapi,
+uvicorn, pandas, sqlalchemy or snowflake.snowpark are missing (it only warns for the optional
+sentence_transformers, email_validator, pptx and redis). Override the interpreter with the
+`PYTHON` variable rather than editing the scripts:
+
+```bash
+PYTHON=/opt/anaconda3/bin/python ./start_server.sh
+```
 
 Entry points once running: Swagger at `/docs`, ReDoc at `/redoc`, health at `/health`,
-MCP info at `/mcp/info`. Port is `SERVER_PORT` (default 3020).
+MCP info at `/mcp/mcp/info` - the doubled segment is real, since `mcp_router` declares its own
+`/mcp/*` paths and is then mounted under the `/mcp` prefix. Port is `SERVER_PORT` (default 3020).
 
 Environment: copy `COPY_TO_ENV.txt` to `.env` and fill in the hackathon Snowflake credentials.
 `.env` is gitignored and must stay that way.
@@ -61,23 +92,51 @@ Single FastAPI application on port 3020. No microservices.
 ```
 middleware/     Rate limiting only (RateLimitMiddleware), applied in main.py
   |
-routers/        8 routers, mounted at /analytics /chat /config /database
-                /email /mcp /monitoring /scheduler
+routers/        8 include_router calls over 7 prefixes: /analytics /chat /config
+                /email /mcp /monitoring /scheduler. websocket_chat shares the
+                /chat prefix with chat_router.
   |
 services/       Business logic and I/O adapters
+  |-- workflow/        The autonomous agent: controller, sense, scoring, trail
   |-- infrastructure/  snowflake, cache, jobs, scheduler, email, auth, audit,
   |                    observability, google_chat
   |-- config/features/ analytics, insights, sql  (tool implementations)
   |-- visualization/
   |
 analysis/       capacity, ct_deviation, ct_efficiency, insights, rca, roi,
-                runrate, tooling_eol  (shared/ holds common helpers)
+                runrate, tooling_eol  (shared/ holds common helpers,
+                local_source.py and shot_filters.py serve the offline dataset)
   |
-core/           LLM client, prompts, tool definitions, token tracking
-models/         SQLAlchemy models + SQLite (audit, scheduler, email, monitoring, workflow)
+core/           LLM clients (cortex, mlx), backend factory, prompts, tool
+                definitions, wire adapters, token tracking
+models/         SQLAlchemy models + SQLite (audit, scheduler, email, monitoring,
+                workflow, decision_trail)
 utils/          error_handling, input_validation, sql_validation
 synthetic_data/ The generated dataset this project runs against
+scripts/        smoke_llm.py (one backend call), run_agent.py (one agent run)
 ```
+
+### The autonomous agent
+
+`services/workflow/controller.py` runs headless on a trigger: sense sweep, LLM reasoning,
+tool calls through the existing dispatcher, every step written to a decision trail.
+`scripts/run_agent.py` is the entry point and self-grades the run.
+
+Three things about it are non-obvious and were each learned by a run going wrong:
+
+**The sense sweep derives its own follow-ups.** `run_runrate_analysis` has no wildcard: passing
+`equipment_codes: ["*"]` returns zeros rather than erroring, which silently fed the model an
+all-healthy picture. The opening sweep is CT deviation plus Risk Tower; run rate then follows up
+on the machines those name. Never reintroduce a wildcard.
+
+**Grade recorded actions, not prose.** Models narrate work they did not do - observed twice, with
+invented MTTR figures and a date range outside the dataset window, while `act steps` was zero.
+`services/workflow/scoring.py` reads what was actually invoked from act-step payloads and reports
+anything claimed but not backed as `claimed_only`. The trail is the record; the summary is a claim.
+
+**Store the conclusion, not the scratchpad.** Reasoning models put the answer last, so truncating
+a summary from the head keeps the deliberation and discards the verdict. Run summaries strip
+`<think>` blocks (including unterminated ones) and truncate keeping the tail.
 
 Lower layers never import higher ones. Routers call services; services call analysis.
 
@@ -95,6 +154,28 @@ queried column names the pipeline never created. All analytics run off the fact 
 RunRate calculation spec: `analysis/runrate/CALCULATION_SPEC.md` (8-hour session gap, stop
 detection order, MTTR/MTBF). The synthetic generator is built against that spec and
 `synthetic_data/tests/runrate_reference.py` re-implements it independently to verify the data.
+
+### Running without Snowflake
+
+Set `LOCAL_DATA_DIR=./synthetic_out` and the four `fetch_*` seams serve `MASTER_SHOT_TABLE` from
+the generator's CSVs instead of querying Snowflake. Empty (the default) means Snowflake, so
+production behaviour is unaffected. `analysis/shared/shot_filters.py` holds the predicates as
+pure functions; `analysis/shared/local_source.py` does the file I/O.
+
+**The four analyses do not share predicates, and the differences are load-bearing.** Anything
+touching these must preserve them or local results will silently disagree with Snowflake:
+
+| Analysis | Row filter | End-date bound |
+|---|---|---|
+| `ct_deviation` | `CT > 0`, `APPROVED_CT > 0`, `CT < 999.9` | `<= end 23:59:59` |
+| `ct_efficiency` | same as above | `<= end` (midnight - excludes the end day) |
+| `runrate` | `VOLUME > 0` only; **keeps sentinel CT** | `<= end 23:59:59`, lower bound on shot END |
+| `capacity` | `CT < 999.9` and `VOLUME > 0` | `< end + 1 day` |
+
+Two traps in particular. Run rate must keep `CT >= 999.9` rows because stop detection is derived
+from them - filtering them out silently erases downtime. And `<= '23:59:59'` is not the same as
+`< the next day`: shot timestamps carry milliseconds, so a shot at `23:59:59.5` falls outside the
+SQL bound but inside a naive day-boundary rewrite.
 
 ### Tool dispatch is dynamic - read this before deleting anything
 
@@ -125,18 +206,31 @@ python -c "import main; print(len(main.app.routes))"   # expect 67
 A previous trim broke `routers/__init__.py`, which made all eight routers fail to import. The
 server started cleanly with 9 routes instead of 67 and logged only warnings.
 
+67 counts a clean startup with **no** router warnings. It did not always: `main.py` used to
+mount a `/database` router by importing `snowflake_router`, which the trim had already deleted,
+so every startup logged `Database router not found` and 67 silently described a degraded app.
+That dead block is now removed and the count is unchanged, which is the proof it never mounted.
+
+The lesson generalises: a warning that is always present trains you to ignore the warnings that
+matter. If a router warning is ever expected, fix the cause rather than documenting the noise.
+
 ### LLM
 
-Currently `core/llm_client.py` `BedrockClient`, talking to AWS Bedrock, with tool schemas formatted
-by `core/tools/bedrock_adapter.py`. Consumed by `core/chat_interface.py`, `routers/chat_router.py`
-and `routers/websocket_chat.py`.
+The client is chosen by a factory, `core/llm_backend.py` `get_llm_client`, keyed on the
+`LLM_BACKEND` env var. It returns a `CortexClient` (`core/cortex_client.py`, the default and the
+submission path) talking to the Cortex REST Messages API (`POST /api/v2/cortex/v1/messages`,
+Anthropic wire format, PAT bearer auth), or an `MLXClient` (`core/mlx_client.py`) for local
+development against `mlx_lm.server` on Apple Silicon. Both return responses in the Anthropic shape,
+parsed by the pure `core/cortex_wire.py` / `core/mlx_wire.py` modules, so callers never branch on
+backend. Cortex tool schemas are formatted by `core/tools/cortex_adapter.py`. Consumed by
+`core/chat_interface.py`, `routers/chat_router.py` and `routers/websocket_chat.py` (the latter two
+via `get_traced_llm_client`), and by the workflow controller.
 
-**The port to Snowflake Cortex is the main outstanding task.** The target is the Cortex REST
-Messages API (`POST /api/v2/cortex/v1/messages`), which is the Anthropic wire format and maps
-almost verbatim onto the existing loop, authenticated with a Snowflake PAT as a bearer token.
-Keep the four parser helpers' contracts stable and the agent loop needs no changes. Add a Cortex
-tool-format adapter beside `bedrock_adapter.py`. See `HACKATHON_PLAN.md` Appendix A for the
-verified request and response shapes.
+**The Bedrock port is done.** `core/llm_client.py` `BedrockClient` and `core/tools/bedrock_adapter.py`
+remain in the tree but are no longer wired into any call site; the factory offers only Cortex and
+MLX. See `HACKATHON_PLAN.md` Appendix A for the verified Cortex request and response shapes. What
+is still untested is first contact against a live account: PAT auth, the exact GA Claude model id,
+and the PUT/COPY dataset load have only run against synthetic CSVs and the MLX backend.
 
 ### Lifespan
 
@@ -165,7 +259,7 @@ that the tests will catch you on.
 
 pytest with `pytest-asyncio`; config in `pytest.ini` (`pythonpath = .`). Session-scoped
 `TestClient` fixture in `tests/conftest.py` imports `main:app` directly, so no external server is
-needed. 500 tests currently pass.
+needed. 698 tests currently pass (658 application, 40 generator).
 
 `synthetic_data/tests/` is pure logic with no I/O and no Snowflake. It asserts the dataset against
 `CALCULATION_SPEC.md` rather than against the implementation, so it stays honest if the

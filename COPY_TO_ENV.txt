@@ -110,9 +110,60 @@ AUTO_BACKUP_INTERVAL_HOURS=24
 # AWS_REGION=us-east-1
 
 # ============================================================================
-# MLX LOCAL LLM (Required - For chat and embeddings on Apple Silicon)
+# LOCAL DATA SOURCE (Optional - development without Snowflake)
 # ============================================================================
-# Uses mlx-lm for local LLM inference via OpenAI-compatible server.
+# When set, the analysis modules read MASTER_SHOT_TABLE from the synthetic
+# generator's CSV output instead of querying Snowflake. Leave EMPTY in any
+# environment that should hit the real database.
+#
+# Generate the dataset first:
+#   python -m synthetic_data.generate --output-dir ./synthetic_out
+#
+# The filters applied locally mirror the analysis SQL predicates exactly
+# (see analysis/shared/shot_filters.py), so results agree with Snowflake.
+LOCAL_DATA_DIR=
+
+# ============================================================================
+# LLM BACKEND SELECTION
+# ============================================================================
+# Which client the agent loop reasons with. Cortex is the default and is the
+# path the hackathon submission and demo must run on. Set to "mlx" only for
+# local iteration, to avoid spending trial credits against the daily throttle.
+#   cortex = Snowflake Cortex Messages API (Claude)   [submission path]
+#   mlx    = local mlx_lm.server on Apple Silicon     [development only]
+LLM_BACKEND=cortex
+
+# ============================================================================
+# SNOWFLAKE CORTEX (Required when LLM_BACKEND=cortex)
+# ============================================================================
+# Auth is a Programmatic Access Token sent as a bearer token, NOT the
+# SNOWFLAKE_PASSWORD above. A PAT will not authenticate until a network policy
+# covering your IP exists on the account. Set an explicit expiry when you
+# create it; the default is 15 days and the contest runs into September.
+SNOWFLAKE_PAT=your_programmatic_access_token
+
+# Model id is account- and region-specific. Confirm before first use with:
+#   SHOW CORTEX BASE MODELS;
+# Do not assume this default is correct for your account.
+CORTEX_MODEL=claude-sonnet-4-5
+
+# Per-request timeout in seconds.
+CORTEX_TIMEOUT_SECONDS=60
+
+# Prompt caching. The agent resends a large stable prefix (system prompt plus
+# the 35-tool schema) every turn, so leave this on: cached input reads at 0.15
+# credits per million tokens against 1.80 uncached.
+CORTEX_ENABLE_PROMPT_CACHING=true
+
+# Note: SNOWFLAKE_ACCOUNT above is reused for the Cortex host and must be the
+# account identifier form (for example myorg-myacct).
+
+# ============================================================================
+# MLX LOCAL LLM (Optional - development backend, Apple Silicon only)
+# ============================================================================
+# Only consulted when LLM_BACKEND=mlx. Uses mlx-lm via an OpenAI-compatible
+# server. Not a submission path: the contest rewards Cortex-native reasoning,
+# and 35-tool dispatch is materially less reliable on a quantized local model.
 # Start the server:
 #   mlx_lm.server --model mlx-community/Qwen3-32B-4bit --port 8080
 #
