@@ -405,15 +405,6 @@ try:
 except ImportError as e:
     logger.warning(f"  Analytics router not found: {e}")
 
-# Database Router - Snowflake queries
-try:
-    from routers import snowflake_router
-
-    app.include_router(snowflake_router, prefix="/database", tags=["Database"])
-    logger.info(" Database router registered")
-except ImportError as e:
-    logger.warning(f"  Database router not found: {e}")
-
 # Email Router - Email sending and templates
 try:
     from routers.email_router import router as email_router
