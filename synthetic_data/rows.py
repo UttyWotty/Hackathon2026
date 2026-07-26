@@ -8,7 +8,7 @@ performs no formatting decisions beyond ISO-8601 timestamps.
 from datetime import datetime
 from typing import Any, List, Sequence
 
-from .models import Company, Location, Mold, Part, Shot, WorkOrder
+from .models import Company, Location, Mold, Part, ShiftNote, Shot, WorkOrder
 
 # Snowflake parses this format directly into TIMESTAMP_NTZ with millisecond precision.
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
@@ -95,6 +95,21 @@ def work_order_row(work_order: WorkOrder) -> Sequence[Any]:
         work_order.status,
         format_timestamp(work_order.completed_at),
         work_order.order_type,
+    )
+
+
+def shift_note_row(note: ShiftNote) -> Sequence[Any]:
+    """Serialize one shift note into SHIFT_NOTE column order.
+
+    mentions_symptom is intentionally omitted: it is generator ground truth, not data the
+    agent is allowed to see.
+    """
+    return (
+        note.id,
+        note.equipment_code,
+        format_timestamp(note.shift_date),
+        note.author_role,
+        note.note_text,
     )
 
 

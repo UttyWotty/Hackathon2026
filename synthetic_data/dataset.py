@@ -14,6 +14,7 @@ from .constants import (
     TABLE_MASTER_SHOT,
     TABLE_MOLD,
     TABLE_PART,
+    TABLE_SHIFT_NOTE,
     TABLE_WORK_ORDER,
 )
 from .dimensions import (
@@ -31,14 +32,17 @@ from .models import (
     EquipmentProfile,
     ExpectedFinding,
     GenerationConfig,
+    ShiftNote,
     Shot,
     ShotContext,
 )
+from .notes import build_shift_notes
 from .rows import (
     company_row,
     location_row,
     mold_row,
     part_row,
+    shift_note_row,
     shot_rows,
     work_order_row,
 )
@@ -55,6 +59,7 @@ class Dataset:
 
     tables: Dict[str, List[Sequence[Any]]]
     shots: List[Shot]
+    shift_notes: List[ShiftNote]
     profiles: List[EquipmentProfile]
     expected_findings: List[ExpectedFinding]
     headline_equipment: str
@@ -77,6 +82,7 @@ def build_dataset(config: GenerationConfig) -> Dataset:
 
     shots = generate_all_shots(profiles, context, config)
     work_orders = build_work_orders(profiles, config)
+    shift_notes = build_shift_notes(profiles, config)
 
     tables: Dict[str, List[Sequence[Any]]] = {
         TABLE_COMPANY: [company_row(company) for company in companies],
@@ -85,11 +91,13 @@ def build_dataset(config: GenerationConfig) -> Dataset:
         TABLE_MOLD: [mold_row(mold) for mold in molds],
         TABLE_WORK_ORDER: [work_order_row(work_order) for work_order in work_orders],
         TABLE_MASTER_SHOT: shot_rows(shots),
+        TABLE_SHIFT_NOTE: [shift_note_row(note) for note in shift_notes],
     }
 
     return Dataset(
         tables=tables,
         shots=shots,
+        shift_notes=shift_notes,
         profiles=profiles,
         expected_findings=build_expected_findings(profiles),
         headline_equipment=demo_headline_equipment(profiles),

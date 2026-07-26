@@ -118,6 +118,11 @@ EQUIPMENT_ROSTER: Final[
     ),
 )
 
+# Cycle time the per-shot stop rates below are calibrated against, in seconds.
+# Roughly the fleet-typical cycle; build_profiles scales each machine's rates by
+# its own cycle time over this value so archetypes control stops per hour.
+REFERENCE_CYCLE_TIME_SEC: Final[float] = 30.0
+
 # Per-archetype base rates. Tuple order:
 # (base_hard_stop_rate, base_abnormal_rate, base_time_gap_rate, max_consecutive_hard_stops,
 #  hard_stop_min_sec, hard_stop_max_sec, drift_end_factor, decline_end_stop_rate)
@@ -216,7 +221,15 @@ def build_molds(
 
 
 def build_profiles(molds: List[Mold]) -> List[EquipmentProfile]:
-    """Bind each mold to its roster archetype and that archetype's planted-defect parameters."""
+    """Bind each mold to its roster archetype and that archetype's planted-defect parameters.
+
+    Stop rates in PROFILE_PARAMETERS are per shot, but MTBF is per unit of time. Without
+    normalisation a fast machine stops more often per hour than a slow one at the same
+    per-shot rate, which made a stable 8.8-second machine look like it stopped more often
+    than the machine whose planted defect is frequent stops. Each rate is therefore scaled
+    by the mold's cycle time relative to REFERENCE_CYCLE_TIME_SEC, so an archetype controls
+    stops per hour and MTBF stays comparable across machines of different speeds.
+    """
     kind_by_code = {entry[0]: entry[6] for entry in EQUIPMENT_ROSTER}
     profiles: List[EquipmentProfile] = []
     for mold in molds:
@@ -231,15 +244,16 @@ def build_profiles(molds: List[Mold]) -> List[EquipmentProfile]:
             drift_end_factor,
             decline_end_stop_rate,
         ) = PROFILE_PARAMETERS[kind]
+        rate_scale = mold.approved_ct / REFERENCE_CYCLE_TIME_SEC
         profiles.append(
             EquipmentProfile(
                 mold=mold,
                 kind=kind,
-                base_hard_stop_rate=base_hard_stop_rate,
-                base_abnormal_rate=base_abnormal_rate,
-                base_time_gap_rate=base_time_gap_rate,
+                base_hard_stop_rate=base_hard_stop_rate * rate_scale,
+                base_abnormal_rate=base_abnormal_rate * rate_scale,
+                base_time_gap_rate=base_time_gap_rate * rate_scale,
                 drift_end_factor=drift_end_factor,
-                decline_end_stop_rate=decline_end_stop_rate,
+                decline_end_stop_rate=decline_end_stop_rate * rate_scale,
                 max_consecutive_hard_stops=max_consecutive_hard_stops,
                 hard_stop_min_sec=hard_stop_min_sec,
                 hard_stop_max_sec=hard_stop_max_sec,

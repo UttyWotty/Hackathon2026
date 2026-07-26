@@ -140,6 +140,23 @@ class WorkOrder:
 
 
 @dataclass(frozen=True)
+class ShiftNote:
+    """One free-text shift note, the dataset's only unstructured content.
+
+    mentions_symptom is the generator's ground-truth tag, mirroring Shot's stop tag: it is
+    used by the tests to assert that defective equipment are described and controls are not,
+    and is deliberately never serialized to the table.
+    """
+
+    id: int
+    equipment_code: str
+    shift_date: datetime
+    author_role: str
+    note_text: str
+    mentions_symptom: bool
+
+
+@dataclass(frozen=True)
 class RunBehaviour:
     """Per-run generation parameters resolved from an equipment profile and week index.
 

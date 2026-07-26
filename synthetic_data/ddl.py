@@ -13,6 +13,7 @@ from .constants import (
     TABLE_MASTER_SHOT,
     TABLE_MOLD,
     TABLE_PART,
+    TABLE_SHIFT_NOTE,
     TABLE_WORK_ORDER,
 )
 
@@ -70,6 +71,13 @@ TABLE_COLUMNS: Final[Dict[str, List[str]]] = {
         "ID NUMBER",
         "PART_CODE STRING",
         "NAME STRING",
+    ],
+    TABLE_SHIFT_NOTE: [
+        "ID NUMBER",
+        "EQUIPMENT_CODE STRING",
+        "SHIFT_DATE TIMESTAMP_NTZ",
+        "AUTHOR_ROLE STRING",
+        "NOTE_TEXT STRING",
     ],
     TABLE_WORK_ORDER: [
         "ID NUMBER",

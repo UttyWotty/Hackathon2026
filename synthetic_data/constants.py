@@ -89,6 +89,7 @@ TABLE_COMPANY: Final[str] = "COMPANY"
 TABLE_LOCATION: Final[str] = "LOCATION"
 TABLE_PART: Final[str] = "PART"
 TABLE_WORK_ORDER: Final[str] = "WORK_ORDER"
+TABLE_SHIFT_NOTE: Final[str] = "SHIFT_NOTE"
 
 # --- Identifier bases, so ids are stable and collision-free across dimensions ---
 MOLD_ID_BASE: Final[int] = 4100
@@ -96,3 +97,4 @@ COMPANY_ID_BASE: Final[int] = 700
 LOCATION_ID_BASE: Final[int] = 310
 COUNTER_ID_BASE: Final[int] = 88200
 WORK_ORDER_ID_BASE: Final[int] = 55000
+SHIFT_NOTE_ID_BASE: Final[int] = 61000

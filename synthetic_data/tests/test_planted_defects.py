@@ -172,3 +172,80 @@ def test_stable_equipment_stays_within_tolerance(
     """Negative controls must not trip the CT deviation warning, or the demo shows false positives."""
     shots = shots_by_equipment[code_by_kind[ProfileKind.STABLE]]
     assert _deviation_pct(shots) < CT_DEVIATION_WARNING_PCT
+
+
+def _codes_of_kind(
+    config: GenerationConfig,
+    kind: ProfileKind,
+    shots_by_equipment: Dict[str, List[Shot]],
+) -> List[str]:
+    """Every equipment code assigned the given archetype."""
+    from synthetic_data.dimensions import EQUIPMENT_ROSTER
+
+    return [
+        entry[0]
+        for entry in EQUIPMENT_ROSTER
+        if entry[6] is kind and entry[0] in shots_by_equipment
+    ]
+
+
+def test_stable_equipment_does_not_trip_the_mtbf_trigger(
+    shots_by_equipment: Dict[str, List[Shot]],
+    code_by_kind: Dict[ProfileKind, str],
+    config: GenerationConfig,
+) -> None:
+    """Negative controls must stay above the frequent-stop threshold.
+
+    Without this the suite passes while a healthy machine stops more often than the
+    machine whose planted defect is frequent stops, which shows up as a false positive
+    in every downstream detector. That is exactly what happened before this assertion
+    existed: a stable 8.8-second machine had the lowest MTBF in the fleet, because the
+    per-shot stop rate was not normalised for cycle time.
+    """
+    by_code = {
+        code: _mean([m.mtbf for m in _metrics(shots)])
+        for code, shots in shots_by_equipment.items()
+    }
+    for code in _codes_of_kind(config, ProfileKind.STABLE, shots_by_equipment):
+        peers = _mean([value for other, value in by_code.items() if other != code])
+        assert by_code[code] >= peers * MTBF_FLEET_MULTIPLE, (
+            f"{code} is a negative control but its MTBF {by_code[code]:.2f} falls below "
+            f"the {MTBF_FLEET_MULTIPLE} x peer average trigger ({peers * MTBF_FLEET_MULTIPLE:.2f})"
+        )
+
+
+def test_stable_equipment_does_not_trip_the_mttr_trigger(
+    shots_by_equipment: Dict[str, List[Shot]],
+    code_by_kind: Dict[ProfileKind, str],
+    config: GenerationConfig,
+) -> None:
+    """Negative controls must stay below the long-repair threshold."""
+    by_code = {
+        code: _mean([m.mttr for m in _metrics(shots)])
+        for code, shots in shots_by_equipment.items()
+    }
+    for code in _codes_of_kind(config, ProfileKind.STABLE, shots_by_equipment):
+        peers = _mean([value for other, value in by_code.items() if other != code])
+        assert by_code[code] <= peers * MTTR_FLEET_MULTIPLE, (
+            f"{code} is a negative control but its MTTR {by_code[code]:.2f} exceeds "
+            f"the {MTTR_FLEET_MULTIPLE} x peer average trigger ({peers * MTTR_FLEET_MULTIPLE:.2f})"
+        )
+
+
+def test_frequent_stops_has_the_lowest_mtbf_in_the_fleet(
+    shots_by_equipment: Dict[str, List[Shot]], code_by_kind: Dict[ProfileKind, str]
+) -> None:
+    """The planted frequent-stop machine must be the worst on its own metric.
+
+    Falling below the fleet average is not enough: if a control is lower still, no
+    threshold can separate them and the demo cannot reach clean precision.
+    """
+    by_code = {
+        code: _mean([m.mtbf for m in _metrics(shots)])
+        for code, shots in shots_by_equipment.items()
+    }
+    target = code_by_kind[ProfileKind.FREQUENT_STOPS]
+    assert by_code[target] == min(by_code.values()), (
+        f"{target} should have the fleet's lowest MTBF but "
+        f"{min(by_code, key=by_code.get)} is lower"
+    )
