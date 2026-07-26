@@ -20,15 +20,17 @@ if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
 
 # Import from modular components
-from core.llm_client import (  # noqa: E402
-    BedrockClient,
+from core.cortex_wire import (  # noqa: E402
+    extract_assistant_message,
     extract_text_from_response,
     extract_tool_uses,
+    format_text_message,
     format_tool_result,
     get_stop_reason,
 )
+from core.llm_backend import get_llm_client  # noqa: E402
 from core.prompts import get_error_message, get_welcome_message  # noqa: E402
-from core.tools_config import TOOLS, execute_tool  # noqa: E402
+from core.tools_config import execute_tool, get_tools_for_llm  # noqa: E402
 from core.ui_components import (  # noqa: E402
     display_error,
     render_chat_message,
@@ -60,8 +62,8 @@ def initialize_session():
         from datetime import datetime
 
         st.session_state.session_id = f"chat_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    if "bedrock_client" not in st.session_state:
-        st.session_state.bedrock_client = BedrockClient()
+    if "llm_client" not in st.session_state:
+        st.session_state.llm_client = get_llm_client()
 
 
 initialize_session()
@@ -99,9 +101,7 @@ if prompt := st.chat_input("Ask a question about manufacturing analytics..."):
             claude_messages = []
             for msg in st.session_state.messages:
                 if msg["role"] == "user":
-                    claude_messages.append(
-                        {"role": "user", "content": [{"text": msg["content"]}]}
-                    )
+                    claude_messages.append(format_text_message("user", msg["content"]))
                 elif msg["role"] == "assistant":
                     # Check if this message has full conversation history (tool uses + results)
                     if "_full_conversation" in msg:
@@ -111,21 +111,18 @@ if prompt := st.chat_input("Ask a question about manufacturing analytics..."):
                         # Add the final text response
                         if msg["content"] and not msg["content"].startswith("["):
                             claude_messages.append(
-                                {
-                                    "role": "assistant",
-                                    "content": [{"text": msg["content"]}],
-                                }
+                                format_text_message("assistant", msg["content"])
                             )
                     else:
                         # Simple text response without tools
                         claude_messages.append(
-                            {"role": "assistant", "content": [{"text": msg["content"]}]}
+                            format_text_message("assistant", msg["content"])
                         )
 
             # Get response from Claude
-            response = st.session_state.bedrock_client.get_response(
+            response = st.session_state.llm_client.get_response(
                 messages=claude_messages,
-                tools=TOOLS,
+                tools=get_tools_for_llm(),
                 session_id=st.session_state.session_id,
             )
 
@@ -158,7 +155,9 @@ if prompt := st.chat_input("Ask a question about manufacturing analytics..."):
                         )
                         # If we had tool uses, also save the final response to full_conversation
                         if full_conversation:
-                            full_conversation.append(response["output"]["message"])
+                            full_conversation.append(
+                                extract_assistant_message(response)
+                            )
                     break
 
                 # Extract tool uses
@@ -167,7 +166,7 @@ if prompt := st.chat_input("Ask a question about manufacturing analytics..."):
                     break
 
                 # Save assistant's tool use message to conversation history
-                assistant_message = response["output"]["message"]
+                assistant_message = extract_assistant_message(response)
                 full_conversation.append(assistant_message)
 
                 # Execute each tool
@@ -213,9 +212,9 @@ if prompt := st.chat_input("Ask a question about manufacturing analytics..."):
                     claude_messages.append(tool_result)
 
                 # Get next response with tool results
-                response = st.session_state.bedrock_client.get_response(
+                response = st.session_state.llm_client.get_response(
                     messages=claude_messages,
-                    tools=TOOLS,
+                    tools=get_tools_for_llm(),
                     session_id=st.session_state.session_id,
                 )
 

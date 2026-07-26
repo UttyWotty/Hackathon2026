@@ -15,16 +15,16 @@ from fastapi import (  # type: ignore[import-untyped]
     WebSocketDisconnect,
 )
 
-from core.llm_client import (
+from core.cortex_wire import (
+    extract_assistant_message,
     extract_text_from_response,
     extract_tool_uses,
+    format_text_message,
     format_tool_result,
     get_stop_reason,
 )
-from core.tools_config import get_tools_for_bedrock
-from services.infrastructure.observability.trace_bedrock import (
-    get_traced_bedrock_client,
-)
+from core.tools_config import get_tools_for_llm
+from services.infrastructure.observability.trace_llm import get_traced_llm_client
 from services.infrastructure.scheduler.tool_dispatcher import dispatch_tool_direct
 
 logger = logging.getLogger(__name__)
@@ -96,23 +96,11 @@ def _prepare_claude_messages(
     # Add conversation history
     for msg in conversation_history:
         role = msg.get("role")
-        if role == "user":
-            claude_messages.append(
-                {
-                    "role": "user",
-                    "content": [{"text": msg.get("content", "")}],
-                }
-            )
-        elif role == "assistant":
-            claude_messages.append(
-                {
-                    "role": "assistant",
-                    "content": [{"text": msg.get("content", "")}],
-                }
-            )
+        if role in ("user", "assistant"):
+            claude_messages.append(format_text_message(role, msg.get("content", "")))
 
     # Add current user message
-    claude_messages.append({"role": "user", "content": [{"text": user_message}]})
+    claude_messages.append(format_text_message("user", user_message))
     return claude_messages
 
 
@@ -207,7 +195,7 @@ async def _execute_single_tool(
 
 async def _handle_tool_use_loop(
     websocket: WebSocket,
-    bedrock_client: Any,
+    llm_client: Any,
     claude_messages: list,
     session_id: str,
     initial_response: Dict[str, Any],
@@ -216,7 +204,7 @@ async def _handle_tool_use_loop(
 
     Args:
         websocket: WebSocket connection
-        bedrock_client: Bedrock client instance
+        llm_client: Active LLM client instance
         claude_messages: Initial messages for Claude
         session_id: Session identifier
         initial_response: Initial response from LLM
@@ -245,7 +233,7 @@ async def _handle_tool_use_loop(
             break
 
         # Save assistant's tool use message
-        assistant_message = response["output"]["message"]
+        assistant_message = extract_assistant_message(response)
         claude_messages.append(assistant_message)
 
         # Execute each tool
@@ -256,10 +244,10 @@ async def _handle_tool_use_loop(
             claude_messages.append(tool_result)
 
         # Get next response with tool results
-        bedrock_tools = get_tools_for_bedrock()
-        response = bedrock_client.get_response(
+        llm_tools = get_tools_for_llm()
+        response = llm_client.get_response(
             messages=claude_messages,
-            tools=bedrock_tools,
+            tools=llm_tools,
             session_id=session_id,
         )
 
@@ -303,16 +291,16 @@ async def _process_message(
 
     try:
         # Initialize Bedrock client (traced if Langfuse is enabled)
-        bedrock_client = get_traced_bedrock_client()
+        llm_client = get_traced_llm_client()
 
         # Prepare messages for Claude
         claude_messages = _prepare_claude_messages(conversation_history, user_message)
 
         # Get initial response
-        bedrock_tools = get_tools_for_bedrock()
-        response = bedrock_client.get_response(
+        llm_tools = get_tools_for_llm()
+        response = llm_client.get_response(
             messages=claude_messages,
-            tools=bedrock_tools,
+            tools=llm_tools,
             session_id=session_id,
         )
 
@@ -324,7 +312,7 @@ async def _process_message(
 
         # Handle tool use loop
         result = await _handle_tool_use_loop(
-            websocket, bedrock_client, claude_messages, session_id, response
+            websocket, llm_client, claude_messages, session_id, response
         )
 
         # If we hit max iterations

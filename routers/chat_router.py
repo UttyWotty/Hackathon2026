@@ -13,17 +13,17 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request  # type: ignore[import-untyped]
 from pydantic import BaseModel, Field  # type: ignore[import-untyped]
 
-from core.llm_client import (
+from core.cortex_wire import (
+    extract_assistant_message,
     extract_text_from_response,
     extract_tool_uses,
+    format_text_message,
     format_tool_result,
     get_stop_reason,
 )
-from core.tools_config import execute_tool, get_tools_for_bedrock
+from core.tools_config import execute_tool, get_tools_for_llm
 from services.infrastructure.jobs.job_queue import get_job_queue
-from services.infrastructure.observability.trace_bedrock import (
-    get_traced_bedrock_client,
-)
+from services.infrastructure.observability.trace_llm import get_traced_llm_client
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -107,8 +107,8 @@ async def send_chat_message(
 
         session = chat_sessions[session_id]
 
-        # Initialize Bedrock client (traced if Langfuse is enabled)
-        bedrock_client = get_traced_bedrock_client()
+        # Initialize the configured LLM client (traced if Langfuse is enabled)
+        llm_client = get_traced_llm_client()
 
         # Prepare messages for Claude (same logic as Streamlit)
         claude_messages = []
@@ -116,42 +116,25 @@ async def send_chat_message(
         # Add conversation history if provided
         if conversation_history:
             for msg in conversation_history:
-                if msg.get("role") == "user":
+                if msg.get("role") in ("user", "assistant"):
                     claude_messages.append(
-                        {"role": "user", "content": [{"text": msg.get("content", "")}]}
-                    )
-                elif msg.get("role") == "assistant":
-                    claude_messages.append(
-                        {
-                            "role": "assistant",
-                            "content": [{"text": msg.get("content", "")}],
-                        }
+                        format_text_message(msg["role"], msg.get("content", ""))
                     )
         else:
             # Use session history
             for msg in session["messages"]:
                 if msg["role"] == "user":
-                    claude_messages.append(
-                        {"role": "user", "content": [{"text": msg["content"]}]}
-                    )
+                    claude_messages.append(format_text_message("user", msg["content"]))
                 elif msg["role"] == "assistant":
                     if "_full_conversation" in msg:
                         for conv_msg in msg["_full_conversation"]:
                             claude_messages.append(conv_msg)
-                    if msg["content"] and not msg["content"].startswith("["):
-                        claude_messages.append(
-                            {
-                                "role": "assistant",
-                                "content": [{"text": msg["content"]}],
-                            }
-                        )
-                    else:
-                        claude_messages.append(
-                            {"role": "assistant", "content": [{"text": msg["content"]}]}
-                        )
+                    claude_messages.append(
+                        format_text_message("assistant", msg["content"])
+                    )
 
         # Add current user message
-        claude_messages.append({"role": "user", "content": [{"text": user_message}]})
+        claude_messages.append(format_text_message("user", user_message))
 
         # Save user message to session
         session["messages"].append(
@@ -162,13 +145,13 @@ async def send_chat_message(
             }
         )
 
-        # Get tools for Bedrock
-        bedrock_tools = get_tools_for_bedrock()
+        # Get tools for the active backend
+        llm_tools = get_tools_for_llm()
 
         # Get initial response
-        response = bedrock_client.get_response(
+        response = llm_client.get_response(
             messages=claude_messages,
-            tools=bedrock_tools,
+            tools=llm_tools,
             session_id=session_id,
         )
 
@@ -196,7 +179,7 @@ async def send_chat_message(
                                 "role": "assistant",
                                 "content": text_response,
                                 "_full_conversation": full_conversation
-                                + [response["output"]["message"]],
+                                + [extract_assistant_message(response)],
                                 "timestamp": datetime.now().isoformat(),
                             }
                         )
@@ -223,7 +206,7 @@ async def send_chat_message(
                 break
 
             # Save assistant's tool use message
-            assistant_message = response["output"]["message"]
+            assistant_message = extract_assistant_message(response)
             full_conversation.append(assistant_message)
 
             # Execute each tool
@@ -368,10 +351,10 @@ async def send_chat_message(
                 claude_messages.append(tool_result)
 
             # Get next response with tool results
-            bedrock_tools = get_tools_for_bedrock()
-            response = bedrock_client.get_response(
+            llm_tools = get_tools_for_llm()
+            response = llm_client.get_response(
                 messages=claude_messages,
-                tools=bedrock_tools,
+                tools=llm_tools,
                 session_id=session_id,
             )
 
