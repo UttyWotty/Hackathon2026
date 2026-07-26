@@ -17,6 +17,7 @@ from snowflake.snowpark import Session  # type: ignore[import-untyped]
 
 # Import shared utilities
 from analysis.shared import get_logger, get_snowflake_connection_params
+from analysis.shared.local_source import is_local_data_enabled, query_efficiency_shots
 
 logger = get_logger(__name__)
 
@@ -138,6 +139,15 @@ def fetch_efficiency_data(
     Raises:
         Exception: If query fails
     """
+    # Development path: serve the synthetic CSVs instead of querying Snowflake.
+    if is_local_data_enabled():
+        logger.info("Serving CT efficiency data from the local dataset")
+        return query_efficiency_shots(
+            start_date=start_date,
+            end_date=end_date,
+            supplier_names=supplier_names,
+        )
+
     try:
         # Switch schema if client specified
         if client:

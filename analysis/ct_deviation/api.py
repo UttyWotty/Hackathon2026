@@ -111,8 +111,9 @@ def run_analysis_api(
             supplier_names=supplier_names,
         )
 
-        # Close session
-        session.close()
+        # Close session. None in local data mode, where no session was opened.
+        if session is not None:
+            session.close()
 
         # Validate data
         if df.empty:

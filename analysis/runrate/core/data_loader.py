@@ -27,6 +27,7 @@ from analysis.shared import (
     get_snowflake_connection_params,
     get_snowflake_connection_params_with_schema,
 )
+from analysis.shared.local_source import is_local_data_enabled, query_runrate_shots
 
 # Thread pool for database operations
 _db_executor = ThreadPoolExecutor(max_workers=5, thread_name_prefix="snowflake_")
@@ -168,6 +169,16 @@ def _load_data_sync(
     schema: Optional[str] = None,
 ) -> pd.DataFrame:
     """Synchronous implementation of load_data with retry logic."""
+    # Development path: serve the synthetic CSVs instead of querying Snowflake.
+    # Placed here rather than in load_data so the async wrapper is covered too.
+    if is_local_data_enabled():
+        return query_runrate_shots(
+            supplier=supplier,
+            equipment_code=equipment_code,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
     params = (
         get_snowflake_connection_params_with_schema(schema)
         if schema

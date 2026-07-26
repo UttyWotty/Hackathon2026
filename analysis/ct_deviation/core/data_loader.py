@@ -18,6 +18,7 @@ from snowflake.snowpark import Session  # type: ignore[import-untyped]
 
 # Import shared utilities
 from analysis.shared import get_logger, get_snowflake_connection_params
+from analysis.shared.local_source import is_local_data_enabled, query_shots
 
 logger = get_logger(__name__)
 
@@ -35,6 +36,13 @@ def create_snowpark_session() -> Session:
         ValueError: If required environment variables are missing
         Exception: If connection fails
     """
+    # In local mode no session is needed: fetch_ct_deviation_data serves from
+    # CSV and ignores this argument. Returning None rather than connecting keeps
+    # the api layer working, since it builds the session before fetching.
+    if is_local_data_enabled():
+        logger.info("Local data mode: skipping Snowpark session creation")
+        return None  # type: ignore[return-value]
+
     try:
         # Use shared utilities for P8 authentication (same as RCA, ROI, etc.)
         connection_parameters = get_snowflake_connection_params(
@@ -213,6 +221,17 @@ def fetch_ct_deviation_data(
     Raises:
         Exception: If query fails
     """
+    # Development path: serve the synthetic CSVs instead of querying Snowflake.
+    # Inactive unless LOCAL_DATA_DIR is set, so production behaviour is unchanged.
+    if is_local_data_enabled():
+        logger.info("Serving CT deviation data from the local dataset")
+        return query_shots(
+            start_date=start_date,
+            end_date=end_date,
+            equipment_codes=equipment_codes,
+            supplier_names=supplier_names,
+        )
+
     try:
         # Build the base query
         # Note: Snowpark doesn't support parameterized queries like the connector

@@ -14,6 +14,7 @@ import pandas as pd  # type: ignore[import-untyped]
 
 # Import shared utilities
 from analysis.shared import create_snowflake_connection
+from analysis.shared.local_source import is_local_data_enabled, query_capacity_shots
 
 
 def init_env() -> None:
@@ -172,6 +173,16 @@ def fetch_equipment_data(
         ... )
         >>> print(df.head())
     """
+    # Development path: serve the synthetic CSVs instead of querying Snowflake.
+    if is_local_data_enabled():
+        return query_capacity_shots(
+            equipment_code=equipment_code,
+            supplier_name=supplier_name,
+            supplier_like=supplier_like,
+            start_ts=start_ts,
+            end_ts=end_ts,
+        )
+
     conn = snowflake_connect(schema=schema)
 
     # Explicitly set schema context if provided
