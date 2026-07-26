@@ -29,6 +29,10 @@ _ANALYTICS_TOOL_IMPORTS: Dict[str, tuple] = {
         "services.config.features.analytics.tools.runrate_tools",
         "run_runrate_analysis",
     ),
+    "run_risk_tower_analysis": (
+        "services.config.features.analytics.tools.risk_tower_tools",
+        "run_risk_tower_analysis",
+    ),
     "run_rca_analysis": (
         "services.config.features.analytics.tools.rca_tools",
         "run_rca_analysis",

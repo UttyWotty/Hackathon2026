@@ -20,6 +20,7 @@ from core.tools.executor import execute_tool, execute_tool_async
 __all__ = [
     "TOOLS",
     "get_tools_for_bedrock",
+    "get_tools_for_llm",
     "execute_tool",
     "execute_tool_async",
     "send_email_with_attachments",
@@ -33,3 +34,17 @@ def get_tools_for_bedrock() -> List[Dict[str, Any]]:
         List of tool spec dictionaries consumable by AWS Bedrock.
     """
     return TOOLS
+
+
+def get_tools_for_llm() -> List[Dict[str, Any]]:
+    """Return tool definitions for the active LLM backend.
+
+    Both backends take Anthropic-format tools: Cortex natively, and the MLX
+    client converts them down to OpenAI function format on the way out.
+
+    Returns:
+        List of tool definitions with name, description and input_schema.
+    """
+    from core.tools.cortex_adapter import get_tools_for_cortex
+
+    return get_tools_for_cortex()

@@ -16,6 +16,49 @@ DESC_CLIENT_PARAM = (
 ANALYTICS_TOOLS: List[Dict[str, Any]] = [
     {
         "toolSpec": {
+            "name": "run_risk_tower_analysis",
+            "description": "Score equipment risk over a rolling multi-week window. Detects three failure modes that a single-period average hides: stability declining week over week, abnormally frequent stops (low MTBF), and abnormally long repairs (high MTTR). Returns a risk score, RAG status and primary risk factor per machine. Use this when asked which equipment is deteriorating or trending worse, rather than which is worst right now.",
+            "tags": {
+                "server": "mfg",
+                "domain": "analytics",
+                "operation": "analyze",
+                "environment": "production",
+                "security": "public",
+            },
+            "inputSchema": {
+                "json": {
+                    "type": "object",
+                    "properties": {
+                        "equipment_codes": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Equipment codes to analyze. Omit for all equipment, which is the usual case for a sweep.",
+                        },
+                        "supplier_names": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Optional supplier names to filter.",
+                        },
+                        "start_date": {
+                            "type": "string",
+                            "description": "Optional start date in YYYY-MM-DD format.",
+                        },
+                        "end_date": {
+                            "type": "string",
+                            "description": "Optional end date in YYYY-MM-DD format.",
+                        },
+                        "weeks": {
+                            "type": "integer",
+                            "description": "Rolling window length in weeks. Defaults to 4. Needs at least two weeks of data to compute a trend.",
+                        },
+                    },
+                    "required": [],
+                }
+            },
+        }
+    },
+    {
+        "toolSpec": {
             "name": "run_runrate_analysis",
             "description": "Analyze production runrate with MTTR/MTBF metrics, stop detection, and efficiency tracking for specific equipment over a date range. Returns comprehensive Excel reports with session analysis.",
             "tags": {
