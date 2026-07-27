@@ -34,6 +34,9 @@ MAX_SUMMARY_CHARS = 2000
 
 MILLISECONDS_PER_SECOND = 1000.0
 
+# How many past runs the history reader returns when no limit is given.
+DEFAULT_RUN_LIST_LIMIT = 25
+
 
 class TrailRecorderError(Exception):
     """Raised when the decision trail cannot be written."""
@@ -244,10 +247,39 @@ def load_trail(
         return trail
 
 
+def list_runs(
+    limit: int = DEFAULT_RUN_LIST_LIMIT,
+    session_factory: Callable[[], Any] = get_session,
+) -> List[Dict[str, Any]]:
+    """
+    List recent runs, newest first, without their steps.
+
+    Used by the demo history picker, which needs to label runs before deciding
+    which trail to load in full.
+
+    Args:
+        limit: Maximum number of runs to return. Defaults to
+            DEFAULT_RUN_LIST_LIMIT.
+        session_factory: Session provider. Defaults to get_session.
+
+    Returns:
+        Serialised runs ordered by start time descending.
+    """
+    with session_factory() as session:
+        runs: List[DecisionRun] = (
+            session.query(DecisionRun)
+            .order_by(DecisionRun.started_at.desc())
+            .limit(limit)
+            .all()
+        )
+        return [run.to_dict() for run in runs]
+
+
 __all__ = [
     "TrailRecorder",
     "TrailRecorderError",
     "load_trail",
+    "list_runs",
     "STATUS_COMPLETED",
     "STATUS_FAILED",
 ]

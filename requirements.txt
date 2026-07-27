@@ -73,6 +73,9 @@ httpx>=0.25.0
 # Security & Validation
 email-validator>=2.1.0
 
+# Demo UI
+streamlit>=1.40.0          # demo/app.py only; the API never imports it
+
 # Testing
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
