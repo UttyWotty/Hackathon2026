@@ -39,7 +39,13 @@ python -m synthetic_data.generate --database MMS_DEMO --schema PUBLIC --load
 
 # Run the server
 python main.py
+
+# Run the demo UI (offline, against the generated CSVs)
+LOCAL_DATA_DIR=./synthetic_out ./start_demo.sh
 ```
+
+The demo is at http://localhost:8501. It triggers a real headless agent run, shows the decision
+trail it produced, and grades that run against the planted defects.
 
 Then: Swagger at http://localhost:3020/docs, health at `/health`, MCP info at `/mcp/mcp/info`
 (the doubled segment is real - `mcp_router` declares its own `/mcp/*` paths and is mounted under
@@ -99,7 +105,7 @@ See `synthetic_data/README.md` for the planted defects and the non-obvious desig
 ## Status
 
 Working: the analytics surface, the tool-calling loop, the tool dispatch registry, the scheduler
-and job queue, and the synthetic dataset with its verification contract. 698 tests pass (658
+and job queue, and the synthetic dataset with its verification contract. 724 tests pass (684
 application, 40 generator).
 
 Built: the LLM client is ported off AWS Bedrock to the Snowflake Cortex REST Messages API
@@ -108,12 +114,14 @@ factory that also offers a local MLX stand-in for offline development. The auton
 (`services/workflow/`) runs the headless sense-reason-act loop and writes a decision trail
 (`models/decision_trail.py`); `scripts/run_agent.py` drives one run and self-grades it. Three
 agent skills, a shift-notes search surface, the Risk Tower detector, and an offline data seam
-(`LOCAL_DATA_DIR` serving the generator CSVs without Snowflake) are in place.
+(`LOCAL_DATA_DIR` serving the generator CSVs without Snowflake) are in place. The Streamlit demo
+(`demo/`) triggers a run, renders its decision trail grouped into sense, reason and act, grades it
+against ground truth, and charts the six-week drift the agent has to catch.
 
-Outstanding: Phase 4 - the end-to-end demo, the Cortex Analyst interactive surface, and the
-submission writeup and video. First contact against a live hackathon Snowflake account (PAT auth,
-PUT/COPY load, the exact GA Claude model id) is still untested; the code is written but has only
-run against synthetic CSVs and the MLX backend.
+Outstanding: the Cortex Analyst interactive surface, and the submission writeup and video. First
+contact against a live hackathon Snowflake account (PAT auth, PUT/COPY load, the exact GA Claude
+model id) is still untested; the code is written but has only run against synthetic CSVs and the
+MLX backend, so no demo run has yet reasoned on Cortex.
 
 `HACKATHON_PLAN.md` holds the build plan and the verified Cortex integration reference.
 `CLAUDE.md` holds the architecture and conventions, including several traps worth reading before

@@ -88,8 +88,10 @@ Phase 3 - Autonomous controller + Cortex-native surface (4-5 days) - controller 
 - Headless sense-decide-act loop triggered by the existing scheduler; Cortex reasons over anomaly findings and chains actions; persist a decision log. DONE - `services/workflow/` plus `models/decision_trail.py` and `scripts/run_agent.py`. Beyond the plan: three agent skills, a shift-notes search surface, and the Risk Tower detector were added.
 - Add a Cortex Analyst semantic model over the synthetic schema for the interactive NL-query surface. NOT STARTED (a section 8 cut-line candidate).
 
-Phase 4 - Demo and submission (3-4 days) - NOT STARTED (the remaining work):
-- Streamlit demo: the agent autonomously catches a seeded CT-deviation anomaly and fires the workflow end to end, plus a decision-log view. Record demo video and writeup. Buffer to Aug 2.
+Phase 4 - Demo and submission (3-4 days) - demo app DONE (offline only); video and writeup NOT STARTED:
+- Streamlit demo: the agent autonomously catches a seeded CT-deviation anomaly and fires the workflow end to end, plus a decision-log view. DONE - `demo/` plus `start_demo.sh`. Three tabs: trigger a live headless run and see it graded against ground truth, browse any past run's trail grouped into sense/reason/act, and the six-week drift chart that shows EMA-4103 climbing 1.9 to 24.0 percent while the fleet holds flat at about 2. The score card reads act-step payloads and flags anything the summary claimed without a backing step.
+- Not yet done: every demo run so far has reasoned on the local MLX backend against generated CSVs. The demo has never been driven end to end on Cortex, which is the run the video has to show. That is gated on the account (7a-7d), not on this app.
+- Record demo video and writeup. Buffer to Aug 2.
 
 ## 7. Pre-build checklist (do before Day 1)
 

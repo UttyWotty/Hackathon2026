@@ -33,7 +33,11 @@ pip install -r requirements.txt
 python main.py
 ./start_server.sh          # or: ./restart_server.sh, ./stop_server.sh
 
-# Tests (698 collected across both suites: 658 application, 40 generator)
+# Demo UI (port 8501, override with DEMO_PORT)
+LOCAL_DATA_DIR=./synthetic_out ./start_demo.sh
+streamlit run demo/app.py       # same thing without the preflight
+
+# Tests (724 collected across both suites: 684 application, 40 generator)
 pytest tests/ -v                       # application suite
 pytest synthetic_data/tests/ -v        # generator suite (pure, no I/O)
 pytest tests/test_tool_dispatcher.py -v                        # one file
@@ -50,7 +54,7 @@ python -m synthetic_data.generate --output-dir ./synthetic_out
 python -m synthetic_data.generate --database MMS_DEMO --schema PUBLIC --load
 ```
 
-CI runs both suites as separate steps and currently covers all 698 tests:
+CI runs both suites as separate steps and currently covers all 724 tests:
 
 ```bash
 pytest tests/ -v --tb=short -x -k "not snowflake and not redis and not langfuse and not langflow"
@@ -58,7 +62,7 @@ pytest synthetic_data/tests/ -v --tb=short
 ```
 
 The `-k` filter matches nothing today - no test name contains those substrings, so the
-application step collects all 658 either way. It is a guard for the future, not an active
+application step collects all 684 either way. It is a guard for the future, not an active
 exclusion: the workflow's `env:` block blanks `SNOWFLAKE_*` and `REDIS_URL`, so an integration
 test named after one of those services would fail in CI without it. Do not read the filter as
 evidence that integration paths are being skipped, and do not delete it as dead weight.
@@ -114,6 +118,7 @@ models/         SQLAlchemy models + SQLite (audit, scheduler, email, monitoring,
 utils/          error_handling, input_validation, sql_validation
 synthetic_data/ The generated dataset this project runs against
 scripts/        smoke_llm.py (one backend call), run_agent.py (one agent run)
+demo/           Streamlit demo UI. Imports downward only; nothing imports it
 ```
 
 ### The autonomous agent
@@ -139,6 +144,28 @@ a summary from the head keeps the deliberation and discards the verdict. Run sum
 `<think>` blocks (including unterminated ones) and truncate keeping the tail.
 
 Lower layers never import higher ones. Routers call services; services call analysis.
+
+### The demo UI
+
+`demo/` is a Streamlit app in four parts: `app.py` lays out three tabs, `runner.py` is the only
+module that touches the database, the network or the filesystem, and `presenters.py` and
+`story.py` are pure and tested. Nothing outside `demo/` imports it, so the demo can never affect
+the API.
+
+Two things to know before changing it:
+
+**An empty Act group is rendered, not hidden.** A run that reasoned at length and never acted is
+the exact failure this project exists to expose, so `group_steps_by_phase` always returns all
+three phases. Do not "tidy" it into skipping empty groups.
+
+**Weekly buckets are `W-SUN`, not `W-MON`.** Pandas names a weekly period by the day it *ends*
+on, so a Monday-to-Sunday week is `W-SUN`. `W-MON` shifts every bucket back a day and splits a
+production week across two points. A test covers this; it was written because the obvious-looking
+constant was wrong.
+
+Verify a UI change by executing the script, not by curling the port: Streamlit serves HTTP 200
+from a shell that has not yet run your code, and script errors only surface over the websocket.
+`streamlit.testing.v1.AppTest.from_file("demo/app.py").run()` runs it and exposes `.exception`.
 
 ### The data model
 
@@ -259,7 +286,7 @@ that the tests will catch you on.
 
 pytest with `pytest-asyncio`; config in `pytest.ini` (`pythonpath = .`). Session-scoped
 `TestClient` fixture in `tests/conftest.py` imports `main:app` directly, so no external server is
-needed. 698 tests currently pass (658 application, 40 generator).
+needed. 724 tests currently pass (684 application, 40 generator).
 
 `synthetic_data/tests/` is pure logic with no I/O and no Snowflake. It asserts the dataset against
 `CALCULATION_SPEC.md` rather than against the implementation, so it stays honest if the
