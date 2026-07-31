@@ -80,7 +80,7 @@ def run_analysis_api(
         >>> result = run_analysis_api(
         ...     start_date="2025-01-01",
         ...     end_date="2025-10-27",
-        ...     equipment_codes=["EMA-4110"],
+        ...     equipment_codes=["MX-7110"],
         ...     save_csv=True,
         ...     save_html=True
         ... )

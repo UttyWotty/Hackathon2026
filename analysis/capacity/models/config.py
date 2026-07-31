@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 # Default analysis parameters
-DEFAULT_EQUIPMENT_CODE: str = "EMA-4102"
+DEFAULT_EQUIPMENT_CODE: str = "MX-7102"
 DEFAULT_SUPPLIER_NAME: str = "Vantis industries SCS"
 DEFAULT_START_DATE: str = "2025-03-08 00:00:00"
 DEFAULT_END_DATE: str = "2025-08-31 23:59:59"
@@ -29,8 +29,8 @@ DEFAULT_OEE_TARGETS: List[float] = [0.50, 0.60, 0.70, 0.80, 0.90, 1.00]
 # NOTE: These are HARDCODED because system has incorrect VOLUME data for these equipment
 # For all other equipment, cavity count is calculated from VOLUME column
 EQUIPMENT_CAVITY_MAPPING: dict = {
-    "EMA-4101": 4,  # 1 shot, 4 parts (hardcoded - system has wrong data)
-    "EMA-4102": 4,  # 1 shot, 4 parts (hardcoded - system has wrong data)
+    "MX-7101": 4,  # 1 shot, 4 parts (hardcoded - system has wrong data)
+    "MX-7102": 4,  # 1 shot, 4 parts (hardcoded - system has wrong data)
     "3BD3008371": 2,  # 1 shot, 2 parts (hardcoded - system has wrong data)
     "3BD3008451": 2,  # 1 shot, 2 parts (hardcoded - system has wrong data)
 }

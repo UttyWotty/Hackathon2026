@@ -1,5 +1,8 @@
 """
-Test all routers are accessible and respond correctly.
+Test the remaining routers are accessible and respond correctly.
+
+Only scheduler and MCP routers survive the hackathon trim; analytics, chat, email,
+config, and monitoring were removed because the agent calls tools directly.
 """
 
 
@@ -9,8 +12,8 @@ def test_root_endpoint(client):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "running"
-    assert "features" in data
-    assert len(data["features"]) >= 12
+    assert "surfaces" in data
+    assert "agent_entry_point" in data
 
 
 def test_health_endpoint(client):
@@ -20,24 +23,6 @@ def test_health_endpoint(client):
     data = response.json()
     assert data["status"] == "healthy"
     assert "timestamp" in data
-
-
-def test_analytics_router_info(client):
-    """Test analytics router is accessible."""
-    response = client.get("/analytics/")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["service"] == "Manufacturing Analytics"
-    assert "available_tools" in data
-
-
-def test_monitoring_router_health(client):
-    """Test monitoring router health check."""
-    response = client.get("/monitoring/health")
-    assert response.status_code == 200
-    data = response.json()
-    assert "status" in data
-    assert data["status"] in ["healthy", "degraded"]
 
 
 def test_scheduler_router_info(client):

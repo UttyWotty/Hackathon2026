@@ -24,16 +24,15 @@ def test_database_connection():
 
 
 def test_migrations_table_exists():
-    """Test that migrations tracking table exists."""
+    """Test that core tables exist after init_database."""
     from models.database import get_session
 
     with get_session() as session:
         result = session.execute(
-            text(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_migrations'"
-            )
+            text("SELECT name FROM sqlite_master WHERE type='table'")
         )
-        assert result.fetchone() is not None, "schema_migrations table should exist"
+        existing_tables = {row[0] for row in result.fetchall()}
+        assert "scheduled_jobs" in existing_tables, "scheduled_jobs table should exist"
 
 
 def test_scheduled_jobs_table_has_retry_fields():
@@ -56,11 +55,13 @@ def test_all_required_tables_exist():
 
     required_tables = [
         "scheduled_jobs",
-        "audit_logs",
-        "metrics",  # Note: actual table name is 'metrics', not 'system_metrics'
-        "alert_rules",
-        "alert_history",
-        "schema_migrations",
+        "job_execution_history",
+        "decision_runs",
+        "decision_steps",
+        "notes",
+        "projects",
+        "tasks",
+        "task_timers",
     ]
 
     with get_session() as session:

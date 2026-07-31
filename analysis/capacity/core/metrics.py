@@ -247,7 +247,7 @@ def compute_session_metrics(
     Example:
         >>> metrics = compute_session_metrics(
         ...     session_df=session_data,
-        ...     equipment_code="EMA-4102",
+        ...     equipment_code="MX-7102",
         ...     oee_target=0.80,
         ...     total_actual_runtime_sec=86400
         ... )

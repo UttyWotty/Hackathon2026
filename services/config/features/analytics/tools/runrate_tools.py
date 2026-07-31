@@ -242,7 +242,7 @@ RUNRATE_TOOLS = [
                 "equipment_codes": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Equipment code(s) - REQUIRED - e.g., ['EMA-4104', 'EMA-4110']",
+                    "description": "Equipment code(s) - REQUIRED - e.g., ['MX-7104', 'MX-7110']",
                 },
                 "supplier_names": {
                     "type": "array",

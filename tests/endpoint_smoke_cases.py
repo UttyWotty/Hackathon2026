@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 # supplier); the equipment code and dates are shaped to pass
 # utils.input_validation.validate_analytics_request so the handler actually runs.
 ANALYTICS_SCHEMA = "NORDPLAST"
-SAMPLE_EQUIPMENT_CODE = "EMA-4101"
+SAMPLE_EQUIPMENT_CODE = "MX-7101"
 SAMPLE_START_DATE = "2025-11-01"
 SAMPLE_END_DATE = "2025-11-30"
 SAMPLE_TABLE = "MASTER_SHOT_TABLE"

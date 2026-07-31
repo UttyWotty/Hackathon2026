@@ -34,8 +34,8 @@ class TestSanitizeSqlString:
 
     def test_string_with_hyphens(self) -> None:
         """String with hyphens passes."""
-        result = sanitize_sql_string("EMA-4101")
-        assert result == "EMA-4101"
+        result = sanitize_sql_string("MX-7101")
+        assert result == "MX-7101"
 
     def test_string_with_underscores(self) -> None:
         """String with underscores passes."""
@@ -186,8 +186,8 @@ class TestValidateEquipmentCode:
 
     def test_code_with_hyphen(self) -> None:
         """Equipment code with hyphen passes."""
-        result = validate_equipment_code("EMA-4101")
-        assert result == "EMA-4101"
+        result = validate_equipment_code("MX-7101")
+        assert result == "MX-7101"
 
     def test_code_with_underscore(self) -> None:
         """Equipment code with underscore passes."""

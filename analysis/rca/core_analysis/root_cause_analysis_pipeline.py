@@ -61,7 +61,7 @@ class RootCauseAnalysisPipeline:
 
         Args:
             df: Manufacturing data. If None, data is fetched from Snowflake.
-            equipment_filter: Specific equipment to analyze (e.g., "EMA-4110").
+            equipment_filter: Specific equipment to analyze (e.g., "MX-7110").
         """
         self.df: Optional[pd.DataFrame] = df
         self.equipment_filter: Optional[str] = equipment_filter
@@ -101,7 +101,20 @@ class RootCauseAnalysisPipeline:
         return True
 
     def _fetch_from_snowflake(self) -> bool:
-        """Fetch shot data from Snowflake. Returns True on success."""
+        """Fetch shot data from Snowflake or local CSV. Returns True on success."""
+        from analysis.shared.local_source import is_local_data_enabled
+
+        if is_local_data_enabled():
+            logger.info("Serving RCA data from local dataset")
+            from analysis.shared.local_source import query_rca_shots
+
+            self.df = query_rca_shots(equipment_code=self.equipment_filter)
+            if self.df is None or self.df.empty:
+                logger.error("Local dataset returned no RCA data")
+                return False
+            logger.info("Raw data loaded: %s records", f"{len(self.df):,}")
+            return True
+
         logger.info("Fetching data from Snowflake...")
         try:
             from .master_shot_table import fetch_data_from_snowflake

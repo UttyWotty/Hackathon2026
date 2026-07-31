@@ -72,12 +72,18 @@ def create_snowpark_session() -> Session:
     """Create and return a Snowpark session using P8 authentication.
 
     Returns:
-        Session: Configured Snowpark session
+        Session: Configured Snowpark session, or None in local data mode.
 
     Raises:
         ValueError: If required environment variables are missing
         Exception: If connection fails
     """
+    from analysis.shared.local_source import is_local_data_enabled
+
+    if is_local_data_enabled():
+        logger.info("Local data mode: skipping Snowpark session creation")
+        return None  # type: ignore[return-value]
+
     try:
         # Use shared utilities for P8 authentication (same as RCA, ROI, etc.)
         connection_parameters = get_snowflake_connection_params(
@@ -138,18 +144,18 @@ def read_master_shot_table(session: Session) -> pd.DataFrame:
     The query keeps columns necessary for weekly rate, utilization, and EOL logic.
 
     Args:
-        session: Active Snowflake Snowpark Session.
+        session: Active Snowflake Snowpark Session (None in local mode).
 
     Returns:
-        pd.DataFrame: Dataframe with columns including at least
-            ['SUPPLIER_NAME','EQUIPMENT_CODE','COUNTER_CODE','CT','APPROVED_CT',
-             'LOCAL_SHOT_TIME','VOLUME','COUNTER_ID','MOLD_ID','COMPANY_ID',
-             'PART_ID','TOOLING_TYPE','CT_STATUS'] where present.
-
-    Note:
-        NOTE: Schema confirmed for MASTER_SHOT_TABLE in current environment
-              adjust selected columns accordingly.
+        pd.DataFrame with shot data including SHOT_COUNT column.
     """
+    from analysis.shared.local_source import is_local_data_enabled
+
+    if is_local_data_enabled():
+        from analysis.shared.local_source import query_tooling_eol_shots
+
+        logger.info("Reading MASTER_SHOT_TABLE from local dataset")
+        return query_tooling_eol_shots()
     # Build fully qualified table name (allow cross-database via env)
     shots_db = os.getenv("SHOT_DB") or session.get_current_database() or "AI"
     shots_schema = os.getenv("SHOT_SCHEMA") or session.get_current_schema()
@@ -209,11 +215,18 @@ def read_maintenance_events(session: Session) -> pd.DataFrame:
     are missing, returns an empty DataFrame and caller can warn accordingly.
 
     Args:
-        session: Active Snowpark session
+        session: Active Snowpark session (None in local mode).
 
     Returns:
-        pd.DataFrame: Dataframe with columns ['MOLD_ID','EVENT_TS','SOURCE'] when available.
+        pd.DataFrame with columns ['MOLD_ID','EVENT_TS','SOURCE'] when available.
     """
+    from analysis.shared.local_source import is_local_data_enabled
+
+    if is_local_data_enabled():
+        from analysis.shared.local_source import query_tooling_eol_maintenance
+
+        logger.info("Reading maintenance events from local dataset")
+        return query_tooling_eol_maintenance()
     # Maintenance in MMS by default; overridable via env
     database = os.getenv("MAINT_DB", "MMS")
     schema = os.getenv("MAINT_SCHEMA", session.get_current_schema())
@@ -303,18 +316,23 @@ def read_maintenance_events(session: Session) -> pd.DataFrame:
 
 
 def read_mold_table(session: Session) -> pd.DataFrame:
-    """Read essential fields from MMS.NORDPLAST.MOLD for enrichment.
+    """Read essential fields from MOLD table for enrichment.
 
     Pulls designed shots and capacity-related fields to complement MASTER_SHOT_TABLE.
 
     Args:
-        session: Active Snowflake Snowpark Session.
+        session: Active Snowflake Snowpark Session (None in local mode).
 
     Returns:
-        pd.DataFrame: Mold reference with columns like
-            ['MOLD_ID','EQUIPMENT_CODE','DESIGNED_SHOT','DAILY_MAX_CAPACITY',
-             'PRODUCTION_DAYS','SHIFTS_PER_DAY'] if present.
+        pd.DataFrame with mold reference columns.
     """
+    from analysis.shared.local_source import is_local_data_enabled
+
+    if is_local_data_enabled():
+        from analysis.shared.local_source import query_tooling_eol_mold
+
+        logger.info("Reading MOLD table from local dataset")
+        return query_tooling_eol_mold()
     mold_db = os.getenv("MOLD_DB", "MMS")
     mold_schema = os.getenv("MOLD_SCHEMA", session.get_current_schema())
     fq_mold = f"{mold_db}.{mold_schema}.MOLD"

@@ -27,6 +27,13 @@ from .models import GenerationConfig
 
 logger = logging.getLogger(__name__)
 
+# Load .env before reading env vars so standalone invocation picks up credentials.
+from pathlib import Path as _Path
+
+from dotenv import load_dotenv as _load_dotenv
+
+_load_dotenv(_Path(__file__).resolve().parent.parent / ".env")
+
 # Environment defaults. Every read is declared here as a module-level constant.
 SYNTHETIC_DATABASE: Final[str] = os.getenv("SYNTHETIC_DATABASE", "MMS_DEMO")
 SYNTHETIC_SCHEMA: Final[str] = os.getenv("SYNTHETIC_SCHEMA", "PUBLIC")

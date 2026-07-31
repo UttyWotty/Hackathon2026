@@ -26,11 +26,11 @@ def _row(code, mttr, mtbf, declining=False):
 
 # One machine with long repairs, one with frequent stops, three healthy peers.
 FLEET = [
-    _row("EMA-4101", 2.0, 25.0),
-    _row("EMA-4102", 2.0, 25.0),
-    _row("EMA-4103", 2.0, 25.0),
-    _row("EMA-4104", 2.0, 8.0),
-    _row("EMA-4105", 12.0, 25.0),
+    _row("MX-7101", 2.0, 25.0),
+    _row("MX-7102", 2.0, 25.0),
+    _row("MX-7103", 2.0, 25.0),
+    _row("MX-7104", 2.0, 8.0),
+    _row("MX-7105", 12.0, 25.0),
 ]
 
 
@@ -56,24 +56,24 @@ class TestFleetAverage:
 class TestFleetRatios:
     def test_long_repairs_are_flagged(self):
         rows = _add_fleet_ratios([dict(r) for r in FLEET])
-        target = next(r for r in rows if r["equipment_code"] == "EMA-4105")
+        target = next(r for r in rows if r["equipment_code"] == "MX-7105")
         assert target["high_mttr"] is True
         assert target["mttr_vs_peers"] > 1.2
 
     def test_frequent_stops_are_flagged(self):
         rows = _add_fleet_ratios([dict(r) for r in FLEET])
-        target = next(r for r in rows if r["equipment_code"] == "EMA-4104")
+        target = next(r for r in rows if r["equipment_code"] == "MX-7104")
         assert target["frequent_stops"] is True
         assert target["mtbf_vs_peers"] < 0.8
 
     def test_healthy_peers_are_not_flagged(self):
         rows = _add_fleet_ratios([dict(r) for r in FLEET])
-        healthy = [r for r in rows if r["equipment_code"] in ("EMA-4101", "EMA-4102")]
+        healthy = [r for r in rows if r["equipment_code"] in ("MX-7101", "MX-7102")]
         assert not any(r["high_mttr"] or r["frequent_stops"] for r in healthy)
 
     def test_a_uniform_fleet_flags_nobody(self):
         # Guards against a detector that always finds something.
-        rows = _add_fleet_ratios([_row(f"EMA-410{i}", 3.0, 20.0) for i in range(5)])
+        rows = _add_fleet_ratios([_row(f"MX-710{i}", 3.0, 20.0) for i in range(5)])
         assert not any(r["high_mttr"] or r["frequent_stops"] for r in rows)
 
     def test_zero_mtbf_is_not_read_as_frequent_stops(self):
@@ -87,12 +87,12 @@ class TestFleetRatios:
 class TestSummary:
     def test_summary_lists_each_outlier_group(self):
         summary = _summarize(_add_fleet_ratios([dict(r) for r in FLEET]))
-        assert summary["high_mttr_equipment"] == ["EMA-4105"]
-        assert summary["frequent_stops_equipment"] == ["EMA-4104"]
+        assert summary["high_mttr_equipment"] == ["MX-7105"]
+        assert summary["frequent_stops_equipment"] == ["MX-7104"]
         assert summary["total_equipment"] == len(FLEET)
 
     def test_declining_is_listed_separately(self):
         rows = [dict(r) for r in FLEET]
         rows[0]["is_declining"] = True
         summary = _summarize(_add_fleet_ratios(rows))
-        assert summary["declining_equipment"] == ["EMA-4101"]
+        assert summary["declining_equipment"] == ["MX-7101"]

@@ -199,7 +199,7 @@ def run_analysis_api(
         dict: {
             "status": "success"|"error",
             "date_range": "2025-01-01 to 2025-12-31",
-            "equipment_code": "EMA-4102",
+            "equipment_code": "MX-7102",
             "supplier_name": "Vantis industries",
             "metrics": {
                 "total_sessions": 123,

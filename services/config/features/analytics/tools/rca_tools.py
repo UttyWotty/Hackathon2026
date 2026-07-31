@@ -146,7 +146,7 @@ RCA_TOOLS = [
                 "equipment_codes": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Equipment code(s) - optional - e.g., ['EMA-4110']. Analyzes all equipment if not provided.",
+                    "description": "Equipment code(s) - optional - e.g., ['MX-7110']. Analyzes all equipment if not provided.",
                 },
                 "supplier_names": {
                     "type": "array",

@@ -91,6 +91,10 @@ def init_database() -> bool:
         DatabaseInitError: If table creation fails.
     """
     try:
+        import models.decision_trail  # noqa: F401
+        import models.scheduler  # noqa: F401
+        import models.workflow  # noqa: F401
+
         Base.metadata.create_all(bind=engine)
         logger.info("Database initialized: %s", DATABASE_URL)
         logger.info("Database file: %s/manufacturing.db", DATA_DIR)

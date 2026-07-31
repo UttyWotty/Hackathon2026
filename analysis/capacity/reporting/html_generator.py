@@ -40,7 +40,7 @@ def generate_sales_doc_daily(
     Example:
         >>> generate_sales_doc_daily(
         ...     daily_df,
-        ...     "EMA-4102",
+        ...     "MX-7102",
         ...     "Vantis industries",
         ...     "2025-01-01",
         ...     "2025-12-31",
@@ -163,7 +163,7 @@ def generate_formulas_doc_daily(
 
     Example:
         >>> generate_formulas_doc_daily(
-        ...     "EMA-4102",
+        ...     "MX-7102",
         ...     96.0,
         ...     "formulas_doc.html"
         ... )

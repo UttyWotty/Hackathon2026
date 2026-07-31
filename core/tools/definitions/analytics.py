@@ -75,7 +75,7 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
                         "equipment_codes": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Equipment codes to analyze (REQUIRED, e.g., ['EMA-4110', 'EMA-4104'])",
+                            "description": "Equipment codes to analyze (REQUIRED, e.g., ['MX-7110', 'MX-7104'])",
                         },
                         "start_date": {
                             "type": "string",
@@ -166,7 +166,7 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
                         "equipment_codes": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Equipment codes (REQUIRED) - e.g., ['EMA-4102']",
+                            "description": "Equipment codes (REQUIRED) - e.g., ['MX-7102']",
                         },
                         "supplier_names": {
                             "type": "array",
@@ -214,7 +214,7 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
                         "equipment_codes": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Equipment codes (optional) - e.g., ['EMA-4110']. Analyzes all if not provided.",
+                            "description": "Equipment codes (optional) - e.g., ['MX-7110']. Analyzes all if not provided.",
                         },
                         "supplier_names": {
                             "type": "array",

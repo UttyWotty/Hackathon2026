@@ -97,7 +97,7 @@ def test_format_equipment_list_labels_an_empty_list_explicitly():
 
 
 def test_format_equipment_list_joins_codes():
-    assert format_equipment_list(["EMA-4103", "EMA-4104"]) == "EMA-4103, EMA-4104"
+    assert format_equipment_list(["MX-7103", "MX-7104"]) == "MX-7103, MX-7104"
 
 
 def test_build_score_tiles_reports_a_caught_headline():
@@ -132,9 +132,9 @@ def test_unbacked_claim_warning_is_absent_when_every_claim_is_backed():
 
 
 def test_unbacked_claim_warning_names_the_unbacked_machines():
-    warning = unbacked_claim_warning({"claimed_only": ["EMA-4107"]})
+    warning = unbacked_claim_warning({"claimed_only": ["MX-7107"]})
     assert warning is not None
-    assert "EMA-4107" in warning
+    assert "MX-7107" in warning
 
 
 def test_group_steps_by_phase_handles_no_steps_at_all():

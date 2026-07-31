@@ -156,7 +156,7 @@ CAPACITY_TOOLS = [
                 "equipment_codes": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Equipment code(s) - REQUIRED - e.g., ['EMA-4102']",
+                    "description": "Equipment code(s) - REQUIRED - e.g., ['MX-7102']",
                 },
                 "supplier_names": {
                     "type": "array",

@@ -44,7 +44,7 @@ def make_daily_visual(daily: pd.DataFrame, equipment_code: str) -> go.Figure:
         go.Figure: Plotly figure with stacked bar chart
 
     Example:
-        >>> fig = make_daily_visual(daily_df, "EMA-4102")
+        >>> fig = make_daily_visual(daily_df, "MX-7102")
         >>> fig.show()
     """
     if daily.empty:
@@ -172,7 +172,7 @@ def make_oee_visual(daily: pd.DataFrame, equipment_code: str) -> go.Figure:
         go.Figure: Plotly figure with line chart
 
     Example:
-        >>> fig = make_oee_visual(daily_df, "EMA-4102")
+        >>> fig = make_oee_visual(daily_df, "MX-7102")
         >>> fig.show()
     """
     if daily.empty:
@@ -281,7 +281,7 @@ def make_combined_oee_visual(
 
     Example:
         >>> all_data = {0.50: df_50, 0.60: df_60, ..., 1.00: df_100}
-        >>> fig = make_combined_oee_visual(all_data, "EMA-4102")
+        >>> fig = make_combined_oee_visual(all_data, "MX-7102")
         >>> fig.show()
     """
     if not all_daily_data:
@@ -375,7 +375,7 @@ def make_optimal_output_visual(daily: pd.DataFrame, equipment_code: str) -> go.F
         go.Figure: Plotly figure with grouped bar chart
 
     Example:
-        >>> fig = make_optimal_output_visual(daily_df, "EMA-4102")
+        >>> fig = make_optimal_output_visual(daily_df, "MX-7102")
         >>> fig.show()
     """
     if daily.empty:

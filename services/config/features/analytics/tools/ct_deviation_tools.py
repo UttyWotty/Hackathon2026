@@ -44,7 +44,7 @@ CT_DEVIATION_TOOLS = [
         - Critical: >20% deviation
         
         Use cases:
-        - "What's the CT deviation for equipment EMA-4110?"
+        - "What's the CT deviation for equipment MX-7110?"
         - "Which equipment has the best cycle time stability?"
         - "Show me equipment with critical CT deviations"
         - "Compare CT performance across suppliers"

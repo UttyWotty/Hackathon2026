@@ -59,7 +59,7 @@ async def run_analysis_async(
         Exception: If analysis fails
 
     Example:
-        >>> results = await run_analysis_async("EMA-4104", supplier_name="SUPPLIER_A")
+        >>> results = await run_analysis_async("MX-7104", supplier_name="SUPPLIER_A")
         >>> print(results["metrics"]["efficiency_percentage"])
         92.5
     """

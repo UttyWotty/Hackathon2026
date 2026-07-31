@@ -76,7 +76,7 @@ ShotData AS (
         AND TO_DATE(TO_TIMESTAMP(ds.SHOT_START_TIME / 1000000000)) < '{end_date}'::DATE
 ),
 
--- Pre-filtered EMA-only assignments
+-- Pre-filtered counter assignments
 StatsAssignments AS (
     SELECT COUNTER_CODE, MOLD_ID, mold_code, ASSIGNMENT_START
     FROM (
@@ -92,7 +92,7 @@ StatsAssignments AS (
         FROM {database_name}.{schema_name}.STATISTICS st
         WHERE st.HOUR IS NOT NULL 
         AND st.ci IS NOT NULL
-        AND st.ci LIKE '%EMA%'
+        AND st.ci LIKE '%CNT-%'
     ) s
     WHERE ASSIGNMENT_START IS NOT NULL AND rn = 1
 ),

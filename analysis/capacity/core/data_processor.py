@@ -175,7 +175,7 @@ def get_cavity_count(equipment_code: str, data: pd.DataFrame = None) -> int:
         int: Number of parts produced per shot (default: 1 if not calculable)
 
     Example:
-        >>> get_cavity_count("EMA-4102")
+        >>> get_cavity_count("MX-7102")
         4  # Hardcoded value (system has wrong data)
         >>> get_cavity_count("OTHER-CODE", df)
         2  # Calculated from VOLUME column (mode)

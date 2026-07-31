@@ -113,10 +113,10 @@ class TestSteps:
             PHASE_ACT,
             STATUS_COMPLETED,
             tool_name="run_rca_analysis",
-            payload={"equipment_code": "EMA-4103", "depth": 2},
+            payload={"equipment_code": "MX-7103", "depth": 2},
         )
         step = load_trail("run-test-1", session_factory)["steps"][0]
-        assert step["payload"] == {"equipment_code": "EMA-4103", "depth": 2}
+        assert step["payload"] == {"equipment_code": "MX-7103", "depth": 2}
         assert step["tool_name"] == "run_rca_analysis"
 
     def test_long_summaries_are_truncated(self, recorder, session_factory):

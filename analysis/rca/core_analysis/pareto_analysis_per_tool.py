@@ -303,7 +303,7 @@ class ParetoAnalysis:
 
 
 def main() -> None:
-    """Main function to run the Pareto analysis for single equipment EMA-4108."""
+    """Main function to run the Pareto analysis for single equipment MX-7108."""
     try:
         print("  Fetching data from Snowflake...")
         df = fetch_data_from_snowflake(session)
@@ -312,14 +312,14 @@ def main() -> None:
             print("  ERROR: No data retrieved from Snowflake")
             return
 
-        print("  Filtering for single equipment EMA-4108...")
-        df_filtered = df[df["EQUIPMENT_CODE"] == "EMA-4108"].copy()
+        print("  Filtering for single equipment MX-7108...")
+        df_filtered = df[df["EQUIPMENT_CODE"] == "MX-7108"].copy()
 
         if df_filtered.empty:
-            print("  ERROR: No data found for equipment EMA-4108")
+            print("  ERROR: No data found for equipment MX-7108")
             return
 
-        print("  Found %d shots for equipment EMA-4108" % len(df_filtered))
+        print("  Found %d shots for equipment MX-7108" % len(df_filtered))
         print(
             "  Date range: %s to %s"
             % (
@@ -332,7 +332,7 @@ def main() -> None:
         )
 
         print("\n" + "=" * 80)
-        print("  SINGLE EQUIPMENT DOWNTIME ANALYSIS - EQUIPMENT EMA-4108")
+        print("  SINGLE EQUIPMENT DOWNTIME ANALYSIS - EQUIPMENT MX-7108")
         print("=" * 80)
         pareto = ParetoAnalysis(df_filtered)
         pareto.run_complete_analysis()

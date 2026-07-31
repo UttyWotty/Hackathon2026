@@ -42,13 +42,13 @@ Eight machines, five archetypes. Measured values from the default seed:
 
 | Equipment | Archetype | CT deviation | Stability | MTTR | MTBF | Detected by |
 |---|---|---|---|---|---|---|
-| EMA-4103 | ct_drift | **12.7%** (1.9% to 24.0%) | 90.0% | 2.4 | 22.3 | ct_deviation |
-| EMA-4104 | frequent_stops | 2.1% | 73.6% | 3.7 | **10.5** | run rate (low MTBF) |
-| EMA-4105 | long_repairs | 2.0% | 77.4% | **13.9** | 48.9 | run rate (high MTTR) |
-| EMA-4106 | declining | 2.1% | **53.4%** | 7.8 | 9.6 | risk tower (trend) |
-| EMA-4101/2/7/8 | stable | ~2.1% | 78-92% | ~2.4 | 7-31 | negative controls |
+| MX-7103 | ct_drift | **12.7%** (1.9% to 24.0%) | 90.0% | 2.4 | 22.3 | ct_deviation |
+| MX-7104 | frequent_stops | 2.1% | 73.6% | 3.7 | **10.5** | run rate (low MTBF) |
+| MX-7105 | long_repairs | 2.0% | 77.4% | **13.9** | 48.9 | run rate (high MTTR) |
+| MX-7106 | declining | 2.1% | **53.4%** | 7.8 | 9.6 | risk tower (trend) |
+| MX-7101/2/7/8 | stable | ~2.1% | 78-92% | ~2.4 | 7-31 | negative controls |
 
-`EMA-4103` is the demo headline. Its cycle time drifts from 1.9% to 24.0% above approved CT across
+`MX-7103` is the demo headline. Its cycle time drifts from 1.9% to 24.0% above approved CT across
 six weeks, crossing the warning threshold in week 3 and critical in week 6 — while its stability
 stays at 90.0%, statistically indistinguishable from the healthy machines. A single-metric monitor
 misses it entirely. Surfacing it requires reasoning across CT deviation and run rate together,

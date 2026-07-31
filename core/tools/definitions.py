@@ -259,7 +259,7 @@ VISUALIZATION_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "equipment_code": {
                             "type": "string",
-                            "description": "Equipment code to analyze (e.g., 'EMA-4102')",
+                            "description": "Equipment code to analyze (e.g., 'MX-7102')",
                         },
                         "start_date": {
                             "type": "string",

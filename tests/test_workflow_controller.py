@@ -34,14 +34,14 @@ CT_RESULT = {
     "status": "success",
     "metrics": [
         {
-            "equipment_code": "EMA-4103",
+            "equipment_code": "MX-7103",
             "deviation_percentage": 12.68,
             "deviation_category": "Acceptable (10-15% deviation)",
             "efficiency_score": 87.3,
             "stability_score": 90.1,
         },
         {
-            "equipment_code": "EMA-4101",
+            "equipment_code": "MX-7101",
             "deviation_percentage": 2.16,
             "deviation_category": "Excellent",
             "efficiency_score": 97.8,
@@ -147,7 +147,7 @@ def _controller(client, recorder, dispatcher, **kwargs):
 class TestSummarize:
     def test_list_metrics_render_per_equipment(self):
         text = summarize_sense_result("run_ct_deviation_analysis", CT_RESULT)
-        assert "EMA-4103" in text
+        assert "MX-7103" in text
         assert "deviation_percentage=12.68" in text
 
     def test_dict_metrics_render_aggregates(self):
@@ -208,7 +208,7 @@ class TestDeriveFollowups:
         tasks = derive_followup_tasks(
             [SenseFinding("run_ct_deviation_analysis", "success", "", CT_RESULT)]
         )
-        assert tasks[0].arguments["equipment_codes"] == ["EMA-4103"]
+        assert tasks[0].arguments["equipment_codes"] == ["MX-7103"]
 
     def test_no_wildcard_is_ever_emitted(self):
         # Run rate has no wildcard; passing "*" silently returns zeros, which
@@ -218,7 +218,7 @@ class TestDeriveFollowups:
         )
         codes = [c for t in tasks for c in t.arguments["equipment_codes"]]
         assert "*" not in codes
-        assert all(c.startswith("EMA-") for c in codes)
+        assert all(c.startswith("MX-") for c in codes)
 
     def test_failed_sweep_yields_no_followups(self):
         finding = SenseFinding("run_ct_deviation_analysis", "error", "", ERROR_RESULT)
@@ -230,7 +230,7 @@ class TestDeriveFollowups:
 
     def test_count_is_capped(self):
         rows = [
-            {"equipment_code": f"EMA-41{i:02d}", "deviation_percentage": i}
+            {"equipment_code": f"MX-71{i:02d}", "deviation_percentage": i}
             for i in range(10)
         ]
         finding = SenseFinding(
@@ -245,7 +245,7 @@ class TestControllerLoop:
         client = ScriptedClient([_text_response("nothing abnormal")])
         await _controller(client, recorder, dispatcher).run()
         prompt = client.calls[0]["messages"][0]["content"]
-        assert "EMA-4103" in prompt
+        assert "MX-7103" in prompt
         assert "autonomous" in prompt.lower()
 
     @pytest.mark.asyncio
@@ -260,13 +260,13 @@ class TestControllerLoop:
     async def test_tool_calls_are_executed_and_returned(self, recorder, dispatcher):
         client = ScriptedClient(
             [
-                _tool_response("run_rca_analysis", {"equipment_code": "EMA-4103"}),
-                _text_response("flagged EMA-4103"),
+                _tool_response("run_rca_analysis", {"equipment_code": "MX-7103"}),
+                _text_response("flagged MX-7103"),
             ]
         )
         result = await _controller(client, recorder, dispatcher).run()
         assert result["actions"] == ["run_rca_analysis"]
-        assert ("run_rca_analysis", {"equipment_code": "EMA-4103"}) in dispatcher.calls
+        assert ("run_rca_analysis", {"equipment_code": "MX-7103"}) in dispatcher.calls
 
     @pytest.mark.asyncio
     async def test_tool_failure_is_reported_back_to_the_model(self, recorder):

@@ -165,5 +165,6 @@ synthetic_out/
 
 # Local tooling
 .claude/
+.cortex/
 .qodo/
 .mcp.json

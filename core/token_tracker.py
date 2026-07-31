@@ -1,7 +1,7 @@
 """
 Token Usage Tracking System
 
-Centralized token usage tracking for AWS Bedrock and LLM services.
+Centralized token usage tracking for LLM services.
 Tracks input/output tokens and estimates costs.
 """
 
@@ -83,30 +83,6 @@ class TokenTracker:
         )
 
         return usage
-
-    def track_bedrock_response(
-        self,
-        response: Dict,
-        operation: str = "bedrock_call",
-        session_id: Optional[str] = None,
-    ) -> TokenUsage:
-        """Track token usage from AWS Bedrock response."""
-
-        # Extract token usage from Bedrock response
-        usage_info = response.get("usage", {})
-        input_tokens = usage_info.get("inputTokens", 0)
-        output_tokens = usage_info.get("outputTokens", 0)
-
-        # Get model ID from response
-        model_id = response.get("modelId", "claude-3-7-sonnet")
-
-        return self.track_usage(
-            model_id=model_id,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            operation=operation,
-            session_id=session_id,
-        )
 
     def track_langchain_response(
         self,

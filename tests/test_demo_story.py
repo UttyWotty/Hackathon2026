@@ -21,8 +21,8 @@ from demo.story import (
     weekly_deviation,
 )
 
-EQUIPMENT = "EMA-4103"
-PEER = "EMA-4101"
+EQUIPMENT = "MX-7103"
+PEER = "MX-7101"
 WEEK_ONE = "2026-06-08"
 WEEK_TWO = "2026-06-15"
 
@@ -125,4 +125,4 @@ def test_to_chart_frame_handles_no_data():
 
 def test_drift_magnitude_returns_empty_for_an_unknown_machine():
     df = _frame(_shots(EQUIPMENT, WEEK_ONE, 11.0, 10.0, 100))
-    assert drift_magnitude(weekly_deviation(df), "EMA-9999") == []
+    assert drift_magnitude(weekly_deviation(df), "MX-9999") == []

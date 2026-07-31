@@ -87,18 +87,13 @@ async def test_dispatch_tool_direct_sync_tool():
 
 
 @pytest.mark.asyncio
-async def test_dispatch_tool_direct_unknown_fallback():
-    """Test that unknown tools fall back to HTTP."""
-    # Patch the canonical execute_tool in core.tools_config
-    # (tool_dispatcher imports it lazily for unknown tool fallback)
-    with patch("core.tools_config.execute_tool") as mock_execute:
-        mock_execute.return_value = {"status": "success", "source": "http"}
+async def test_dispatch_tool_direct_unknown_raises():
+    """Test that unknown tools raise an error with status in the result."""
+    result = await dispatch_tool_direct("unknown_tool", {})
 
-        # This should trigger fallback - use await to make it async
-        result = await dispatch_tool_direct("unknown_tool", {})
-
-        # Should have attempted fallback (though execute_tool import may fail)
-        assert result is not None
+    assert result is not None
+    assert result.get("status") == "error"
+    assert "unknown" in result.get("error", "").lower() or "Unknown" in result.get("error", "")
 
 
 @pytest.mark.asyncio

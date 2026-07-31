@@ -51,7 +51,7 @@ OPENAI_TOOL_CALL_RESPONSE = {
                         "type": "function",
                         "function": {
                             "name": "run_ct_deviation_analysis",
-                            "arguments": '{"machine": "EMA-4103"}',
+                            "arguments": '{"machine": "MX-7103"}',
                         },
                     }
                 ],
@@ -186,7 +186,7 @@ class TestResponseConversion:
         uses = extract_tool_uses(converted)
         assert uses[0]["toolUseId"] == "call_1"
         assert uses[0]["name"] == "run_ct_deviation_analysis"
-        assert uses[0]["input"] == {"machine": "EMA-4103"}
+        assert uses[0]["input"] == {"machine": "MX-7103"}
 
     def test_usage_is_remapped(self):
         converted = convert_response_to_anthropic(OPENAI_TOOL_CALL_RESPONSE)

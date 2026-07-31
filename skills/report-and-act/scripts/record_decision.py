@@ -6,7 +6,7 @@ Every action recorded here is one the agent asserts it performed.
 
 Usage:
     python scripts/record_decision.py \\
-        --equipment EMA-4103 --severity high \\
+        --equipment MX-7103 --severity high \\
         --finding "Cycle time drifting, 12.6 percent above approved and rising" \\
         --evidence "risk tower: mttr_vs_peers 0.43, no stop-based signal" \\
         --evidence "shift note 2026-06-15: parts releasing slower from the cavity" \\

@@ -92,8 +92,8 @@ def validate_equipment_codes(
         DataValidationError: If validation fails
 
     Example:
-        >>> codes = validate_equipment_codes("EMA-4110")
-        >>> codes = validate_equipment_codes(["EMA-4110", "EMA-4109"])
+        >>> codes = validate_equipment_codes("MX-7110")
+        >>> codes = validate_equipment_codes(["MX-7110", "MX-7109"])
     """
     if equipment_codes is None or equipment_codes == []:
         if allow_empty:

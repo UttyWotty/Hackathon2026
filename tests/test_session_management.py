@@ -1,100 +1,89 @@
 """
 Tests for database session management - critical for preventing leaks.
 
-Tests:
-- Context manager pattern
-- Auto-commit on success
-- Auto-rollback on exception
-- Auto-close on exit
+Verifies the context manager pattern auto-commits on success, auto-rollbacks on
+exception, and supports nested sessions without leaking connections.
 """
+
+import uuid
 
 import pytest  # type: ignore[import-untyped]
 
 from models.database import get_session
+from models.scheduler import ScheduledJob
 
 
 def test_get_session_context_manager():
     """Test that get_session works as context manager."""
     with get_session() as session:
         assert session is not None
-        # Session should be open
         assert hasattr(session, "query")
-
-    # Session should be closed after context exit
-    # (We can't directly check this, but no errors means it worked)
 
 
 def test_get_session_auto_commit():
     """Test that session auto-commits on success."""
-    import uuid
-
-    from models.email import EmailQueue
-
-    email_id = str(uuid.uuid4())
+    job_id = str(uuid.uuid4())
 
     try:
-        # Add email using context manager
         with get_session() as session:
-            email_item = EmailQueue(
-                id=email_id,
-                to_email="test@example.com",
-                subject="Test",
-                body="Test",
+            job = ScheduledJob(
+                id=job_id,
+                name="test_auto_commit",
+                schedule="0 * * * *",
+                tool_name="test_tool",
+                arguments={},
             )
-            session.add(email_item)
-            # No explicit commit - should auto-commit on exit
+            session.add(job)
 
-        # Verify email was committed
         with get_session() as session:
-            saved_email = (
-                session.query(EmailQueue).filter(EmailQueue.id == email_id).first()
+            saved = (
+                session.query(ScheduledJob)
+                .filter(ScheduledJob.id == job_id)
+                .first()
             )
-            assert saved_email is not None
-            assert saved_email.to_email == "test@example.com"
+            assert saved is not None
+            assert saved.name == "test_auto_commit"
 
-            # Cleanup
-            session.delete(saved_email)
+            session.delete(saved)
             session.commit()
     except Exception:
-        # Cleanup on error
         with get_session() as session:
-            session.query(EmailQueue).filter(EmailQueue.id == email_id).delete()
+            session.query(ScheduledJob).filter(
+                ScheduledJob.id == job_id
+            ).delete()
             session.commit()
         raise
 
 
 def test_get_session_auto_rollback():
     """Test that session auto-rollbacks on exception."""
-    import uuid
-
-    from models.email import EmailQueue
-
-    email_id = str(uuid.uuid4())
+    job_id = str(uuid.uuid4())
 
     try:
-        # Try to add email with invalid data (should raise exception)
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             with get_session() as session:
-                email_item = EmailQueue(
-                    id=email_id,
-                    to_email="test@example.com",
-                    subject="Test",
-                    body="Test",
+                job = ScheduledJob(
+                    id=job_id,
+                    name="test_rollback",
+                    schedule="0 * * * *",
+                    tool_name="test_tool",
+                    arguments={},
                 )
-                session.add(email_item)
-                # Force exception
+                session.add(job)
                 raise ValueError("Test exception")
 
-        # Verify email was NOT committed (rolled back)
         with get_session() as session:
-            saved_email = (
-                session.query(EmailQueue).filter(EmailQueue.id == email_id).first()
+            saved = (
+                session.query(ScheduledJob)
+                .filter(ScheduledJob.id == job_id)
+                .first()
             )
-            assert saved_email is None, "Email should not be saved after exception"
+            assert saved is None, "Job should not be saved after exception"
     except Exception:
-        # Cleanup just in case
         with get_session() as session:
-            session.query(EmailQueue).filter(EmailQueue.id == email_id).delete()
+            session.query(ScheduledJob).filter(
+                ScheduledJob.id == job_id
+            ).delete()
             session.commit()
 
 
@@ -104,6 +93,5 @@ def test_get_session_nested_contexts():
         with get_session() as session2:
             assert session1 is not None
             assert session2 is not None
-            # Both should work independently
             assert hasattr(session1, "query")
             assert hasattr(session2, "query")

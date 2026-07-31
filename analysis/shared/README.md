@@ -95,8 +95,8 @@ from analysis.shared import validate_dataframe, validate_equipment_codes
 validate_dataframe(df, required_columns=["EQUIPMENT_CODE", "DATE"], min_rows=10)
 
 # Validate equipment codes
-codes = validate_equipment_codes("EMA-4110")  # Returns ["EMA-4110"]
-codes = validate_equipment_codes(["EMA-4110", "EMA-4109"])  # Returns list
+codes = validate_equipment_codes("MX-7110")  # Returns ["MX-7110"]
+codes = validate_equipment_codes(["MX-7110", "MX-7109"])  # Returns list
 ```
 
 ### 5. **file_operations.py** - File I/O

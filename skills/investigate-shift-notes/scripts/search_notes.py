@@ -6,8 +6,8 @@ usable before an account exists. The two modes are not equivalent and the output
 one produced the results.
 
 Usage:
-    python scripts/search_notes.py EMA-4103
-    python scripts/search_notes.py EMA-4103 "cycle time slower cooling"
+    python scripts/search_notes.py MX-7103
+    python scripts/search_notes.py MX-7103 "cycle time slower cooling"
 """
 
 import csv

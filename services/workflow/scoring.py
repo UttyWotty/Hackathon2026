@@ -28,7 +28,7 @@ KEY_PHASE = "phase"
 KEY_PAYLOAD = "payload"
 PHASE_ACT = "act"
 
-# Equipment codes look like EMA-4103. Matching on this shape rather than
+# Equipment codes look like MX-7103. Matching on this shape rather than
 # scanning for known codes means a hallucinated machine is still detected.
 EQUIPMENT_PATTERN = re.compile(r"\b[A-Z]{2,4}-\d{3,5}\b")
 

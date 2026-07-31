@@ -25,6 +25,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from dotenv import load_dotenv  # noqa: E402
+
+load_dotenv(REPO_ROOT / ".env")
+
 from core.cortex_errors import CortexError  # noqa: E402
 from core.cortex_wire import (  # noqa: E402
     extract_text_from_response,

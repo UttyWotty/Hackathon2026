@@ -31,7 +31,7 @@ purpose.
 
 ```bash
 python skills/report-and-act/scripts/record_decision.py \
-  --equipment EMA-4103 --severity high \
+  --equipment MX-7103 --severity high \
   --finding "Cycle time drifting, 12.6 percent above approved and still rising" \
   --evidence "risk tower: no stop-based signal, mttr_vs_peers 0.43" \
   --evidence "shift note 2026-06-15: parts releasing slower from the cavity" \

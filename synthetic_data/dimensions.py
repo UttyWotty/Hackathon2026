@@ -45,7 +45,7 @@ EQUIPMENT_ROSTER: Final[
     Tuple[Tuple[str, str, int, int, str, str, ProfileKind], ...]
 ] = (
     (
-        "EMA-4101",
+        "MX-7101",
         TOOLING_TYPE_INJECTION,
         284,
         4,
@@ -54,7 +54,7 @@ EQUIPMENT_ROSTER: Final[
         ProfileKind.STABLE,
     ),
     (
-        "EMA-4102",
+        "MX-7102",
         TOOLING_TYPE_INJECTION,
         312,
         2,
@@ -63,7 +63,7 @@ EQUIPMENT_ROSTER: Final[
         ProfileKind.STABLE,
     ),
     (
-        "EMA-4103",
+        "MX-7103",
         TOOLING_TYPE_INJECTION,
         268,
         4,
@@ -72,7 +72,7 @@ EQUIPMENT_ROSTER: Final[
         ProfileKind.CT_DRIFT,
     ),
     (
-        "EMA-4104",
+        "MX-7104",
         TOOLING_TYPE_DIE_CASTING,
         455,
         2,
@@ -81,7 +81,7 @@ EQUIPMENT_ROSTER: Final[
         ProfileKind.FREQUENT_STOPS,
     ),
     (
-        "EMA-4105",
+        "MX-7105",
         TOOLING_TYPE_DIE_CASTING,
         512,
         1,
@@ -90,7 +90,7 @@ EQUIPMENT_ROSTER: Final[
         ProfileKind.LONG_REPAIRS,
     ),
     (
-        "EMA-4106",
+        "MX-7106",
         TOOLING_TYPE_INJECTION,
         196,
         8,
@@ -99,7 +99,7 @@ EQUIPMENT_ROSTER: Final[
         ProfileKind.DECLINING,
     ),
     (
-        "EMA-4107",
+        "MX-7107",
         TOOLING_TYPE_STAMPING,
         88,
         1,
@@ -108,7 +108,7 @@ EQUIPMENT_ROSTER: Final[
         ProfileKind.STABLE,
     ),
     (
-        "EMA-4108",
+        "MX-7108",
         TOOLING_TYPE_INJECTION,
         342,
         2,
@@ -201,7 +201,7 @@ def build_molds(
             Mold(
                 id=MOLD_ID_BASE + index,
                 equipment_code=equipment_code,
-                counter_code=f"EMA{counter_id}",
+                counter_code=f"CNT-{counter_id}",
                 counter_id=counter_id,
                 supplier_company_id=COMPANY_ID_BASE + (index % len(SUPPLIER_NAMES)),
                 location_id=LOCATION_ID_BASE + (index % len(PLANT_SPECS)),

@@ -47,13 +47,17 @@ class ROIDatabase:
         Args:
             schema: Snowflake schema to use (overrides .env if provided)
         """
+        from analysis.shared.local_source import is_local_data_enabled
+
         self.schema = schema
         self.session: Optional[Session] = None
         self.sf_conn: Optional[snowflake.connector.SnowflakeConnection] = None
         self.connection_parameters: Dict[str, str] = {}
+        self._local_mode = is_local_data_enabled()
 
-        self._load_environment()
-        self._connect()
+        if not self._local_mode:
+            self._load_environment()
+            self._connect()
 
     def _load_environment(self) -> None:
         """Load Snowflake credentials from environment variables."""
@@ -124,7 +128,7 @@ class ROIDatabase:
         end_date: Optional[str] = None,
     ) -> pd.DataFrame:
         """
-        Fetch ROI data from Snowflake with optional filtering.
+        Fetch ROI data from Snowflake or local CSV with optional filtering.
 
         Args:
             supplier_names: Filter by supplier name(s) - list of names (optional)
@@ -135,6 +139,13 @@ class ROIDatabase:
         Returns:
             DataFrame with ROI data
         """
+        if self._local_mode:
+            return self._fetch_local(
+                supplier_names=supplier_names,
+                equipment_codes=equipment_codes,
+                start_date=start_date,
+                end_date=end_date,
+            )
         # Build dynamic WHERE clause
         where_conditions = ["volume > 0", "local_shot_time is not null"]
 
@@ -337,6 +348,54 @@ class ROIDatabase:
 
                 # If we've exhausted retries or it's not a certificate error, raise
                 raise
+
+    def _fetch_local(
+        self,
+        supplier_names: Optional[list] = None,
+        equipment_codes: Optional[list] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> pd.DataFrame:
+        """Serve ROI data from local synthetic CSV.
+
+        Applies the same filters as fetch_data but against the local dataset.
+
+        Args:
+            supplier_names: Filter by supplier name(s).
+            equipment_codes: Filter by equipment code(s).
+            start_date: Start date in YYYY-MM-DD format.
+            end_date: End date in YYYY-MM-DD format.
+
+        Returns:
+            DataFrame shaped like the ROI SQL query output.
+        """
+        from analysis.shared.local_source import load_master_shot_table
+
+        logger.info("Serving ROI data from local dataset")
+        frame = load_master_shot_table()
+
+        # Apply same filters as the Snowflake query
+        frame = frame[
+            (frame["VOLUME"] > 0) & frame["LOCAL_SHOT_TIME"].notna()
+        ]
+
+        if supplier_names:
+            frame = frame[frame["SUPPLIER_NAME"].isin(supplier_names)]
+        if equipment_codes:
+            frame = frame[frame["EQUIPMENT_CODE"].isin(equipment_codes)]
+        if start_date:
+            frame = frame[frame["LOCAL_SHOT_TIME"] >= f"{start_date} 00:00:00"]
+        if end_date:
+            frame = frame[frame["LOCAL_SHOT_TIME"] <= f"{end_date} 23:59:59"]
+
+        # Shape columns to match ROI SQL output
+        result = frame.copy()
+        result["TOTAL_SHOT_COUNT"] = 1
+        if "COMPANY_ID" in result.columns:
+            result["SUPPLIER_ID"] = result["COMPANY_ID"]
+
+        logger.info("Local ROI data: %d records", len(result))
+        return result
 
     def close(self) -> None:
         """Close Snowflake connections."""

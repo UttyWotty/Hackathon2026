@@ -190,7 +190,7 @@ def log_analysis_start(
 
     Example:
         >>> log_analysis_start("ROI Analysis", {
-        ...     "equipment_code": "EMA-4110",
+        ...     "equipment_code": "MX-7110",
         ...     "date_range": "2024-01-01 to 2024-12-31"
         ... })
     """

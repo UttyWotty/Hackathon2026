@@ -95,7 +95,7 @@ def fetch_available_equipment_codes(supplier_filter: Optional[str] = None) -> Li
     Example:
         >>> equipment = fetch_available_equipment_codes("Vantis industries SCS")
         >>> print(equipment[:3])
-        ['EMA-4102', 'EMA-4101', ...]
+        ['MX-7102', 'MX-7101', ...]
     """
     try:
         conn = snowflake_connect()
@@ -166,7 +166,7 @@ def fetch_equipment_data(
 
     Example:
         >>> df = fetch_equipment_data(
-        ...     equipment_code="EMA-4102",
+        ...     equipment_code="MX-7102",
         ...     supplier_name="Vantis industries SCS",
         ...     start_ts=pd.Timestamp("2025-01-01"),
         ...     end_ts=pd.Timestamp("2025-12-31")

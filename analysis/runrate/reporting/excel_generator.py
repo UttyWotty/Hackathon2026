@@ -79,7 +79,7 @@ def create_excel_report_with_formulas(
         >>> df_processed = process_sessions(raw_data)
         >>> output_path = create_excel_report_with_formulas(
         ...     df_processed,
-        ...     equipment_code="EMA-4104",
+        ...     equipment_code="MX-7104",
         ...     date_range=["2024-01-01", "2024-12-31"],
         ...     output_file="runrate_report.xlsx"
         ... )

@@ -7,7 +7,7 @@ conclusions.
 
 Usage:
     python scripts/sweep.py                 # whole fleet
-    python scripts/sweep.py EMA-4103        # one machine
+    python scripts/sweep.py MX-7103        # one machine
 """
 
 import asyncio

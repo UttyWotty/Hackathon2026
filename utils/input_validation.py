@@ -95,7 +95,7 @@ def validate_equipment_code(code: str) -> str:
         InputValidationError: If input contains dangerous characters
     """
     # Sanitize for SQL injection (allow alphanumeric, hyphens, underscores, dots)
-    # Increased max_length to 50 to accommodate various formats like "EMA-4101"
+    # Increased max_length to 50 to accommodate various formats like "MX-7101"
     code = sanitize_sql_string(code, max_length=50, allow_special=False)
 
     return code

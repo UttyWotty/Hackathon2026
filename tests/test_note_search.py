@@ -23,14 +23,14 @@ def _note(code, date, text, role="Operator"):
 
 NOTES = [
     _note(
-        "EMA-4103",
+        "MX-7103",
         "2026-06-15",
         "Parts releasing slower from the cavity. Added cooling.",
     ),
-    _note("EMA-4103", "2026-06-22", "Cycle time creeping up again this week."),
-    _note("EMA-4103", "2026-06-08", "Shift ran clean. Continuous production."),
+    _note("MX-7103", "2026-06-22", "Cycle time creeping up again this week."),
+    _note("MX-7103", "2026-06-08", "Shift ran clean. Continuous production."),
     _note(
-        "EMA-4104", "2026-06-15", "Three short stoppages today. Each restarted cleanly."
+        "MX-7104", "2026-06-15", "Three short stoppages today. Each restarted cleanly."
     ),
 ]
 
@@ -44,7 +44,7 @@ class TestTokenize:
         assert tokenize("the shift is running") == ["running"]
 
     def test_keeps_hyphenated_equipment_codes(self):
-        assert "ema-4103" in tokenize("EMA-4103 is drifting")
+        assert "mx-7103" in tokenize("MX-7103 is drifting")
 
     def test_empty_input_is_safe(self):
         assert tokenize("") == []
@@ -70,12 +70,12 @@ class TestScoreNote:
 
 class TestRankNotes:
     def test_filters_by_equipment(self):
-        results = rank_notes(NOTES, "", "EMA-4104")
+        results = rank_notes(NOTES, "", "MX-7104")
         assert len(results) == 1
-        assert results[0].equipment_code == "EMA-4104"
+        assert results[0].equipment_code == "MX-7104"
 
     def test_empty_query_returns_history_in_date_order(self):
-        results = rank_notes(NOTES, "", "EMA-4103")
+        results = rank_notes(NOTES, "", "MX-7103")
         assert [r.shift_date for r in results] == [
             "2026-06-08",
             "2026-06-15",
@@ -83,12 +83,12 @@ class TestRankNotes:
         ]
 
     def test_query_ranks_by_relevance(self):
-        results = rank_notes(NOTES, "cooling cavity", "EMA-4103")
+        results = rank_notes(NOTES, "cooling cavity", "MX-7103")
         assert results[0].shift_date == "2026-06-15"
 
     def test_zero_scoring_notes_are_dropped(self):
         # Returning every note for the machine would bury what was asked for.
-        results = rank_notes(NOTES, "hydraulic", "EMA-4103")
+        results = rank_notes(NOTES, "hydraulic", "MX-7103")
         assert results == []
 
     def test_limit_is_respected(self):
@@ -100,8 +100,8 @@ class TestRankNotes:
         A human searching for "running long" means the same thing as "creeping up", but
         they share no terms, so this ranker cannot connect them. Cortex Search can.
         """
-        assert rank_notes(NOTES, "running long", "EMA-4103") == []
+        assert rank_notes(NOTES, "running long", "MX-7103") == []
 
     def test_results_carry_the_date_for_attribution(self):
-        results = rank_notes(NOTES, "cooling", "EMA-4103")
+        results = rank_notes(NOTES, "cooling", "MX-7103")
         assert results[0].to_dict()["shift_date"] == "2026-06-15"

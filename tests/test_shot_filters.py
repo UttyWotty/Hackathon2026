@@ -42,14 +42,14 @@ def shots() -> pd.DataFrame:
                 ]
             ),
             "EQUIPMENT_CODE": [
-                "EMA-4101",
-                "EMA-4103",
-                "EMA-4101",
-                "EMA-4101",
-                "EMA-4101",
-                "EMA-4101",
-                "EMA-4101",
-                "EMA-4103",
+                "MX-7101",
+                "MX-7103",
+                "MX-7101",
+                "MX-7101",
+                "MX-7101",
+                "MX-7101",
+                "MX-7101",
+                "MX-7103",
             ],
             "SUPPLIER_NAME": ["A", "B", "A", "A", "A", "A", "A", "B"],
         }
@@ -93,8 +93,8 @@ class TestDateFilter:
 
 class TestMembershipFilter:
     def test_equipment_subset(self, shots):
-        kept = apply_membership_filter(shots, equipment_codes=["EMA-4103"])
-        assert set(kept["EQUIPMENT_CODE"]) == {"EMA-4103"}
+        kept = apply_membership_filter(shots, equipment_codes=["MX-7103"])
+        assert set(kept["EQUIPMENT_CODE"]) == {"MX-7103"}
 
     def test_wildcard_means_all_equipment(self, shots):
         # The sense tools pass ["*"] for "every machine".
@@ -118,9 +118,9 @@ class TestFilterShots:
         assert filter_shots(shots).index.tolist() == list(range(4))
 
     def test_predicates_compose(self, shots):
-        out = filter_shots(shots, start_date="2026-06-09", equipment_codes=["EMA-4103"])
+        out = filter_shots(shots, start_date="2026-06-09", equipment_codes=["MX-7103"])
         assert len(out) == 2
-        assert set(out["EQUIPMENT_CODE"]) == {"EMA-4103"}
+        assert set(out["EQUIPMENT_CODE"]) == {"MX-7103"}
 
     def test_validity_can_be_disabled(self, shots):
         assert len(filter_shots(shots, validity=False)) == len(shots)
@@ -140,7 +140,7 @@ class TestEndBoundDivergence:
                     ["2026-06-10 12:00:00.000", "2026-06-10 23:59:59.500"],
                     format="ISO8601",
                 ),
-                "EQUIPMENT_CODE": ["EMA-4101", "EMA-4101"],
+                "EQUIPMENT_CODE": ["MX-7101", "MX-7101"],
                 "SUPPLIER_NAME": ["A", "A"],
             }
         )

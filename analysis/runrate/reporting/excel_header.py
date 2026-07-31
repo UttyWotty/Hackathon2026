@@ -29,7 +29,7 @@ def create_report_header(
         date_range: [start_date, end_date] or (start_date, end_date)
 
     Example:
-        >>> create_report_header(ws, "EMA-4104", ["2025-01-01", "2025-12-31"])
+        >>> create_report_header(ws, "MX-7104", ["2025-01-01", "2025-12-31"])
     """
     ExcelStyles()
 

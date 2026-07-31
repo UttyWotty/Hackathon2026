@@ -293,3 +293,216 @@ def query_capacity_shots(
 
     projected = frame[RUNRATE_COLUMNS].rename(columns={COL_CT: RUNRATE_CT_ALIAS})
     return projected.reset_index(drop=True)
+
+
+# ==================== Reference table loaders ==================== #
+
+MOLD_FILE = "MOLD.csv"
+WORK_ORDER_FILE = "WORK_ORDER.csv"
+
+
+@lru_cache(maxsize=1)
+def load_mold_csv(data_dir: str = "") -> pd.DataFrame:
+    """
+    Read MOLD.csv into a DataFrame, cached for the process.
+
+    Args:
+        data_dir: Directory holding the CSVs. Defaults to "" meaning LOCAL_DATA_DIR.
+
+    Returns:
+        The mold reference table.
+
+    Raises:
+        LocalDataError: If no directory is configured or the file is absent.
+    """
+    directory = data_dir or LOCAL_DATA_DIR
+    if not directory:
+        raise LocalDataError("No local data directory configured.")
+
+    path = os.path.join(directory, MOLD_FILE)
+    if not os.path.exists(path):
+        raise LocalDataError(
+            f"{path} not found. Generate with: "
+            f"python -m synthetic_data.generate --output-dir {directory}"
+        )
+
+    frame = pd.read_csv(path)
+    frame.columns = [str(c).upper() for c in frame.columns]
+    logger.info("Loaded %d mold rows from %s", len(frame), path)
+    return frame
+
+
+@lru_cache(maxsize=1)
+def load_work_order_csv(data_dir: str = "") -> pd.DataFrame:
+    """
+    Read WORK_ORDER.csv into a DataFrame, cached for the process.
+
+    Args:
+        data_dir: Directory holding the CSVs. Defaults to "" meaning LOCAL_DATA_DIR.
+
+    Returns:
+        The work order table.
+
+    Raises:
+        LocalDataError: If no directory is configured or the file is absent.
+    """
+    directory = data_dir or LOCAL_DATA_DIR
+    if not directory:
+        raise LocalDataError("No local data directory configured.")
+
+    path = os.path.join(directory, WORK_ORDER_FILE)
+    if not os.path.exists(path):
+        raise LocalDataError(
+            f"{path} not found. Generate with: "
+            f"python -m synthetic_data.generate --output-dir {directory}"
+        )
+
+    frame = pd.read_csv(path, parse_dates=["COMPLETED_AT"])
+    frame.columns = [str(c).upper() for c in frame.columns]
+    logger.info("Loaded %d work order rows from %s", len(frame), path)
+    return frame
+
+
+# ==================== RCA query ==================== #
+
+
+# Columns the RCA pipeline selects from MASTER_SHOT_TABLE.
+RCA_COLUMNS = [
+    COL_SUPPLIER, COL_EQUIPMENT, "COUNTER_CODE", COL_CT, COL_APPROVED_CT,
+    "TEMPERATURE", "PART_NAME", "TOOLING_TYPE", "CT_STATUS",
+    COL_SHOT_TIME, COL_VOLUME, "COUNTER_ID", "MOLD_ID", "COMPANY_ID", "PART_ID",
+]
+
+
+def query_rca_shots(
+    equipment_code: Optional[str] = None,
+    supplier_name: Optional[str] = None,
+    data_dir: str = "",
+) -> pd.DataFrame:
+    """
+    Return shot rows for RCA analysis from local CSV.
+
+    RCA uses minimal filtering: only requires SUPPLIER_NAME and PART_NAME to be
+    non-null. No CT validity filter (keeps sentinel values for downtime detection).
+
+    Args:
+        equipment_code: Filter to single equipment. Defaults to None (all).
+        supplier_name: Filter to single supplier. Defaults to None (all).
+        data_dir: Override the configured directory. Defaults to "".
+
+    Returns:
+        DataFrame matching the RCA SQL shape, ordered by LOCAL_SHOT_TIME DESC,
+        limited to 100000 rows (matching the Snowflake query LIMIT).
+    """
+    frame = load_master_shot_table(data_dir)
+    frame = frame[frame[COL_SUPPLIER].notna() & frame["PART_NAME"].notna()]
+
+    if equipment_code:
+        frame = frame[frame[COL_EQUIPMENT] == equipment_code]
+    if supplier_name:
+        frame = frame[frame[COL_SUPPLIER] == supplier_name]
+
+    # Add TOOLING_FAMILY alias (RCA query does TOOLING_TYPE AS TOOLING_FAMILY)
+    result = frame.sort_values(COL_SHOT_TIME, ascending=False).head(100000)
+    available_cols = [c for c in RCA_COLUMNS if c in result.columns]
+    result = result[available_cols].copy()
+    result["TOOLING_FAMILY"] = result["TOOLING_TYPE"]
+    return result.reset_index(drop=True)
+
+
+# ==================== Tooling EOL queries ==================== #
+
+
+# Columns for tooling EOL shot data.
+TOOLING_EOL_COLUMNS = [
+    COL_SUPPLIER, COL_EQUIPMENT, "COUNTER_CODE", COL_CT, COL_APPROVED_CT,
+    COL_SHOT_TIME, COL_VOLUME, "COUNTER_ID", "MOLD_ID", "COMPANY_ID",
+    "PART_ID", "TOOLING_TYPE", "CT_STATUS",
+]
+
+
+def query_tooling_eol_shots(data_dir: str = "") -> pd.DataFrame:
+    """
+    Return shot rows shaped as tooling EOL's read_master_shot_table returns.
+
+    Applies only the WHERE LOCAL_SHOT_TIME IS NOT NULL filter, adds SHOT_COUNT=1,
+    and ensures numeric types match what the EOL pipeline expects.
+
+    Args:
+        data_dir: Override the configured directory. Defaults to "".
+
+    Returns:
+        DataFrame with EOL columns plus SHOT_COUNT.
+    """
+    frame = load_master_shot_table(data_dir)
+    frame = frame[frame[COL_SHOT_TIME].notna()]
+
+    available_cols = [c for c in TOOLING_EOL_COLUMNS if c in frame.columns]
+    result = frame[available_cols].copy()
+    result["SHOT_COUNT"] = 1
+
+    for col in ["CT", "APPROVED_CT", "VOLUME", "COUNTER_ID", "MOLD_ID", "COMPANY_ID"]:
+        if col in result.columns:
+            result[col] = pd.to_numeric(result[col], errors="coerce")
+
+    return result.reset_index(drop=True)
+
+
+def query_tooling_eol_mold(data_dir: str = "") -> pd.DataFrame:
+    """
+    Return mold reference data shaped as tooling EOL's read_mold_table returns.
+
+    Maps CSV columns to the shape expected: ID->MOLD_ID, plus EQUIPMENT_CODE,
+    DESIGNED_SHOT, DAILY_MAX_CAPACITY, PRODUCTION_DAYS, SHIFTS_PER_DAY.
+
+    Args:
+        data_dir: Override the configured directory. Defaults to "".
+
+    Returns:
+        DataFrame with mold reference columns.
+    """
+    mold = load_mold_csv(data_dir)
+
+    # Map ID to MOLD_ID if needed
+    if "ID" in mold.columns and "MOLD_ID" not in mold.columns:
+        mold = mold.rename(columns={"ID": "MOLD_ID"})
+
+    for col in ["MOLD_ID", "DESIGNED_SHOT", "DAILY_MAX_CAPACITY",
+                "PRODUCTION_DAYS", "SHIFTS_PER_DAY"]:
+        if col in mold.columns:
+            mold[col] = pd.to_numeric(mold[col], errors="coerce")
+
+    return mold
+
+
+def query_tooling_eol_maintenance(data_dir: str = "") -> pd.DataFrame:
+    """
+    Return maintenance events shaped as tooling EOL's read_maintenance_events returns.
+
+    Reads WORK_ORDER.csv, keeps only completed rows, and returns MOLD_ID,
+    EVENT_TS, SOURCE columns.
+
+    Args:
+        data_dir: Override the configured directory. Defaults to "".
+
+    Returns:
+        DataFrame with columns [MOLD_ID, EVENT_TS, SOURCE].
+    """
+    wo = load_work_order_csv(data_dir)
+
+    # Filter to completed work orders
+    if "STATUS" in wo.columns:
+        wo = wo[wo["STATUS"].str.lower() == "completed"]
+
+    # Build output matching read_maintenance_events shape
+    if "MOLD_ID" not in wo.columns or "COMPLETED_AT" not in wo.columns:
+        return pd.DataFrame(columns=["MOLD_ID", "EVENT_TS", "SOURCE"])
+
+    result = pd.DataFrame({
+        "MOLD_ID": pd.to_numeric(wo["MOLD_ID"], errors="coerce"),
+        "EVENT_TS": pd.to_datetime(wo["COMPLETED_AT"], errors="coerce"),
+        "SOURCE": "WORK_ORDER",
+    }).dropna(subset=["MOLD_ID", "EVENT_TS"])
+
+    result["MOLD_ID"] = result["MOLD_ID"].astype(int)
+    return result.reset_index(drop=True)

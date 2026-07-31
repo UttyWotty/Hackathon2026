@@ -19,7 +19,7 @@ Example Usage:
     >>>
     >>> results = run_analysis_api(
     ...     supplier_name="ACME Corp",
-    ...     equipment_code="EMA-4104",
+    ...     equipment_code="MX-7104",
     ...     start_date="2024-01-01",
     ...     end_date="2024-12-31"
     ... )
@@ -34,7 +34,7 @@ Async Example:
     >>> async def analyze():
     ...     results = await run_analysis_async(
     ...         supplier_name="ACME Corp",
-    ...         equipment_code="EMA-4104"
+    ...         equipment_code="MX-7104"
     ...     )
     ...     return results
     >>>

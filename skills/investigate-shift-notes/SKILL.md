@@ -45,8 +45,8 @@ CREATE OR REPLACE CORTEX SEARCH SERVICE shift_note_search
 ### Step 1: Retrieve the notes
 
 ```bash
-python skills/investigate-shift-notes/scripts/search_notes.py EMA-4103
-python skills/investigate-shift-notes/scripts/search_notes.py EMA-4103 "cycle slower cooling"
+python skills/investigate-shift-notes/scripts/search_notes.py MX-7103
+python skills/investigate-shift-notes/scripts/search_notes.py MX-7103 "cycle slower cooling"
 ```
 
 Omit the query to get the machine's history in date order. Supply one to rank by relevance.
