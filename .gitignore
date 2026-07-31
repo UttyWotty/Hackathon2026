@@ -168,3 +168,9 @@ synthetic_out/
 .cortex/
 .qodo/
 .mcp.json
+
+# Internal planning docs (not for submission)
+HACKATHON_PLAN.md
+
+# Submission deck (local only)
+submission_deck.pptx
