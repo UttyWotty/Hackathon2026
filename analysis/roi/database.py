@@ -375,9 +375,7 @@ class ROIDatabase:
         frame = load_master_shot_table()
 
         # Apply same filters as the Snowflake query
-        frame = frame[
-            (frame["VOLUME"] > 0) & frame["LOCAL_SHOT_TIME"].notna()
-        ]
+        frame = frame[(frame["VOLUME"] > 0) & frame["LOCAL_SHOT_TIME"].notna()]
 
         if supplier_names:
             frame = frame[frame["SUPPLIER_NAME"].isin(supplier_names)]

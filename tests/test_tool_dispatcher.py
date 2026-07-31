@@ -9,7 +9,6 @@ Tests:
 """
 
 import asyncio
-from unittest.mock import patch
 
 import pytest  # type: ignore[import-untyped]
 
@@ -93,7 +92,9 @@ async def test_dispatch_tool_direct_unknown_raises():
 
     assert result is not None
     assert result.get("status") == "error"
-    assert "unknown" in result.get("error", "").lower() or "Unknown" in result.get("error", "")
+    assert "unknown" in result.get("error", "").lower() or "Unknown" in result.get(
+        "error", ""
+    )
 
 
 @pytest.mark.asyncio

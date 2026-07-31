@@ -37,9 +37,7 @@ def test_get_session_auto_commit():
 
         with get_session() as session:
             saved = (
-                session.query(ScheduledJob)
-                .filter(ScheduledJob.id == job_id)
-                .first()
+                session.query(ScheduledJob).filter(ScheduledJob.id == job_id).first()
             )
             assert saved is not None
             assert saved.name == "test_auto_commit"
@@ -48,9 +46,7 @@ def test_get_session_auto_commit():
             session.commit()
     except Exception:
         with get_session() as session:
-            session.query(ScheduledJob).filter(
-                ScheduledJob.id == job_id
-            ).delete()
+            session.query(ScheduledJob).filter(ScheduledJob.id == job_id).delete()
             session.commit()
         raise
 
@@ -74,16 +70,12 @@ def test_get_session_auto_rollback():
 
         with get_session() as session:
             saved = (
-                session.query(ScheduledJob)
-                .filter(ScheduledJob.id == job_id)
-                .first()
+                session.query(ScheduledJob).filter(ScheduledJob.id == job_id).first()
             )
             assert saved is None, "Job should not be saved after exception"
     except Exception:
         with get_session() as session:
-            session.query(ScheduledJob).filter(
-                ScheduledJob.id == job_id
-            ).delete()
+            session.query(ScheduledJob).filter(ScheduledJob.id == job_id).delete()
             session.commit()
 
 

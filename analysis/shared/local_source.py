@@ -368,9 +368,21 @@ def load_work_order_csv(data_dir: str = "") -> pd.DataFrame:
 
 # Columns the RCA pipeline selects from MASTER_SHOT_TABLE.
 RCA_COLUMNS = [
-    COL_SUPPLIER, COL_EQUIPMENT, "COUNTER_CODE", COL_CT, COL_APPROVED_CT,
-    "TEMPERATURE", "PART_NAME", "TOOLING_TYPE", "CT_STATUS",
-    COL_SHOT_TIME, COL_VOLUME, "COUNTER_ID", "MOLD_ID", "COMPANY_ID", "PART_ID",
+    COL_SUPPLIER,
+    COL_EQUIPMENT,
+    "COUNTER_CODE",
+    COL_CT,
+    COL_APPROVED_CT,
+    "TEMPERATURE",
+    "PART_NAME",
+    "TOOLING_TYPE",
+    "CT_STATUS",
+    COL_SHOT_TIME,
+    COL_VOLUME,
+    "COUNTER_ID",
+    "MOLD_ID",
+    "COMPANY_ID",
+    "PART_ID",
 ]
 
 
@@ -415,9 +427,19 @@ def query_rca_shots(
 
 # Columns for tooling EOL shot data.
 TOOLING_EOL_COLUMNS = [
-    COL_SUPPLIER, COL_EQUIPMENT, "COUNTER_CODE", COL_CT, COL_APPROVED_CT,
-    COL_SHOT_TIME, COL_VOLUME, "COUNTER_ID", "MOLD_ID", "COMPANY_ID",
-    "PART_ID", "TOOLING_TYPE", "CT_STATUS",
+    COL_SUPPLIER,
+    COL_EQUIPMENT,
+    "COUNTER_CODE",
+    COL_CT,
+    COL_APPROVED_CT,
+    COL_SHOT_TIME,
+    COL_VOLUME,
+    "COUNTER_ID",
+    "MOLD_ID",
+    "COMPANY_ID",
+    "PART_ID",
+    "TOOLING_TYPE",
+    "CT_STATUS",
 ]
 
 
@@ -467,8 +489,13 @@ def query_tooling_eol_mold(data_dir: str = "") -> pd.DataFrame:
     if "ID" in mold.columns and "MOLD_ID" not in mold.columns:
         mold = mold.rename(columns={"ID": "MOLD_ID"})
 
-    for col in ["MOLD_ID", "DESIGNED_SHOT", "DAILY_MAX_CAPACITY",
-                "PRODUCTION_DAYS", "SHIFTS_PER_DAY"]:
+    for col in [
+        "MOLD_ID",
+        "DESIGNED_SHOT",
+        "DAILY_MAX_CAPACITY",
+        "PRODUCTION_DAYS",
+        "SHIFTS_PER_DAY",
+    ]:
         if col in mold.columns:
             mold[col] = pd.to_numeric(mold[col], errors="coerce")
 
@@ -498,11 +525,13 @@ def query_tooling_eol_maintenance(data_dir: str = "") -> pd.DataFrame:
     if "MOLD_ID" not in wo.columns or "COMPLETED_AT" not in wo.columns:
         return pd.DataFrame(columns=["MOLD_ID", "EVENT_TS", "SOURCE"])
 
-    result = pd.DataFrame({
-        "MOLD_ID": pd.to_numeric(wo["MOLD_ID"], errors="coerce"),
-        "EVENT_TS": pd.to_datetime(wo["COMPLETED_AT"], errors="coerce"),
-        "SOURCE": "WORK_ORDER",
-    }).dropna(subset=["MOLD_ID", "EVENT_TS"])
+    result = pd.DataFrame(
+        {
+            "MOLD_ID": pd.to_numeric(wo["MOLD_ID"], errors="coerce"),
+            "EVENT_TS": pd.to_datetime(wo["COMPLETED_AT"], errors="coerce"),
+            "SOURCE": "WORK_ORDER",
+        }
+    ).dropna(subset=["MOLD_ID", "EVENT_TS"])
 
     result["MOLD_ID"] = result["MOLD_ID"].astype(int)
     return result.reset_index(drop=True)

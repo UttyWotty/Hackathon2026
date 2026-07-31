@@ -109,8 +109,6 @@ from .logging import (
     setup_module_logger,
 )
 
-
-
 # Version information
 __version__ = "1.0.0"
 __author__ = "Utku Gulbardak"
@@ -166,7 +164,6 @@ __all__ = [
     "clean_filename",
     "get_absolute_path",
     "list_files_by_extension",
-
     # Constants
     "AnalysisThresholds",
     "ShiftBoundaries",
@@ -218,7 +215,6 @@ def list_available_utilities() -> dict:
             "safe_write_json",
             "ensure_directory",
         ],
-
     }
 
 
