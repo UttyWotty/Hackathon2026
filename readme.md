@@ -16,15 +16,14 @@ Manufacturing lines generate millions of shots per week. Dashboards track single
 - Declining week-over-week stability is the earliest warning, but no threshold catches a trend
 
 **This agent reasons across detectors the way an experienced engineer does** -- combining
-cycle time deviation, run rate efficiency, MTBF/MTTR ratios, and stability trends to surface
-what single-metric monitors miss.
+cycle time deviation and stability trends to surface what single-metric monitors miss.
 
 ## Demo Headline
 
 Machine **MX-7103** drifts from 1.9% to 24.0% above approved cycle time over six weeks while
 its stability score stays at 90% -- statistically indistinguishable from healthy machines.
 A threshold-based monitor never fires. The agent catches it by reasoning across CT deviation
-and run rate together, then autonomously runs root cause analysis and records the finding.
+and stability signals, then autonomously runs root cause analysis and records the finding.
 
 ## Architecture
 
@@ -32,14 +31,14 @@ and run rate together, then autonomously runs root cause analysis and records th
 Trigger (schedule/manual)
     |
     v
-[Sense] CT Deviation + Risk Tower sweep across fleet
+[Sense] CT Deviation + Stability sweep across fleet
     |
     v
 [Reason] Cortex LLM (Claude) cross-signal analysis
     |       - Which machines are truly abnormal?
     |       - What follow-up tools should run?
     v
-[Act] Run Rate, RCA, Save Insights (tool dispatch)
+[Act] RCA, Save Insights (tool dispatch)
     |
     v
 [Record] Decision trail + self-grade against ground truth
@@ -114,7 +113,7 @@ LLM_BACKEND=cortex
 scripts/run_agent.py          Entry point: one autonomous sense-reason-act cycle
 skills/                       3 CoCo CLI skills (sense, investigate, report)
 demo/                         Streamlit UI (trigger runs, browse trails, visualize drift)
-analysis/                     8 analysis modules (ct_deviation, runrate, rca, capacity, ...)
+analysis/                     Analysis modules (ct_deviation, rca, roi, ct_efficiency, ...)
 services/workflow/            Autonomous controller, scoring, decision trail
 core/                         LLM clients (Cortex + MLX), tool definitions, prompts
 synthetic_data/               Reproducible dataset generator with planted defects

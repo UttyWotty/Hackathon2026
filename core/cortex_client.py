@@ -79,9 +79,9 @@ class CortexClient:
         Raises:
             CortexConfigurationError: If the account identifier or PAT is absent.
         """
-        self.account = account or SNOWFLAKE_ACCOUNT
-        self.pat = pat or SNOWFLAKE_PAT
-        self.model = model or CORTEX_MODEL
+        self.account = account or os.getenv("SNOWFLAKE_ACCOUNT", "")
+        self.pat = pat or os.getenv("SNOWFLAKE_PAT", "")
+        self.model = model or os.getenv("CORTEX_MODEL", CORTEX_MODEL)
         self.timeout_seconds = timeout_seconds
         self.enable_prompt_caching = enable_prompt_caching
         self.transport = transport or post_json

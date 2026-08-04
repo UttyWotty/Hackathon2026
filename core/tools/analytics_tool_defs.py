@@ -1,7 +1,8 @@
 """
 Analytics tool definitions for Claude/Bedrock Converse API integration.
-Defines the 8 manufacturing analysis tools: master table refresh, runrate, ROI,
-capacity, RCA, CT deviation, CT efficiency, and tooling EOL.
+
+Defines manufacturing analysis tools: master table refresh, ROI,
+RCA, CT deviation, CT efficiency, and tooling EOL.
 """
 
 from typing import Any, Dict, List
@@ -10,7 +11,7 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
     {
         "toolSpec": {
             "name": "refresh_master_shot_table",
-            "description": """Refresh MASTER_SHOT_TABLE with latest production data from Snowflake. This is the FOUNDATION TABLE used by all 7 analysis modules (ROI, RunRate, Capacity, CT Deviation, CT Efficiency, RCA, Tooling EOL). Run this periodically (daily/hourly) to ensure analyses use fresh data. Supports incremental mode (fast, only new data with overlap) and full mode (complete historical reload).""",
+            "description": """Refresh MASTER_SHOT_TABLE with latest production data from Snowflake. This is the FOUNDATION TABLE used by all 7 analysis modules (ROI, CT Deviation, CT Efficiency, RCA, Tooling EOL). Run this periodically (daily/hourly) to ensure analyses use fresh data. Supports incremental mode (fast, only new data with overlap) and full mode (complete historical reload).""",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -52,42 +53,6 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
     },
     {
         "toolSpec": {
-            "name": "run_runrate_analysis",
-            "description": "Analyze production runrate with MTTR/MTBF metrics, stop detection, and efficiency tracking for specific equipment over a date range. Returns comprehensive Excel reports with session analysis.",
-            "inputSchema": {
-                "json": {
-                    "type": "object",
-                    "properties": {
-                        "equipment_codes": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Equipment codes to analyze (REQUIRED, e.g., ['MX-7110', 'MX-7104'])",
-                        },
-                        "start_date": {
-                            "type": "string",
-                            "description": "Start date in YYYY-MM-DD format (REQUIRED)",
-                        },
-                        "end_date": {
-                            "type": "string",
-                            "description": "End date in YYYY-MM-DD format (REQUIRED)",
-                        },
-                        "supplier_names": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Optional supplier names to filter (e.g., ['Vantis industries SCS'])",
-                        },
-                        "client": {
-                            "type": "string",
-                            "description": "Client name/schema to query (e.g., 'NORDPLAST', 'AURELIA', 'MERIDIAN', 'ARCWELD'). If not provided, uses default from environment.",
-                        },
-                    },
-                    "required": ["equipment_codes", "start_date", "end_date"],
-                }
-            },
-        }
-    },
-    {
-        "toolSpec": {
             "name": "run_roi_analysis",
             "description": "Calculate ROI and cycle time efficiency metrics for manufacturing operations. Supports daily, weekly, or monthly aggregation. Analyzes cost savings, production efficiency, uptime, and financial returns.",
             "inputSchema": {
@@ -123,47 +88,6 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
                         },
                     },
                     "required": ["start_date", "end_date"],
-                }
-            },
-        }
-    },
-    {
-        "toolSpec": {
-            "name": "run_capacity_analysis",
-            "description": "Analyze production capacity and OEE with multi-target scenarios (50%-100%). Calculates Availability, Performance, Quality metrics, performance/availability losses, and generates Excel reports with 6 OEE sheets.",
-            "inputSchema": {
-                "json": {
-                    "type": "object",
-                    "properties": {
-                        "equipment_codes": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Equipment codes (REQUIRED) - e.g., ['MX-7102']",
-                        },
-                        "supplier_names": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Supplier names (optional)",
-                        },
-                        "start_date": {
-                            "type": "string",
-                            "description": "Start date (YYYY-MM-DD)",
-                        },
-                        "end_date": {
-                            "type": "string",
-                            "description": "End date (YYYY-MM-DD)",
-                        },
-                        "oee_targets": {
-                            "type": "array",
-                            "items": {"type": "number"},
-                            "description": "OEE targets (default: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0])",
-                        },
-                        "client": {
-                            "type": "string",
-                            "description": "Client name/schema to query (e.g., 'NORDPLAST', 'AURELIA', 'MERIDIAN', 'ARCWELD'). If not provided, uses default from environment.",
-                        },
-                    },
-                    "required": ["equipment_codes", "start_date", "end_date"],
                 }
             },
         }

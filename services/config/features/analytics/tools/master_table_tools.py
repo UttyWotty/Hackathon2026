@@ -2,7 +2,7 @@
 Master Shot Table Refresh Tool - Foundation Data Pipeline.
 
 Refreshes the MASTER_SHOT_TABLE that serves as the canonical data source
-for all analysis modules (ROI, Capacity, RCA, RunRate, etc.).
+for all analysis modules (ROI, RCA, etc.).
 
 This tool wraps the OptimizedMasterShotPipeline which provides:
 - Incremental processing with overlap detection
@@ -38,8 +38,8 @@ def refresh_master_shot_table(
 
     This is the foundation table used by all analysis modules:
     - ROI Analysis
-    - RunRate Analysis (MTTR/MTBF)
-    - Capacity Planning
+    -  Analysis (MTTR/MTBF)
+    
     - CT Deviation
     - CT Efficiency
     - Root Cause Analysis
@@ -352,8 +352,8 @@ MASTER_TABLE_TOOLS = [
 
 This is the FOUNDATION TABLE used by all 7 analysis modules:
 • ROI Analysis - Cycle time efficiency metrics
-• RunRate Analysis - MTTR/MTBF tracking
-• Capacity Planning - Multi-OEE analysis
+•  Analysis - MTTR/MTBF tracking
+
 • CT Deviation - Process stability monitoring
 • CT Efficiency - Supplier benchmarking
 • Root Cause Analysis - Pareto and Five Whys

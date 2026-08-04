@@ -11,8 +11,6 @@ from .constants import CT_DEVIATION_CRITICAL_PCT
 from .models import EquipmentProfile, ExpectedFinding, ProfileKind
 
 DETECTOR_CT_DEVIATION: Final[str] = "run_ct_deviation_analysis"
-DETECTOR_RUNRATE: Final[str] = "run_rate_analysis"
-DETECTOR_RISK_TOWER: Final[str] = "runrate_risk_tower"
 DETECTOR_CONTROL: Final[str] = "negative_control"
 
 DIRECTION_ABOVE: Final[str] = "above"
@@ -70,7 +68,7 @@ def _finding_for(profile: EquipmentProfile) -> ExpectedFinding:
         return ExpectedFinding(
             equipment_code=equipment_code,
             profile_kind=profile.kind,
-            detector=DETECTOR_RUNRATE,
+            detector=DETECTOR_CT_DEVIATION,
             claim=claim,
             metric="mtbf_minutes",
             expected_direction=DIRECTION_BELOW,
@@ -80,7 +78,7 @@ def _finding_for(profile: EquipmentProfile) -> ExpectedFinding:
         return ExpectedFinding(
             equipment_code=equipment_code,
             profile_kind=profile.kind,
-            detector=DETECTOR_RUNRATE,
+            detector=DETECTOR_CT_DEVIATION,
             claim=claim,
             metric="mttr_minutes",
             expected_direction=DIRECTION_ABOVE,
@@ -90,7 +88,7 @@ def _finding_for(profile: EquipmentProfile) -> ExpectedFinding:
         return ExpectedFinding(
             equipment_code=equipment_code,
             profile_kind=profile.kind,
-            detector=DETECTOR_RISK_TOWER,
+            detector=DETECTOR_CT_DEVIATION,
             claim=claim,
             metric="stability_decline_pct",
             expected_direction=DIRECTION_ABOVE,
@@ -115,7 +113,7 @@ def build_expected_findings(profiles: List[EquipmentProfile]) -> List[ExpectedFi
 def demo_headline_equipment(profiles: List[EquipmentProfile]) -> str:
     """Return the equipment code the Phase 4 demo narrative is built around.
 
-    The CT-drift tool is the headline because its anomaly is invisible to run-rate metrics,
+    The CT-drift tool is the headline because its anomaly is invisible to single-metric monitors,
     which makes the agent's cross-tool reasoning the visible value in the demo.
     """
     for profile in profiles:

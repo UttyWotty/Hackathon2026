@@ -82,7 +82,6 @@ _READ_ONLY_CASES: List[ValidCase] = [
     ValidCase(METHOD_POST, "/analytics/ct-efficiency", _analytics_body()),
     ValidCase(METHOD_POST, "/analytics/ct-deviation", _analytics_body()),
     ValidCase(METHOD_POST, "/analytics/tooling-eol", _analytics_body()),
-    ValidCase(METHOD_POST, "/analytics/capacity", _analytics_body()),
 ]
 
 # MCP dispatch endpoints: exercise the tool-dispatch registry via a pure tool so

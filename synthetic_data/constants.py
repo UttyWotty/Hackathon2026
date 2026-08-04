@@ -2,7 +2,7 @@
 
 Every threshold here mirrors a value the production analysis modules depend on, so that
 generated data lands deterministically on the intended side of each detection rule.
-Values sourced from analysis/shared/constants.py and analysis/runrate/CALCULATION_SPEC.md
+Values sourced from analysis/shared/constants.py.
 are marked as such and must not be changed independently of the analysis code.
 """
 
@@ -27,7 +27,7 @@ NORMAL_GAP_JITTER_SEC: Final[float] = 0.6
 
 # Machine cycle times are reported on a fixed grid, not as continuous values. Quantizing to
 # this resolution is what makes MODE_CT a well-defined statistical mode; with continuous
-# jitter almost every CT would be unique and the runrate mode would be arbitrary.
+# jitter almost every CT would be unique and the mode would be arbitrary.
 CT_RESOLUTION_SEC: Final[float] = 0.1
 CT_DECIMALS: Final[int] = 1
 

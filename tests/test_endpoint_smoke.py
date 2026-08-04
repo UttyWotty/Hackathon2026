@@ -33,8 +33,6 @@ DESTRUCTIVE_DENYLIST = {
     "/pipelines/master-shot-table/run",
     "/pipelines/roi/run",
     "/pipelines/run-all",
-    "/pipelines/run-rate/run",
-    "/analytics/runrate",
     "/visualization/create",
 }
 

@@ -42,12 +42,12 @@ def _master_metrics(days: int) -> Dict[str, Dict[str, Any]]:
     return {r["EQUIPMENT_CODE"]: r for r in rows}
 
 
-def _runrate_efficiency(days: int) -> Dict[str, float]:
-    """Per-equipment run efficiency percentage from the RUNRATE table."""
+def _production_efficiency(days: int) -> Dict[str, float]:
+    """Per-equipment run efficiency percentage from the PRODUCTION_METRICS table."""
     rows = query_records(f"""
         SELECT EQUIPMENT_CODE,
                SUM(PRODUCTION_TIME_SEC) / NULLIF(SUM(RUN_TIME_SEC), 0) * 100 AS RUN_EFFICIENCY
-        FROM RUNRATE
+        FROM PRODUCTION_METRICS
         WHERE START_DATE >= DATEADD(day, -{days}, CURRENT_DATE())
         GROUP BY EQUIPMENT_CODE
         """)
@@ -101,7 +101,7 @@ def get_plant_health_snapshot(days: int = DEFAULT_WINDOW_DAYS) -> Dict[str, Any]
     try:
         days = positive_int(days, "days", MAX_WINDOW_DAYS)
         master = _master_metrics(days)
-        efficiency = _runrate_efficiency(days)
+        efficiency = _production_efficiency(days)
         utilization = _capacity_utilization(days)
 
         records = []
@@ -133,7 +133,7 @@ def get_plant_health_snapshot(days: int = DEFAULT_WINDOW_DAYS) -> Dict[str, Any]
             "grade_counts": grades,
             "equipment": ranked,
             "notes": (
-                "Run efficiency from RUNRATE, utilization from CAPACITY_DAILY; "
+                "Run efficiency from PRODUCTION_METRICS, utilization from CAPACITY_DAILY; "
                 "missing components renormalize the score weights."
             ),
         }

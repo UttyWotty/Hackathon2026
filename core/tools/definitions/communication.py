@@ -37,7 +37,7 @@ COMMUNICATION_TOOLS: List[Dict[str, Any]] = [
                         },
                         "analysis_type": {
                             "type": "string",
-                            "description": "Type of analysis being sent (e.g., 'ROI', 'Runrate', 'Capacity') for context",
+                            "description": "Type of analysis being sent (e.g., 'ROI', 'CT Deviation', 'RCA') for context",
                         },
                         "custom_body": {
                             "type": "string",

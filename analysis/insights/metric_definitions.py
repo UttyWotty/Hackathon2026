@@ -1,13 +1,13 @@
 """Canonical metric definitions for the manufacturing analytics platform.
 
 Static registry of how each core metric is defined and calculated, sourced from
-analysis/runrate/CALCULATION_SPEC.md and the analytics pipeline implementations.
+the analytics pipeline implementations.
 Pure data module so every LLM answer uses identical definitions across sessions.
 """
 
 from typing import Any, Dict, List, Optional
 
-SPEC_PATH: str = "analysis/runrate/CALCULATION_SPEC.md"
+SPEC_PATH: str = "analysis/ct_deviation"
 
 METRIC_DEFINITIONS: Dict[str, Dict[str, str]] = {
     "production_run": {
@@ -88,13 +88,6 @@ METRIC_DEFINITIONS: Dict[str, Dict[str, str]] = {
             "approved CT, as stored in CYCLE_TIME_DEVIATION.NCTD."
         ),
         "source": "analysis/ct_deviation",
-    },
-    "capacity_utilization": {
-        "definition": (
-            "Actual output versus optimal output at a target cycle time (approved, "
-            "mode, or weighted-average CT scenarios in CAPACITY_DAILY/WEEKLY)."
-        ),
-        "source": "analysis/capacity",
     },
     "health_score": {
         "definition": (

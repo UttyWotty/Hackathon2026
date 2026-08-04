@@ -25,14 +25,7 @@ _ANALYTICS_TOOL_IMPORTS: Dict[str, tuple] = {
         "services.config.features.analytics.tools.roi_tools",
         "run_roi_analysis",
     ),
-    "run_runrate_analysis": (
-        "services.config.features.analytics.tools.runrate_tools",
-        "run_runrate_analysis",
-    ),
-    "run_risk_tower_analysis": (
-        "services.config.features.analytics.tools.risk_tower_tools",
-        "run_risk_tower_analysis",
-    ),
+
     "run_rca_analysis": (
         "services.config.features.analytics.tools.rca_tools",
         "run_rca_analysis",
@@ -49,10 +42,7 @@ _ANALYTICS_TOOL_IMPORTS: Dict[str, tuple] = {
         "services.config.features.analytics.tools.tooling_eol_tools",
         "run_tooling_eol_analysis",
     ),
-    "run_capacity_analysis": (
-        "services.config.features.analytics.tools.capacity_tools",
-        "run_capacity_analysis",
-    ),
+
     "refresh_master_shot_table": (
         "services.config.features.analytics.tools.master_table_tools",
         "refresh_master_shot_table",
@@ -60,10 +50,6 @@ _ANALYTICS_TOOL_IMPORTS: Dict[str, tuple] = {
     "generate_presentation": (
         "services.config.features.analytics.tools.ppt_tools",
         "generate_presentation",
-    ),
-    "generate_weekly_comparison_ppt": (
-        "services.config.features.analytics.tools.weekly_comparison_tools",
-        "generate_weekly_comparison_ppt",
     ),
 }
 

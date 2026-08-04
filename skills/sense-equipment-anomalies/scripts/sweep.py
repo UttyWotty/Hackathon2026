@@ -1,9 +1,8 @@
 """Runs the manufacturing anomaly sweep and prints condensed findings.
 
-Executes the cycle-time deviation and Risk Tower detectors across the fleet, then follows up
-with run rate on the machines those implicate, and prints a compact text summary for the
-calling agent to reason over. Deterministic and read-only: it gathers signal and draws no
-conclusions.
+Executes the cycle-time deviation detector across the fleet and prints a compact text
+summary for the calling agent to reason over. Deterministic and read-only: it gathers
+signal and draws no conclusions.
 
 Usage:
     python scripts/sweep.py                 # whole fleet
@@ -49,7 +48,7 @@ async def _sweep(equipment_code: str) -> int:
 
     findings = await run_sense_tasks(tasks, dispatch_tool_direct)
 
-    # Run rate needs explicit equipment codes - there is no wildcard - so the machines to
+    # CT deviation provides per-equipment metrics - the machines to
     # follow up on come from what the deviation pass just named.
     followups = derive_followup_tasks(findings)
     if followups:

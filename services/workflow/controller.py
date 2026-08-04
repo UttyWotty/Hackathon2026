@@ -141,10 +141,9 @@ class WorkflowController:
 
     async def _sense(self) -> List[SenseFinding]:
         """
-        Run the anomaly sweep, then follow up on the machines it implicates.
+        Run the anomaly sweep across the fleet.
 
-        The follow-up pass exists because run rate needs explicit equipment
-        codes, and because the demo hinges on holding both signals side by side.
+        The follow-up pass derives additional tasks from the opening sweep findings.
         """
 
         def record(finding: SenseFinding) -> None:

@@ -16,6 +16,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+# Load .env BEFORE any project imports so module-level os.getenv() calls see values.
+from dotenv import load_dotenv  # noqa: E402
+
+load_dotenv(REPO_ROOT / ".env", override=True)
+
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 

@@ -32,7 +32,7 @@ That yields roughly 230,000 shots. All flags are listed by `--help`.
 | `COMPANY` / `LOCATION` / `PART` | 3 / 2 / 8 | Dimensions the master shot builder denormalises from |
 | `WORK_ORDER` | 16 | Completed maintenance events for maintenance-interval analysis |
 
-Downstream analytic tables (`RUNRATE`, `ROI`, `ANA_SHOT_MADE_TABLE`) are deliberately **not**
+Downstream analytic tables (`ROI`, `ANA_SHOT_MADE_TABLE`) are deliberately **not**
 generated. They are pipeline outputs, so the existing pipelines should build them from this data.
 That also makes the pipelines part of the demo rather than something stubbed around.
 
@@ -43,15 +43,15 @@ Eight machines, five archetypes. Measured values from the default seed:
 | Equipment | Archetype | CT deviation | Stability | MTTR | MTBF | Detected by |
 |---|---|---|---|---|---|---|
 | MX-7103 | ct_drift | **12.7%** (1.9% to 24.0%) | 90.0% | 2.4 | 22.3 | ct_deviation |
-| MX-7104 | frequent_stops | 2.1% | 73.6% | 3.7 | **10.5** | run rate (low MTBF) |
-| MX-7105 | long_repairs | 2.0% | 77.4% | **13.9** | 48.9 | run rate (high MTTR) |
-| MX-7106 | declining | 2.1% | **53.4%** | 7.8 | 9.6 | risk tower (trend) |
+| MX-7104 | frequent_stops | 2.1% | 73.6% | 3.7 | **10.5** | anomaly detection |
+| MX-7105 | long_repairs | 2.0% | 77.4% | **13.9** | 48.9 | anomaly detection |
+| MX-7106 | declining | 2.1% | **53.4%** | 7.8 | 9.6 | stability trend |
 | MX-7101/2/7/8 | stable | ~2.1% | 78-92% | ~2.4 | 7-31 | negative controls |
 
 `MX-7103` is the demo headline. Its cycle time drifts from 1.9% to 24.0% above approved CT across
 six weeks, crossing the warning threshold in week 3 and critical in week 6 — while its stability
 stays at 90.0%, statistically indistinguishable from the healthy machines. A single-metric monitor
-misses it entirely. Surfacing it requires reasoning across CT deviation and run rate together,
+misses it entirely. Surfacing it requires reasoning across CT deviation and stability together,
 which is precisely the agent behaviour the Workflow Automation Agent track rewards.
 
 Each generation writes `ground_truth.json` next to the CSVs, declaring the expected finding per
@@ -75,9 +75,7 @@ the clock — `generated_at` is injected — so a given seed reproduces byte-ide
 
 ## Test contract
 
-`tests/runrate_reference.py` re-implements the v2.6 stop rules and KPIs transcribed from
-`analysis/runrate/CALCULATION_SPEC.md`, independently of the production code. The suite asserts the
-dataset against the *specification*, not against whatever the implementation currently does:
+The test suite asserts the dataset against the specification:
 
 - every generated shot classifies as the stop kind it was tagged with, in every archetype
 - each production day forms exactly one run (overnight idle never counted as downtime)

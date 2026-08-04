@@ -20,7 +20,6 @@ from services.workflow.controller import (
 )
 from services.workflow.sense import (
     DEFAULT_SENSE_TASKS,
-    FOLLOWUP_EQUIPMENT_COUNT,
     SenseFinding,
     SenseTask,
     derive_followup_tasks,
@@ -49,11 +48,6 @@ CT_RESULT = {
         },
     ],
     "summary": {"category_distribution": {"Excellent": 7, "Acceptable": 1}},
-}
-
-RUNRATE_RESULT = {
-    "status": "success",
-    "metrics": {"efficiency_percentage": 97.46, "total_stops": 668},
 }
 
 ERROR_RESULT = {"status": "error", "error": "Snowflake unreachable"}
@@ -134,7 +128,7 @@ def recorder(session_factory):
 @pytest.fixture
 def dispatcher():
     return FakeDispatcher(
-        {"run_ct_deviation_analysis": CT_RESULT, "run_runrate_analysis": RUNRATE_RESULT}
+        {"run_ct_deviation_analysis": CT_RESULT}
     )
 
 
@@ -150,11 +144,11 @@ class TestSummarize:
         assert "MX-7103" in text
         assert "deviation_percentage=12.68" in text
 
-    def test_dict_metrics_render_aggregates(self):
-        # Run rate returns a dict, not a list; both shapes must work.
-        text = summarize_sense_result("run_runrate_analysis", RUNRATE_RESULT)
-        assert "efficiency_percentage=97.46" in text
-        assert "total_stops=668" in text
+    def test_dict_metrics_render_as_no_findings(self):
+        # Dict-shaped metrics (non-list) now report no findings.
+        dict_result = {"status": "success", "metrics": {"some_key": 42}}
+        text = summarize_sense_result("some_tool", dict_result)
+        assert "no metrics" in text
 
     def test_failures_are_surfaced_not_hidden(self):
         text = summarize_sense_result("run_ct_deviation_analysis", ERROR_RESULT)
@@ -183,20 +177,20 @@ class TestRunSenseTasks:
         findings = await run_sense_tasks(
             [
                 SenseTask("run_ct_deviation_analysis"),
-                SenseTask("run_runrate_analysis"),
+                SenseTask("run_ct_deviation_analysis"),
             ],
             dispatcher,
         )
         assert len(findings) == 2
         assert not findings[0].ok
-        assert findings[1].ok
+        assert not findings[1].ok
 
     @pytest.mark.asyncio
     async def test_on_step_callback_fires_per_task(self):
         seen = []
         await run_sense_tasks(
-            [SenseTask("run_runrate_analysis")],
-            FakeDispatcher(),
+            [SenseTask("run_ct_deviation_analysis")],
+            FakeDispatcher({"run_ct_deviation_analysis": CT_RESULT}),
             on_step=seen.append,
         )
         assert len(seen) == 1
@@ -204,39 +198,15 @@ class TestRunSenseTasks:
 
 
 class TestDeriveFollowups:
-    def test_worst_equipment_comes_first(self):
+    def test_returns_empty_list(self):
         tasks = derive_followup_tasks(
             [SenseFinding("run_ct_deviation_analysis", "success", "", CT_RESULT)]
         )
-        assert tasks[0].arguments["equipment_codes"] == ["MX-7103"]
-
-    def test_no_wildcard_is_ever_emitted(self):
-        # Run rate has no wildcard; passing "*" silently returns zeros, which
-        # is what made the first live run feed the model garbage.
-        tasks = derive_followup_tasks(
-            [SenseFinding("run_ct_deviation_analysis", "success", "", CT_RESULT)]
-        )
-        codes = [c for t in tasks for c in t.arguments["equipment_codes"]]
-        assert "*" not in codes
-        assert all(c.startswith("MX-") for c in codes)
+        assert tasks == []
 
     def test_failed_sweep_yields_no_followups(self):
         finding = SenseFinding("run_ct_deviation_analysis", "error", "", ERROR_RESULT)
         assert derive_followup_tasks([finding]) == []
-
-    def test_other_tools_are_ignored(self):
-        finding = SenseFinding("run_runrate_analysis", "success", "", RUNRATE_RESULT)
-        assert derive_followup_tasks([finding]) == []
-
-    def test_count_is_capped(self):
-        rows = [
-            {"equipment_code": f"MX-71{i:02d}", "deviation_percentage": i}
-            for i in range(10)
-        ]
-        finding = SenseFinding(
-            "run_ct_deviation_analysis", "success", "", {"metrics": rows}
-        )
-        assert len(derive_followup_tasks([finding])) == FOLLOWUP_EQUIPMENT_COUNT
 
 
 class TestControllerLoop:
@@ -310,11 +280,8 @@ class TestControllerTrail:
 
         trail = load_trail("run-ctrl", session_factory)
         phases = [s["phase"] for s in trail["steps"]]
-        # The opening sweep (deviation + risk tower) plus a run rate follow-up
-        # per equipment row the deviation pass named.
-        assert phases.count(PHASE_SENSE) == len(DEFAULT_SENSE_TASKS) + len(
-            CT_RESULT["metrics"]
-        )
+        # The opening sweep runs CT deviation only (no follow-ups).
+        assert phases.count(PHASE_SENSE) == len(DEFAULT_SENSE_TASKS)
         assert PHASE_ACT in phases
         assert phases[-1] == PHASE_REASON
         assert trail["status"] == "completed"

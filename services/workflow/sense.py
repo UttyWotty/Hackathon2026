@@ -16,40 +16,17 @@ logger = logging.getLogger(__name__)
 STATUS_SUCCESS = "success"
 STATUS_ERROR = "error"
 
-# Analyses return metrics in two different shapes: CT deviation gives a list of
-# per-equipment rows, run rate gives a single dict of aggregates. Both are
-# handled rather than assumed.
+# Analyses return metrics as a list of per-equipment rows.
 KEY_METRICS = "metrics"
 KEY_SUMMARY = "summary"
 KEY_EQUIPMENT = "equipment_code"
 
-# Per-equipment fields worth putting in front of the model. Anything else is
-# noise at this stage and costs prompt tokens.
+# Per-equipment fields worth putting in front of the model.
 EQUIPMENT_FIELDS = (
     "deviation_percentage",
     "deviation_category",
     "efficiency_score",
     "stability_score",
-    # Risk Tower fields: the only signal that sees week-over-week decline.
-    "risk_score",
-    "rag_status",
-    "is_declining",
-    "primary_risk_factor",
-    "mttr_minutes",
-    "mtbf_minutes",
-    "mttr_vs_peers",
-    "mtbf_vs_peers",
-    "high_mttr",
-    "frequent_stops",
-)
-
-# Aggregate fields from a dict-shaped metrics block.
-AGGREGATE_FIELDS = (
-    "efficiency_percentage",
-    "total_stops",
-    "total_sessions",
-    "downtime_minutes",
-    "average_stop_duration_minutes",
 )
 
 MAX_EQUIPMENT_ROWS = 20
@@ -79,60 +56,28 @@ class SenseFinding:
         return self.status == STATUS_SUCCESS
 
 
-# The opening sweep. Cycle time deviation catches drift; Risk Tower catches
-# week-over-week decline, frequent stops and long repairs, which a single-period
-# average hides. Run rate is not here because it requires explicit equipment
-# codes - there is no wildcard - so it follows up once suspects are named.
+# The opening sweep. Cycle time deviation catches drift and stability decline.
 DEFAULT_SENSE_TASKS: List[SenseTask] = [
     SenseTask(tool_name="run_ct_deviation_analysis", arguments={}),
-    SenseTask(tool_name="run_risk_tower_analysis", arguments={}),
 ]
 
 CT_DEVIATION_TOOL = "run_ct_deviation_analysis"
-RUNRATE_TOOL = "run_runrate_analysis"
 KEY_DEVIATION = "deviation_percentage"
-
-# How many of the worst machines get a run rate follow-up. Catching the seeded
-# drift needs both signals: run rate alone cannot see it, and the contradiction
-# between the two is the thing worth reasoning about.
-FOLLOWUP_EQUIPMENT_COUNT = 3
 
 
 def derive_followup_tasks(findings: List[SenseFinding]) -> List[SenseTask]:
     """
-    Build run rate follow-ups for the worst machines the deviation pass found.
+    Derive follow-up tasks from the opening sweep findings.
 
-    Run rate takes explicit equipment codes, so the targets have to come from
-    somewhere. Ranking by deviation focuses the second signal on the machines
-    most likely to be interesting, without hard-coding any machine name.
+    Currently returns empty - the CT deviation sweep is the only detector.
 
     Args:
         findings: Results of the opening sweep.
 
     Returns:
-        One run rate task per suspect equipment code, worst first. Empty when
-        the deviation pass produced nothing usable.
+        Empty list; no follow-up tools configured.
     """
-    rows: List[Dict[str, Any]] = []
-    for finding in findings:
-        if finding.tool_name != CT_DEVIATION_TOOL or not finding.ok:
-            continue
-        metrics = (finding.raw or {}).get(KEY_METRICS)
-        if isinstance(metrics, list):
-            rows.extend(row for row in metrics if isinstance(row, dict))
-
-    ranked = sorted(
-        (row for row in rows if row.get(KEY_EQUIPMENT)),
-        key=lambda row: row.get(KEY_DEVIATION) or 0,
-        reverse=True,
-    )
-    return [
-        SenseTask(
-            tool_name=RUNRATE_TOOL,
-            arguments={"equipment_codes": [row[KEY_EQUIPMENT]]},
-        )
-        for row in ranked[:FOLLOWUP_EQUIPMENT_COUNT]
-    ]
+    return []
 
 
 def _format_equipment_rows(rows: List[Dict[str, Any]]) -> List[str]:
@@ -149,22 +94,9 @@ def _format_equipment_rows(rows: List[Dict[str, Any]]) -> List[str]:
     return lines
 
 
-def _format_aggregates(metrics: Dict[str, Any]) -> List[str]:
-    """Render a dict-shaped metrics block, keeping only the useful fields."""
-    return [
-        f"  {key}={metrics[key]}"
-        for key in AGGREGATE_FIELDS
-        if key in metrics and metrics[key] is not None
-    ]
-
-
 def summarize_sense_result(tool_name: str, result: Dict[str, Any]) -> str:
     """
     Condense one analysis result into a few lines of text.
-
-    Handles both metric shapes the analyses return, and reports failures as
-    findings rather than hiding them, so the model can decide what a missing
-    signal means.
 
     Args:
         tool_name: The analysis that produced the result.
@@ -185,7 +117,7 @@ def summarize_sense_result(tool_name: str, result: Dict[str, Any]) -> str:
     if isinstance(metrics, list) and metrics:
         lines.extend(_format_equipment_rows(metrics))
     elif isinstance(metrics, dict) and metrics:
-        lines.extend(_format_aggregates(metrics))
+        lines.append(f"  {NO_FINDINGS_TEXT}")
     else:
         lines.append(f"  {NO_FINDINGS_TEXT}")
 
@@ -221,14 +153,10 @@ async def run_sense_tasks(
     """
     Execute the sense sweep, tolerating individual analysis failures.
 
-    A failed analysis becomes a finding rather than aborting the run: the agent
-    should still reason over whatever signal it did gather.
-
     Args:
         tasks: Analyses to run.
         dispatcher: Awaitable tool dispatcher, injected for testability.
-        on_step: Optional callback invoked per finding, used to record the
-            decision trail. Defaults to None.
+        on_step: Optional callback invoked per finding.
 
     Returns:
         One finding per task, in order.

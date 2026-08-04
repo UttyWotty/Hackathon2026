@@ -1,7 +1,7 @@
 """Pure generation of MASTER_SHOT_TABLE shot streams from equipment profiles.
 
 Produces multi-week, multi-run shot sequences whose inter-shot gaps, cycle times and hard
-stops are constructed to land deterministically on each branch of the runrate v2.6 stop
+stops are constructed to land deterministically on each branch of the stop classification
 detection rules. Contains no I/O and no clock access; randomness comes from an injected Random.
 """
 
@@ -224,7 +224,7 @@ def generate_run(
 ) -> List[Shot]:
     """Generate one production run: a contiguous shot stream bounded by the shift length.
 
-    The first shot of a run is always Normal, matching the runrate rule that a run's opening
+    The first shot of a run is always Normal, matching the rule that a run's opening
     shot is never counted as a stop.
     """
     shots: List[Shot] = []

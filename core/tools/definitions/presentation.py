@@ -11,7 +11,7 @@ PRESENTATION_TOOLS: List[Dict[str, Any]] = [
     {
         "toolSpec": {
             "name": "generate_presentation",
-            "description": "Generate PowerPoint presentation from analysis results. Creates professional PPT with executive summary, key metrics, charts, and recommendations. Currently supports RunRate analysis. Use this after running an analysis when user requests a PowerPoint or presentation.",
+            "description": "Generate PowerPoint presentation from analysis results. Creates professional PPT with executive summary, key metrics, charts, and recommendations. Currently supports  analysis. Use this after running an analysis when user requests a PowerPoint or presentation.",
             "tags": {
                 "server": "mfg",
                 "domain": "analytics",
@@ -25,8 +25,8 @@ PRESENTATION_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "analysis_type": {
                             "type": "string",
-                            "description": "Type of analysis (e.g., 'runrate', 'roi', 'capacity'). Currently only 'runrate' is supported.",
-                            "enum": ["runrate", "roi", "capacity"],
+                            "description": "Type of analysis (e.g., 'ct_deviation', 'roi').",
+                            "enum": ["ct_deviation", "roi"],
                         },
                         "metrics": {
                             "type": "object",
@@ -66,7 +66,7 @@ PRESENTATION_TOOLS: List[Dict[str, Any]] = [
     {
         "toolSpec": {
             "name": "generate_weekly_comparison_ppt",
-            "description": "Generate weekly comparison PowerPoint report comparing two weeks of data. Weeks are defined as Friday to Thursday (midnight). Runs RunRate and Capacity analyses for both weeks and creates a newsletter-style comparison PPT with KPI tables, percentage changes, and key insights. Perfect for weekly performance reviews and trend analysis. If dates not provided, uses current week vs previous week.",
+            "description": "Generate weekly comparison PowerPoint report comparing two weeks of data. Weeks are defined as Friday to Thursday (midnight). Runs  and Capacity analyses for both weeks and creates a newsletter-style comparison PPT with KPI tables, percentage changes, and key insights. Perfect for weekly performance reviews and trend analysis. If dates not provided, uses current week vs previous week.",
             "tags": {
                 "server": "mfg",
                 "domain": "analytics",

@@ -36,7 +36,7 @@ class BaseTableManager(ABC):
 
     @abstractmethod
     def get_table_name(self) -> str:
-        """Return the Snowflake table name (e.g., 'ROI', 'RUNRATE')."""
+        """Return the Snowflake table name (e.g., 'ROI', 'CT_DEVIATION')."""
 
     @abstractmethod
     def get_logger_name(self) -> str:

@@ -1,6 +1,6 @@
 """
 Manufacturing dashboard service for equipment performance visualization.
-Fetches RunRate data from analytics, transforms it into daily aggregates,
+Fetches data from analytics, transforms it into daily aggregates,
 and builds multi-metric subplot dashboards with Plotly.
 """
 
@@ -55,10 +55,10 @@ DATA_SOURCE_AGGREGATE = "real_aggregate"
 # Data transformation (pure)
 # ---------------------------------------------------------------------------
 def process_session_data(session_metrics: List[Dict[str, Any]]) -> Tuple[Any, str]:
-    """Transform RunRate session-level metrics into daily aggregated data.
+    """Transform session-level metrics into daily aggregated data.
 
     Args:
-        session_metrics: List of session metric dicts from RunRate analysis.
+        session_metrics: List of session metric dicts from analysis.
 
     Returns:
         Tuple of (DataFrame with daily aggregates, data source label).
@@ -94,10 +94,10 @@ def process_session_data(session_metrics: List[Dict[str, Any]]) -> Tuple[Any, st
 def create_aggregate_data(
     metrics: Dict[str, Any], start_date: str, end_date: str
 ) -> Tuple[Any, str]:
-    """Create daily data points from RunRate aggregate metrics.
+    """Create daily data points from aggregate metrics.
 
     Args:
-        metrics: Aggregate metric dict from RunRate analysis.
+        metrics: Aggregate metric dict from analysis.
         start_date: ISO date string (YYYY-MM-DD).
         end_date: ISO date string (YYYY-MM-DD).
 
@@ -166,7 +166,7 @@ async def fetch_dashboard_data(
     start_date: str,
     end_date: str,
 ) -> Tuple[Any, str]:
-    """Fetch dashboard data from RunRate analysis.
+    """Fetch dashboard data for visualization.
 
     Args:
         equipment_code: Equipment identifier to query.
@@ -177,45 +177,11 @@ async def fetch_dashboard_data(
         Tuple of (DataFrame, data source label).
 
     Raises:
-        ValueError: When RunRate analysis fails or returns no data.
+        NotImplementedError: Data fetching not available without analysis backend.
     """
-    from services.config.features.analytics.tools.runrate_tools import (
-        run_runrate_analysis,
+    raise NotImplementedError(
+        "Dashboard data fetching requires analysis backend configuration"
     )
-    from utils.input_validation import validate_analytics_request
-
-    validated = validate_analytics_request(
-        equipment_codes=[equipment_code],
-        start_date=start_date,
-        end_date=end_date,
-    )
-
-    runrate_result = await run_runrate_analysis(
-        equipment_codes=[equipment_code],
-        start_date=validated["start_date"],
-        end_date=validated["end_date"],
-        client="VANTIS",
-    )
-
-    if not (
-        runrate_result.get("status") == "success" and runrate_result.get("metrics")
-    ):
-        raise ValueError(
-            "RunRate analysis returned no data for equipment %s (%s to %s)"
-            % (equipment_code, start_date, end_date)
-        )
-
-    session_metrics = runrate_result.get("session_metrics")
-    metrics = runrate_result.get("metrics", {})
-
-    if session_metrics and len(session_metrics) > 0:
-        dashboard_data, data_source = process_session_data(session_metrics)
-        logger.info("Using real session-level data: %d sessions", len(session_metrics))
-        return dashboard_data, data_source
-
-    dashboard_data, data_source = create_aggregate_data(metrics, start_date, end_date)
-    logger.info("Using aggregate RunRate data: %d shots", metrics.get("total_shots", 0))
-    return dashboard_data, data_source
 
 
 # ---------------------------------------------------------------------------

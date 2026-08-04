@@ -28,7 +28,7 @@ class ProfileKind(str, Enum):
 class StopKind(str, Enum):
     """Stop classification a generated shot is intended to receive downstream.
 
-    These mirror the STOP_TYPE values produced by runrate session_analyzer._detect_stops_v26.
+    These mirror the STOP_TYPE values produced by the stop detection module.
     The generator tags each shot so the ground-truth file can assert what the analysis
     should conclude without re-implementing the detection logic.
     """

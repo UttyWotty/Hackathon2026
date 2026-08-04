@@ -1,6 +1,6 @@
 """Metric definitions and persistent insight notes tool adapters.
 
-Serves canonical metric definitions (optionally with the full RunRate calculation
+Serves canonical metric definitions (optionally with the full  calculation
 spec) and stores/retrieves analyst insights as tagged notes in the SQLite database.
 Exposes the get_metric_definitions, save_insight, and get_insights MCP tools.
 """
@@ -22,7 +22,7 @@ MAX_INSIGHTS_LIMIT: int = 100
 NOTE_FETCH_MULTIPLIER: int = 5
 
 PROJECT_ROOT: Path = Path(__file__).resolve().parents[5]
-SPEC_FILE: Path = PROJECT_ROOT / "analysis" / "runrate" / "CALCULATION_SPEC.md"
+SPEC_FILE: Path = PROJECT_ROOT / "analysis" / "ct_deviation" / "README.md"
 
 
 def get_metric_definitions(
@@ -32,7 +32,7 @@ def get_metric_definitions(
 
     Args:
         metric: Optional single-metric filter (case-insensitive).
-        include_spec: Also include the full RunRate calculation spec text.
+        include_spec: Also include the full  calculation spec text.
 
     Returns:
         dict with definitions (and available_metrics when a filter misses).

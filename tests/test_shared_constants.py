@@ -330,8 +330,6 @@ class TestFilePaths:
         """All module output directories are under the main output directory."""
         module_outputs = [
             FilePaths.ROI_OUTPUT,
-            FilePaths.RUNRATE_OUTPUT,
-            FilePaths.CAPACITY_OUTPUT,
             FilePaths.CT_DEVIATION_OUTPUT,
             FilePaths.CT_EFFICIENCY_OUTPUT,
             FilePaths.RCA_OUTPUT,

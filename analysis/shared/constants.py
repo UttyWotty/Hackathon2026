@@ -99,8 +99,7 @@ class FilePaths:
 
     # Module-specific output subdirectories (all under output/)
     ROI_OUTPUT = "output/roi"
-    RUNRATE_OUTPUT = "output/runrate"
-    CAPACITY_OUTPUT = "output/capacity"
+
     CT_DEVIATION_OUTPUT = "output/ct_deviation"
     CT_EFFICIENCY_OUTPUT = "output/ct_efficiency"
     RCA_OUTPUT = "output/rca"

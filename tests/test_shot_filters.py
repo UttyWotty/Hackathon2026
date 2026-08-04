@@ -15,8 +15,6 @@ from analysis.shared.shot_filters import (
     START_OF_DAY,
     apply_date_filter,
     apply_membership_filter,
-    apply_runrate_date_filter,
-    apply_runrate_validity_filter,
     apply_validity_filter,
     filter_shots,
 )
@@ -156,57 +154,3 @@ class TestEndBoundDivergence:
         # `<= '2026-06-10'` is midnight, so the whole day is excluded.
         kept = apply_date_filter(late, end_date="2026-06-10", end_time=START_OF_DAY)
         assert kept.empty
-
-
-class TestRunrateValidityFilter:
-    @pytest.fixture
-    def rows(self) -> pd.DataFrame:
-        """Includes a sentinel CT and a zero-volume row."""
-        return pd.DataFrame(
-            {
-                "CT": [10.0, 999.9, 12.0],
-                "APPROVED_CT": [10.0, 10.0, 10.0],
-                "VOLUME": [5, 5, 0],
-                "LOCAL_SHOT_TIME": pd.to_datetime(
-                    ["2026-06-08 06:00", "2026-06-08 07:00", "2026-06-08 08:00"]
-                ),
-            }
-        )
-
-    def test_keeps_sentinel_ct_rows(self, rows):
-        # Run rate derives stops from these; dropping them would erase downtime.
-        kept = apply_runrate_validity_filter(rows)
-        assert MAX_VALID_CT in kept["CT"].tolist()
-
-    def test_drops_zero_volume(self, rows):
-        assert 0 not in apply_runrate_validity_filter(rows)["VOLUME"].tolist()
-
-
-class TestRunrateDateFilter:
-    def test_cross_day_shot_is_retained_by_end_time(self):
-        # Starts before the window but finishes inside it, so the query's
-        # DATEADD(CT) lower bound keeps it.
-        frame = pd.DataFrame(
-            {
-                "CT": [120.0],
-                "LOCAL_SHOT_TIME": pd.to_datetime(["2026-06-09 23:59:00"]),
-            }
-        )
-        assert len(apply_runrate_date_filter(frame, start_date="2026-06-10")) == 1
-
-    def test_sentinel_ct_contributes_no_duration(self):
-        # CASE WHEN CT >= 999.9 THEN 0: cannot be stretched into the window.
-        frame = pd.DataFrame(
-            {
-                "CT": [MAX_VALID_CT],
-                "LOCAL_SHOT_TIME": pd.to_datetime(["2026-06-09 23:59:00"]),
-            }
-        )
-        assert apply_runrate_date_filter(frame, start_date="2026-06-10").empty
-
-    def test_null_ct_row_drops_out(self):
-        # SQL NULL arithmetic makes the predicate NULL, which is not true.
-        frame = pd.DataFrame(
-            {"CT": [None], "LOCAL_SHOT_TIME": pd.to_datetime(["2026-06-10 06:00"])}
-        )
-        assert apply_runrate_date_filter(frame, start_date="2026-06-10").empty

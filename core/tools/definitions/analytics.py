@@ -1,8 +1,8 @@
 """
 Analytics tool definitions for manufacturing analysis modules.
 
-Contains 7 analysis tools: RunRate, ROI, Capacity, RCA, CT Deviation, CT Efficiency, and Tooling EOL.
-These tools perform comprehensive manufacturing analytics on production data from MASTER_SHOT_TABLE.
+Contains analysis tools: ROI, RCA, CT Deviation, CT Efficiency, and Tooling EOL.
+These tools perform manufacturing analytics on production data from MASTER_SHOT_TABLE.
 """
 
 from typing import Any, Dict, List
@@ -14,92 +14,8 @@ DESC_CLIENT_PARAM = (
 )
 
 ANALYTICS_TOOLS: List[Dict[str, Any]] = [
-    {
-        "toolSpec": {
-            "name": "run_risk_tower_analysis",
-            "description": "Score equipment risk over a rolling multi-week window. Detects three failure modes that a single-period average hides: stability declining week over week, abnormally frequent stops (low MTBF), and abnormally long repairs (high MTTR). Returns a risk score, RAG status and primary risk factor per machine. Use this when asked which equipment is deteriorating or trending worse, rather than which is worst right now.",
-            "tags": {
-                "server": "mfg",
-                "domain": "analytics",
-                "operation": "analyze",
-                "environment": "production",
-                "security": "public",
-            },
-            "inputSchema": {
-                "json": {
-                    "type": "object",
-                    "properties": {
-                        "equipment_codes": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Equipment codes to analyze. Omit for all equipment, which is the usual case for a sweep.",
-                        },
-                        "supplier_names": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Optional supplier names to filter.",
-                        },
-                        "start_date": {
-                            "type": "string",
-                            "description": "Optional start date in YYYY-MM-DD format.",
-                        },
-                        "end_date": {
-                            "type": "string",
-                            "description": "Optional end date in YYYY-MM-DD format.",
-                        },
-                        "weeks": {
-                            "type": "integer",
-                            "description": "Rolling window length in weeks. Defaults to 4. Needs at least two weeks of data to compute a trend.",
-                        },
-                    },
-                    "required": [],
-                }
-            },
-        }
-    },
-    {
-        "toolSpec": {
-            "name": "run_runrate_analysis",
-            "description": "Analyze production runrate with MTTR/MTBF metrics, stop detection, and efficiency tracking for specific equipment over a date range. Returns comprehensive Excel reports with session analysis.",
-            "tags": {
-                "server": "mfg",
-                "domain": "analytics",
-                "operation": "analyze",
-                "environment": "production",
-                "security": "public",
-            },
-            "inputSchema": {
-                "json": {
-                    "type": "object",
-                    "properties": {
-                        "equipment_codes": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Equipment codes to analyze (REQUIRED, e.g., ['MX-7110', 'MX-7104'])",
-                        },
-                        "start_date": {
-                            "type": "string",
-                            "description": "Start date in YYYY-MM-DD format (REQUIRED)",
-                        },
-                        "end_date": {
-                            "type": "string",
-                            "description": "End date in YYYY-MM-DD format (REQUIRED)",
-                        },
-                        "supplier_names": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Optional supplier names to filter (e.g., ['Vantis industries SCS'])",
-                        },
-                        "client": {
-                            "type": "string",
-                            "description": DESC_CLIENT_PARAM,
-                        },
-                    },
-                    "required": ["equipment_codes", "start_date", "end_date"],
-                }
-            },
-        }
-    },
+
+
     {
         "toolSpec": {
             "name": "run_roi_analysis",
@@ -148,54 +64,7 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
             },
         }
     },
-    {
-        "toolSpec": {
-            "name": "run_capacity_analysis",
-            "description": "Analyze production capacity and OEE with multi-target scenarios (50%-100%). Calculates Availability, Performance, Quality metrics, performance/availability losses, and generates Excel reports with 6 OEE sheets.",
-            "tags": {
-                "server": "mfg",
-                "domain": "analytics",
-                "operation": "analyze",
-                "environment": "production",
-                "security": "public",
-            },
-            "inputSchema": {
-                "json": {
-                    "type": "object",
-                    "properties": {
-                        "equipment_codes": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Equipment codes (REQUIRED) - e.g., ['MX-7102']",
-                        },
-                        "supplier_names": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Supplier names (optional)",
-                        },
-                        "start_date": {
-                            "type": "string",
-                            "description": "Start date (YYYY-MM-DD)",
-                        },
-                        "end_date": {
-                            "type": "string",
-                            "description": "End date (YYYY-MM-DD)",
-                        },
-                        "oee_targets": {
-                            "type": "array",
-                            "items": {"type": "number"},
-                            "description": "OEE targets (default: [0.5, 0.6, 0.7, 0.8, 0.9, 1.0])",
-                        },
-                        "client": {
-                            "type": "string",
-                            "description": DESC_CLIENT_PARAM,
-                        },
-                    },
-                    "required": ["equipment_codes", "start_date", "end_date"],
-                }
-            },
-        }
-    },
+
     {
         "toolSpec": {
             "name": "run_rca_analysis",

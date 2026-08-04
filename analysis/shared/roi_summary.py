@@ -165,7 +165,7 @@ def _build_roi_insights(metrics: Dict[str, Any]) -> str:
         title=f"Production Volume: {total_shots:,} Shots",
         description=(
             f"Total production of {total_shots:,} shots across analysis period. "
-            "This represents the baseline for capacity planning and improvement "
+            "This represents the baseline for planning and improvement "
             "ROI calculations."
         ),
         severity="info",

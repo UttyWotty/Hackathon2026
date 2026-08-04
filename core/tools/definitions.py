@@ -36,7 +36,7 @@ COMMUNICATION_TOOLS: List[Dict[str, Any]] = [
                         },
                         "analysis_type": {
                             "type": "string",
-                            "description": "Type of analysis being sent (e.g., 'ROI', 'Runrate', 'Capacity') for context",
+                            "description": "Type of analysis being sent (e.g., 'ROI', 'CT Deviation', 'RCA') for context",
                         },
                         "custom_body": {
                             "type": "string",
@@ -69,7 +69,7 @@ SCHEDULER_TOOLS: List[Dict[str, Any]] = [
                         },
                         "tool_name": {
                             "type": "string",
-                            "description": "Name of the tool to execute (e.g., 'refresh_master_shot_table', 'run_runrate_analysis')",
+                            "description": "Name of the tool to execute (e.g., 'refresh_master_shot_table', 'run_ct_deviation_analysis')",
                         },
                         "arguments": {
                             "type": "object",

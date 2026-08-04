@@ -24,8 +24,6 @@ from analysis.shared.shot_filters import (
     COL_VOLUME,
     MAX_VALID_CT,
     START_OF_DAY,
-    apply_runrate_date_filter,
-    apply_runrate_validity_filter,
     filter_shots,
 )
 
@@ -38,14 +36,7 @@ LOCAL_DATA_DIR = os.getenv("LOCAL_DATA_DIR", "")
 MASTER_SHOT_TABLE_FILE = "MASTER_SHOT_TABLE.csv"
 GROUND_TRUTH_FILE = "ground_truth.json"
 
-# The run rate query projects and renames CT; downstream code reads ACTUAL_CT.
-RUNRATE_CT_ALIAS = "ACTUAL_CT"
-RUNRATE_COLUMNS = [COL_SUPPLIER, COL_EQUIPMENT, COL_SHOT_TIME, COL_CT, COL_APPROVED_CT]
-
-# Sentinel meaning "every supplier" in the run rate API.
-SUPPLIER_ALL = "All"
-
-# Columns the CT efficiency query projects. No renaming, unlike run rate.
+# Columns the CT efficiency query projects.
 EFFICIENCY_COLUMNS = [
     COL_SUPPLIER,
     COL_CT,
@@ -174,42 +165,6 @@ def query_shots(
     )
 
 
-def query_runrate_shots(
-    supplier: Optional[str] = None,
-    equipment_code: Optional[str] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    data_dir: str = "",
-) -> pd.DataFrame:
-    """
-    Return shot rows shaped exactly as the run rate query returns them.
-
-    Applies the run rate predicates rather than the cycle time ones, projects
-    the five columns the query selects, and renames CT to ACTUAL_CT.
-
-    Args:
-        supplier: Supplier name, or "All"/None for every supplier.
-        equipment_code: Single equipment code, or None for all.
-        start_date: Inclusive lower bound as 'YYYY-MM-DD'. Defaults to None.
-        end_date: Inclusive upper bound as 'YYYY-MM-DD'. Defaults to None.
-        data_dir: Override the configured directory. Defaults to "".
-
-    Returns:
-        Columns SUPPLIER_NAME, EQUIPMENT_CODE, LOCAL_SHOT_TIME, ACTUAL_CT,
-        APPROVED_CT.
-    """
-    frame = apply_runrate_validity_filter(load_master_shot_table(data_dir))
-
-    if supplier and supplier != SUPPLIER_ALL:
-        frame = frame[frame[COL_SUPPLIER] == supplier]
-    if equipment_code:
-        frame = frame[frame[COL_EQUIPMENT] == equipment_code]
-
-    frame = apply_runrate_date_filter(frame, start_date, end_date)
-    projected = frame[RUNRATE_COLUMNS].rename(columns={COL_CT: RUNRATE_CT_ALIAS})
-    return projected.reset_index(drop=True)
-
-
 def query_efficiency_shots(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -240,59 +195,6 @@ def query_efficiency_shots(
         end_time=START_OF_DAY,
     )
     return frame[EFFICIENCY_COLUMNS].reset_index(drop=True)
-
-
-def query_capacity_shots(
-    equipment_code: str,
-    supplier_name: Optional[str] = None,
-    supplier_like: Optional[str] = None,
-    start_ts: Optional[pd.Timestamp] = None,
-    end_ts: Optional[pd.Timestamp] = None,
-    data_dir: str = "",
-) -> pd.DataFrame:
-    """
-    Return shot rows shaped as the capacity query returns them.
-
-    Capacity uses a third date convention: the end timestamp is exclusive of
-    the following midnight, so the whole end day is included. Supplier matching
-    is case-insensitive equality, or a substring match via supplier_like.
-
-    Args:
-        equipment_code: Equipment code to fetch. Required, as in the query.
-        supplier_name: Case-insensitive exact supplier match. Defaults to None.
-        supplier_like: Case-insensitive substring match, used only when
-            supplier_name is absent. Defaults to None.
-        start_ts: Inclusive lower timestamp bound. Defaults to None.
-        end_ts: Date whose whole day is included. Defaults to None.
-        data_dir: Override the configured directory. Defaults to "".
-
-    Returns:
-        The five columns the capacity query selects, with CT as ACTUAL_CT.
-    """
-    frame = load_master_shot_table(data_dir)
-    frame = frame[
-        frame[COL_SHOT_TIME].notna()
-        & (frame[COL_EQUIPMENT] == equipment_code)
-        & (frame[COL_CT] < MAX_VALID_CT)
-        & (frame[COL_VOLUME] > 0)
-    ]
-
-    if supplier_name:
-        frame = frame[frame[COL_SUPPLIER].str.upper() == supplier_name.upper()]
-    elif supplier_like:
-        frame = frame[
-            frame[COL_SUPPLIER].str.contains(supplier_like, case=False, na=False)
-        ]
-
-    if start_ts is not None:
-        frame = frame[frame[COL_SHOT_TIME] >= pd.to_datetime(start_ts)]
-    if end_ts is not None:
-        frame = frame[
-            frame[COL_SHOT_TIME] < pd.to_datetime(end_ts) + pd.Timedelta(days=1)
-        ]
-
-    projected = frame[RUNRATE_COLUMNS].rename(columns={COL_CT: RUNRATE_CT_ALIAS})
-    return projected.reset_index(drop=True)
 
 
 # ==================== Reference table loaders ==================== #

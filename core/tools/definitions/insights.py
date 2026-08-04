@@ -302,7 +302,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
                 "Canonical definitions of every metric (run efficiency, MTTR, MTBF, mode "
                 "CT, stop detection, NCTD, health score, ...). Use these definitions in "
                 "answers so terminology stays consistent. Optionally includes the full "
-                "RunRate calculation spec."
+                " calculation spec."
             ),
             "inputSchema": {
                 "json": {

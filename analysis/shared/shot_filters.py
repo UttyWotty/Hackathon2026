@@ -20,7 +20,7 @@ COL_EQUIPMENT = "EQUIPMENT_CODE"
 COL_SUPPLIER = "SUPPLIER_NAME"
 COL_VOLUME = "VOLUME"
 
-# Literal times the queries append to a date bound. CT deviation and run rate
+# Literal times the queries append to a date bound. CT deviation
 # use END_OF_DAY; CT efficiency compares against the bare date, i.e. midnight.
 END_OF_DAY = "23:59:59"
 START_OF_DAY = "00:00:00"
@@ -111,54 +111,6 @@ def apply_membership_filter(
         df = df[df[COL_EQUIPMENT].isin(equipment_codes)]
     if supplier_names:
         df = df[df[COL_SUPPLIER].isin(supplier_names)]
-    return df
-
-
-def apply_runrate_validity_filter(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Drop rows the run rate query excludes.
-
-    Mirrors: LOCAL_SHOT_TIME IS NOT NULL AND VOLUME > 0. Deliberately NOT the
-    cycle time validity filter - run rate needs sentinel and out-of-range CT
-    rows, because stop detection is derived from them.
-
-    Args:
-        df: Raw shot rows.
-
-    Returns:
-        Rows with a timestamp and positive volume.
-    """
-    return df[df[COL_SHOT_TIME].notna() & (df[COL_VOLUME] > 0)]
-
-
-def apply_runrate_date_filter(
-    df: pd.DataFrame,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-) -> pd.DataFrame:
-    """
-    Restrict rows to a window using the run rate query's overlap semantics.
-
-    The lower bound compares against the shot's END time
-    (LOCAL_SHOT_TIME + CT seconds), so a shot that began the previous day but
-    finished inside the window is retained. A sentinel CT at or above 999.9
-    contributes no duration, matching the query's CASE expression. Rows with a
-    null CT drop out entirely, as the SQL's NULL arithmetic does.
-
-    Args:
-        df: Shot rows with datetime LOCAL_SHOT_TIME.
-        start_date: Inclusive lower bound as 'YYYY-MM-DD'. Defaults to None.
-        end_date: Inclusive upper bound as 'YYYY-MM-DD'. Defaults to None.
-
-    Returns:
-        Rows overlapping the window.
-    """
-    if start_date is not None:
-        duration = df[COL_CT].mask(df[COL_CT] >= MAX_VALID_CT, 0)
-        shot_end = df[COL_SHOT_TIME] + pd.to_timedelta(duration, unit="s")
-        df = df[shot_end >= pd.Timestamp(f"{start_date} {START_OF_DAY}")]
-    if end_date is not None:
-        df = df[df[COL_SHOT_TIME] <= pd.Timestamp(f"{end_date} {END_OF_DAY}")]
     return df
 
 
