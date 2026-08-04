@@ -27,7 +27,10 @@ TABLE_FRESHNESS_EXPECTATIONS: Dict[str, Dict[str, Any]] = {
         "expected_max_age_hours": 26.0,
     },
     "ROI": {"time_column": "LOCAL_SHOT_TIME", "expected_max_age_hours": 26.0},
-    "PRODUCTION_METRICS": {"time_column": "START_DATE", "expected_max_age_hours": 192.0},
+    "PRODUCTION_METRICS": {
+        "time_column": "START_DATE",
+        "expected_max_age_hours": 192.0,
+    },
     "CT_EFFICIENCY": {"time_column": "SHOT_DATE", "expected_max_age_hours": 192.0},
     "CAPACITY_DAILY": {"time_column": "START_DATE", "expected_max_age_hours": 26.0},
     "CYCLE_TIME_DEVIATION": {

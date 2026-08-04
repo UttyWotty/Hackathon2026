@@ -39,7 +39,7 @@ def refresh_demo_table(
     This is the foundation table used by all analysis modules:
     - ROI Analysis
     -  Analysis (MTTR/MTBF)
-    
+
     - CT Deviation
     - CT Efficiency
     - Root Cause Analysis

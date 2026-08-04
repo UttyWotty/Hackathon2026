@@ -63,9 +63,7 @@ def run_analysis_api(
     print("=" * 100)
     print("RCA API ENTRY POINT")
     print("=" * 100)
-    print(
-        f"Parameters: equipment_code={equipment_code}, supplier_name={supplier_name}"
-    )
+    print(f"Parameters: equipment_code={equipment_code}, supplier_name={supplier_name}")
 
     try:
         # Ensure environment is loaded (same as other analysis modules)

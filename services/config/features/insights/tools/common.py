@@ -114,10 +114,17 @@ def _translate_snowflake_sql(sql: str) -> str:
     translated = re.sub(r"\bILIKE\b", "LIKE", translated, flags=re.IGNORECASE)
 
     # ::TIMESTAMP / ::DATE / ::VARCHAR casts -> remove (SQLite has no cast syntax)
-    translated = re.sub(r"::(TIMESTAMP|DATE|VARCHAR|STRING|NUMBER|INT)", "", translated, flags=re.IGNORECASE)
+    translated = re.sub(
+        r"::(TIMESTAMP|DATE|VARCHAR|STRING|NUMBER|INT)",
+        "",
+        translated,
+        flags=re.IGNORECASE,
+    )
 
     # NULLS LAST / NULLS FIRST -> remove (SQLite default is NULLS LAST)
-    translated = re.sub(r"\bNULLS\s+(LAST|FIRST)\b", "", translated, flags=re.IGNORECASE)
+    translated = re.sub(
+        r"\bNULLS\s+(LAST|FIRST)\b", "", translated, flags=re.IGNORECASE
+    )
 
     return translated
 
@@ -186,10 +193,16 @@ def _query_records_local(query: str) -> List[Dict[str, Any]]:
             "PREVIOUS_LOCATION_ID INTEGER, MOLD_LOCATION_STATUS TEXT, "
             "CONFIRMED_AT TEXT, CREATED_AT TEXT, LATEST INTEGER)"
         )
-    if "MOLD" in query_upper and "MOLD_MAINTENANCE" not in query_upper and "MOLD_LOCATION" not in query_upper:
+    if (
+        "MOLD" in query_upper
+        and "MOLD_MAINTENANCE" not in query_upper
+        and "MOLD_LOCATION" not in query_upper
+    ):
         mold = load_mold_csv()
         mold.to_sql("MOLD", conn, if_exists="replace", index=False)
-    elif re.search(r"\bFROM\s+MOLD\b", query_upper) or re.search(r"\bJOIN\s+MOLD\b", query_upper):
+    elif re.search(r"\bFROM\s+MOLD\b", query_upper) or re.search(
+        r"\bJOIN\s+MOLD\b", query_upper
+    ):
         mold = load_mold_csv()
         mold.to_sql("MOLD", conn, if_exists="replace", index=False)
     if "WORK_ORDER" in query_upper:

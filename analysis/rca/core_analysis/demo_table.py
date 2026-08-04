@@ -183,9 +183,7 @@ def fetch_data_from_snowflake(session=None):
         logger.info(f"✅ Retrieved {len(df)} rows from DEMO_TABLE")
         logger.info(f"📊 DataFrame shape: {df.shape}")
         logger.info(f"📊 DataFrame columns: {df.columns.tolist()}")
-        logger.info(
-            f"✅ Retrieved {len(df):,} rows from DEMO_TABLE in {elapsed}s"
-        )
+        logger.info(f"✅ Retrieved {len(df):,} rows from DEMO_TABLE in {elapsed}s")
     except Exception as e:
         logger.error(f"❌ Error executing main query: {str(e)}")
         raise ProcessingError(f"DEMO_TABLE query failed: {e}") from e

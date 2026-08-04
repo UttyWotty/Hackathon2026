@@ -25,7 +25,6 @@ _ANALYTICS_TOOL_IMPORTS: Dict[str, tuple] = {
         "services.config.features.analytics.tools.roi_tools",
         "run_roi_analysis",
     ),
-
     "run_rca_analysis": (
         "services.config.features.analytics.tools.rca_tools",
         "run_rca_analysis",
@@ -42,7 +41,6 @@ _ANALYTICS_TOOL_IMPORTS: Dict[str, tuple] = {
         "services.config.features.analytics.tools.tooling_eol_tools",
         "run_tooling_eol_analysis",
     ),
-
     "refresh_demo_table": (
         "services.config.features.analytics.tools.master_table_tools",
         "refresh_demo_table",

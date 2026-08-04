@@ -14,8 +14,6 @@ DESC_CLIENT_PARAM = (
 )
 
 ANALYTICS_TOOLS: List[Dict[str, Any]] = [
-
-
     {
         "toolSpec": {
             "name": "run_roi_analysis",
@@ -64,7 +62,6 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
             },
         }
     },
-
     {
         "toolSpec": {
             "name": "run_rca_analysis",

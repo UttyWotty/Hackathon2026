@@ -199,7 +199,9 @@ def render_drift_tab(deviation_df):
 
     st.altair_chart(chart + rule_warning + rule_critical, use_container_width=True)
 
-    st.caption("Orange dashed = Warning (10%) | Red dashed = Critical (15%) | Click legend to isolate")
+    st.caption(
+        "Orange dashed = Warning (10%) | Red dashed = Critical (15%) | Click legend to isolate"
+    )
 
     st.divider()
     st.subheader(f"Weekly Progression: {DRIFT_EQUIPMENT}")
@@ -215,7 +217,10 @@ def render_drift_tab(deviation_df):
                 .encode(
                     x=alt.X("WEEK_START:T", title="Week"),
                     y=alt.Y("DEVIATION_PCT:Q", title="Deviation %"),
-                    color=alt.Color("DEVIATION_PCT:Q", scale=alt.Scale(scheme="redyellowgreen", reverse=True)),
+                    color=alt.Color(
+                        "DEVIATION_PCT:Q",
+                        scale=alt.Scale(scheme="redyellowgreen", reverse=True),
+                    ),
                 )
                 .properties(height=250, title="Deviation Severity by Week")
             )
@@ -245,10 +250,21 @@ def render_drift_tab(deviation_df):
                 .mark_rule(strokeDash=[4, 4], color="green")
                 .encode(y="APPROVED_CT:Q")
             )
-            st.altair_chart(ct_chart + ct_line + approved_line, use_container_width=True)
+            st.altair_chart(
+                ct_chart + ct_line + approved_line, use_container_width=True
+            )
 
         st.dataframe(
-            drift_detail[["WEEK_START", "SHOT_COUNT", "AVG_CT", "APPROVED_CT", "DEVIATION_PCT", "STD_CT"]],
+            drift_detail[
+                [
+                    "WEEK_START",
+                    "SHOT_COUNT",
+                    "AVG_CT",
+                    "APPROVED_CT",
+                    "DEVIATION_PCT",
+                    "STD_CT",
+                ]
+            ],
             use_container_width=True,
         )
 
@@ -287,7 +303,11 @@ def render_stability_tab(stability_df, deviation_df):
         .mark_line(point=True)
         .encode(
             x=alt.X("WEEK_START:T", title="Week"),
-            y=alt.Y("STABILITY_SCORE:Q", title="Stability Score (%)", scale=alt.Scale(domain=[40, 100])),
+            y=alt.Y(
+                "STABILITY_SCORE:Q",
+                title="Stability Score (%)",
+                scale=alt.Scale(domain=[40, 100]),
+            ),
             color=alt.Color("EQUIPMENT_CODE:N", title="Equipment"),
             opacity=alt.condition(highlight, alt.value(1.0), alt.value(0.2)),
         )
@@ -318,19 +338,27 @@ def render_stability_tab(stability_df, deviation_df):
     st.divider()
     st.subheader("Stability vs Deviation Scatter")
 
-    merged = stability_df.groupby("EQUIPMENT_CODE").agg(
-        AVG_STABILITY=("STABILITY_SCORE", "mean")
-    ).reset_index()
-    dev_avg = deviation_df.groupby("EQUIPMENT_CODE").agg(
-        AVG_DEVIATION=("DEVIATION_PCT", "mean")
-    ).reset_index()
+    merged = (
+        stability_df.groupby("EQUIPMENT_CODE")
+        .agg(AVG_STABILITY=("STABILITY_SCORE", "mean"))
+        .reset_index()
+    )
+    dev_avg = (
+        deviation_df.groupby("EQUIPMENT_CODE")
+        .agg(AVG_DEVIATION=("DEVIATION_PCT", "mean"))
+        .reset_index()
+    )
     scatter_data = merged.merge(dev_avg, on="EQUIPMENT_CODE")
 
     scatter = (
         alt.Chart(scatter_data)
         .mark_circle(size=120)
         .encode(
-            x=alt.X("AVG_STABILITY:Q", title="Avg Stability (%)", scale=alt.Scale(domain=[50, 100])),
+            x=alt.X(
+                "AVG_STABILITY:Q",
+                title="Avg Stability (%)",
+                scale=alt.Scale(domain=[50, 100]),
+            ),
             y=alt.Y("AVG_DEVIATION:Q", title="Avg CT Deviation (%)"),
             color=alt.Color("EQUIPMENT_CODE:N"),
             tooltip=["EQUIPMENT_CODE", "AVG_STABILITY", "AVG_DEVIATION"],
@@ -338,7 +366,9 @@ def render_stability_tab(stability_df, deviation_df):
         .properties(height=300, title="Stability vs Deviation (per machine)")
     )
     st.altair_chart(scatter, use_container_width=True)
-    st.caption(f"Note: {DRIFT_EQUIPMENT} has HIGH deviation but HIGH stability - the 'invisible anomaly' pattern")
+    st.caption(
+        f"Note: {DRIFT_EQUIPMENT} has HIGH deviation but HIGH stability - the 'invisible anomaly' pattern"
+    )
 
 
 def render_fleet_tab(summary_df, daily_df):
@@ -368,7 +398,8 @@ def render_fleet_tab(summary_df, daily_df):
     st.divider()
     st.subheader("Agent Architecture")
 
-    st.code("""
+    st.code(
+        """
     [TRIGGER] Schedule or manual command
          |
          v
@@ -383,26 +414,34 @@ def render_fleet_tab(summary_df, daily_df):
          |
          v
     [RECORD] Decision Trail + Self-grade against ground truth
-    """, language=None)
+    """,
+        language=None,
+    )
 
     st.divider()
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("**Skill 1: $sense-equipment-anomalies**")
-        st.markdown("Sweeps fleet for CT drift and stability decline. Ranks machines by severity.")
+        st.markdown(
+            "Sweeps fleet for CT drift and stability decline. Ranks machines by severity."
+        )
     with col2:
         st.markdown("**Skill 2: $investigate-shift-notes**")
         st.markdown("Searches operator notes to explain WHY a machine is abnormal.")
     with col3:
         st.markdown("**Skill 3: $report-and-act**")
-        st.markdown("Records decision, evidence, and actions. Self-grades against ground truth.")
+        st.markdown(
+            "Records decision, evidence, and actions. Self-grades against ground truth."
+        )
 
 
 def main():
     """Main app layout."""
     st.set_page_config(page_title=PAGE_TITLE, layout="wide")
     st.title(PAGE_TITLE)
-    st.caption("Hackathon 2026 | Team: emoldinounited | Track: Intelligent Workflow Automation Agent")
+    st.caption(
+        "Hackathon 2026 | Team: emoldinounited | Track: Intelligent Workflow Automation Agent"
+    )
 
     st.divider()
 

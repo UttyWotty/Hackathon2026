@@ -127,9 +127,7 @@ def recorder(session_factory):
 
 @pytest.fixture
 def dispatcher():
-    return FakeDispatcher(
-        {"run_ct_deviation_analysis": CT_RESULT}
-    )
+    return FakeDispatcher({"run_ct_deviation_analysis": CT_RESULT})
 
 
 def _controller(client, recorder, dispatcher, **kwargs):
