@@ -11,8 +11,6 @@ Date: 2025-11-28
 import logging
 from typing import Any, Dict, List, Optional
 
-import pandas as pd  # type: ignore[import-untyped]
-
 logger = logging.getLogger(__name__)
 
 
@@ -44,17 +42,11 @@ async def generate_presentation(
     Returns:
         dict: Result with PowerPoint file path and status
     """
-    import asyncio
 
     try:
         logger.info(
             f"Generating PowerPoint: {analysis_type} for {equipment_code or 'analysis'}"
         )
-
-        # Convert session data to DataFrame if provided
-        session_df = None
-        if session_data:
-            session_df = pd.DataFrame(session_data)
 
         # Set default output directory
         if not output_dir:

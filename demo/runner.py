@@ -18,8 +18,8 @@ from analysis.shared.local_source import (
     LOCAL_DATA_DIR,
     LocalDataError,
     is_local_data_enabled,
-    load_ground_truth,
     load_demo_table,
+    load_ground_truth,
 )
 from core.llm_backend import LLM_BACKEND
 from models.database import init_database

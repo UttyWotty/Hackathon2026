@@ -22,7 +22,6 @@ from analysis.shared.shot_filters import (
     COL_SHOT_TIME,
     COL_SUPPLIER,
     COL_VOLUME,
-    MAX_VALID_CT,
     START_OF_DAY,
     filter_shots,
 )

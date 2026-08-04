@@ -9,8 +9,8 @@ from .data_loader import (
     ensure_time_column,
     get_db_schema,
     normalize_columns,
-    read_maintenance_events,
     read_demo_table,
+    read_maintenance_events,
     read_mold_table,
 )
 from .eol_predictor import (
