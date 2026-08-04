@@ -206,7 +206,7 @@ def fetch_ct_deviation_data(
     equipment_codes: Optional[List[str]] = None,
     supplier_names: Optional[List[str]] = None,
 ) -> pd.DataFrame:
-    """Fetch cycle time data from MASTER_SHOT_TABLE with optional filters.
+    """Fetch cycle time data from DEMO_TABLE with optional filters.
 
     Args:
         session: Snowpark session
@@ -252,7 +252,7 @@ def fetch_ct_deviation_data(
             PART_ID,
             PART_NAME,
             TOOLING_TYPE
-        FROM MASTER_SHOT_TABLE
+        FROM DEMO_TABLE
         WHERE CT IS NOT NULL 
         AND APPROVED_CT IS NOT NULL
         AND CT > 0

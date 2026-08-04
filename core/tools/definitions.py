@@ -69,7 +69,7 @@ SCHEDULER_TOOLS: List[Dict[str, Any]] = [
                         },
                         "tool_name": {
                             "type": "string",
-                            "description": "Name of the tool to execute (e.g., 'refresh_master_shot_table', 'run_ct_deviation_analysis')",
+                            "description": "Name of the tool to execute (e.g., 'refresh_demo_table', 'run_ct_deviation_analysis')",
                         },
                         "arguments": {
                             "type": "object",
@@ -171,7 +171,7 @@ DATA_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "table_name": {
                             "type": "string",
-                            "description": "Name of the table to describe (e.g., 'MASTER_SHOT_TABLE', 'MOLD', 'PART')",
+                            "description": "Name of the table to describe (e.g., 'DEMO_TABLE', 'MOLD', 'PART')",
                         },
                     },
                     "required": ["table_name"],

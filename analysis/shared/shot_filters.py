@@ -1,5 +1,5 @@
 """
-Pure DataFrame filters mirroring the MASTER_SHOT_TABLE query predicates.
+Pure DataFrame filters mirroring the DEMO_TABLE query predicates.
 
 Re-implements the WHERE clauses the analysis SQL applies - validity bounds on
 cycle time, date ranges, and equipment or supplier membership - so shot data
@@ -11,7 +11,7 @@ from typing import List, Optional
 
 import pandas as pd
 
-# Column names in MASTER_SHOT_TABLE, as emitted by the synthetic generator and
+# Column names in DEMO_TABLE, as emitted by the synthetic generator and
 # returned by the Snowflake queries.
 COL_CT = "CT"
 COL_APPROVED_CT = "APPROVED_CT"

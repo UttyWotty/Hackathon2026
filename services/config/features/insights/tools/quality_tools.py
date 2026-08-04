@@ -1,6 +1,6 @@
 """Data quality audit tool adapter for the master shot data.
 
-Runs integrity checks over a MASTER_SHOT_TABLE window: null keys, invalid cycle times,
+Runs integrity checks over a DEMO_TABLE window: null keys, invalid cycle times,
 missing approved CTs, future timestamps, and duplicate shots, with rate-based verdicts.
 Exposes the data_quality_audit MCP tool.
 """
@@ -51,7 +51,7 @@ def _base_counts(days: int) -> Optional[Dict[str, Any]]:
             COUNT(CASE WHEN LOCAL_SHOT_TIME >
                   DATEADD(hour, {FUTURE_GRACE_HOURS}, CURRENT_TIMESTAMP()) THEN 1 END)
                 AS FUTURE_TIMESTAMPS
-        FROM MASTER_SHOT_TABLE
+        FROM DEMO_TABLE
         WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
         """)
     return rows[0] if rows else None
@@ -63,7 +63,7 @@ def _duplicate_count(days: int) -> int:
         SELECT COALESCE(SUM(DUP_COUNT - 1), 0) AS EXTRA_ROWS
         FROM (
             SELECT EQUIPMENT_CODE, LOCAL_SHOT_TIME, COUNT(*) AS DUP_COUNT
-            FROM MASTER_SHOT_TABLE
+            FROM DEMO_TABLE
             WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
               AND EQUIPMENT_CODE IS NOT NULL
             GROUP BY EQUIPMENT_CODE, LOCAL_SHOT_TIME
@@ -74,7 +74,7 @@ def _duplicate_count(days: int) -> int:
 
 
 def data_quality_audit(days: int = DEFAULT_WINDOW_DAYS) -> Dict[str, Any]:
-    """Audit MASTER_SHOT_TABLE integrity over a recent window.
+    """Audit DEMO_TABLE integrity over a recent window.
 
     Args:
         days: Audit window in days (default: 30, max: 365).

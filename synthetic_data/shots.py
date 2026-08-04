@@ -1,4 +1,4 @@
-"""Pure generation of MASTER_SHOT_TABLE shot streams from equipment profiles.
+"""Pure generation of DEMO_TABLE shot streams from equipment profiles.
 
 Produces multi-week, multi-run shot sequences whose inter-shot gaps, cycle times and hard
 stops are constructed to land deterministically on each branch of the stop classification
@@ -185,7 +185,7 @@ def _make_shot(
     kind: StopKind,
     generated_at: datetime,
 ) -> Shot:
-    """Assemble one fully denormalised MASTER_SHOT_TABLE row."""
+    """Assemble one fully denormalised DEMO_TABLE row."""
     mold = profile.mold
     location = context.location_by_id[mold.location_id]
     part_code = context.part_code_by_id[mold.part_id]

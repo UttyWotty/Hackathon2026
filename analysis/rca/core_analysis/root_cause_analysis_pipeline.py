@@ -117,7 +117,7 @@ class RootCauseAnalysisPipeline:
 
         logger.info("Fetching data from Snowflake...")
         try:
-            from .master_shot_table import fetch_data_from_snowflake
+            from .demo_table import fetch_data_from_snowflake
 
             self.df = fetch_data_from_snowflake(session=None)
 

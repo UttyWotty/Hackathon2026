@@ -2,7 +2,7 @@
 Analytics tool definitions for manufacturing analysis modules.
 
 Contains analysis tools: ROI, RCA, CT Deviation, CT Efficiency, and Tooling EOL.
-These tools perform manufacturing analytics on production data from MASTER_SHOT_TABLE.
+These tools perform manufacturing analytics on production data from DEMO_TABLE.
 """
 
 from typing import Any, Dict, List

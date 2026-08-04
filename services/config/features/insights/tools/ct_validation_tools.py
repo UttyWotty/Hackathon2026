@@ -1,6 +1,6 @@
 """Approved CT validation tool adapter.
 
-Fetches approved CT versus observed mode CT per equipment/part from MASTER_SHOT_TABLE
+Fetches approved CT versus observed mode CT per equipment/part from DEMO_TABLE
 and delegates staleness classification to analysis.insights.ct_validation.
 Exposes the validate_approved_cts MCP tool.
 """
@@ -66,7 +66,7 @@ def validate_approved_cts(
                 MAX(APPROVED_CT) AS APPROVED_CT,
                 MODE(CASE WHEN CT < {HARD_STOP_CT} THEN CT END) AS OBSERVED_CT,
                 COUNT(CASE WHEN CT < {HARD_STOP_CT} THEN 1 END) AS SHOT_COUNT
-            FROM MASTER_SHOT_TABLE
+            FROM DEMO_TABLE
             WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
               AND EQUIPMENT_CODE IS NOT NULL
               {equipment_filter}

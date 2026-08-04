@@ -138,8 +138,8 @@ def get_db_schema(session: Session) -> Tuple[str, str]:
 # ==================== Data Loading Functions ==================== #
 
 
-def read_master_shot_table(session: Session) -> pd.DataFrame:
-    """Read essential fields from MASTER_SHOT_TABLE into a pandas DataFrame.
+def read_demo_table(session: Session) -> pd.DataFrame:
+    """Read essential fields from DEMO_TABLE into a pandas DataFrame.
 
     The query keeps columns necessary for weekly rate, utilization, and EOL logic.
 
@@ -154,12 +154,12 @@ def read_master_shot_table(session: Session) -> pd.DataFrame:
     if is_local_data_enabled():
         from analysis.shared.local_source import query_tooling_eol_shots
 
-        logger.info("Reading MASTER_SHOT_TABLE from local dataset")
+        logger.info("Reading DEMO_TABLE from local dataset")
         return query_tooling_eol_shots()
     # Build fully qualified table name (allow cross-database via env)
     shots_db = os.getenv("SHOT_DB") or session.get_current_database() or "AI"
     shots_schema = os.getenv("SHOT_SCHEMA") or session.get_current_schema()
-    fq_table = f"{shots_db}.{shots_schema}.MASTER_SHOT_TABLE"
+    fq_table = f"{shots_db}.{shots_schema}.DEMO_TABLE"
 
     sql = f"""
         SELECT 
@@ -180,7 +180,7 @@ def read_master_shot_table(session: Session) -> pd.DataFrame:
         WHERE LOCAL_SHOT_TIME IS NOT NULL
     """
 
-    logger.info(f"Reading MASTER_SHOT_TABLE from {fq_table}")
+    logger.info(f"Reading DEMO_TABLE from {fq_table}")
     df = session.sql(sql).to_pandas()
     df = normalize_columns(df)
     df = ensure_time_column(df)
@@ -318,7 +318,7 @@ def read_maintenance_events(session: Session) -> pd.DataFrame:
 def read_mold_table(session: Session) -> pd.DataFrame:
     """Read essential fields from MOLD table for enrichment.
 
-    Pulls designed shots and capacity-related fields to complement MASTER_SHOT_TABLE.
+    Pulls designed shots and capacity-related fields to complement DEMO_TABLE.
 
     Args:
         session: Active Snowflake Snowpark Session (None in local mode).

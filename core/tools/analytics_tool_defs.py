@@ -10,8 +10,8 @@ from typing import Any, Dict, List
 ANALYTICS_TOOLS: List[Dict[str, Any]] = [
     {
         "toolSpec": {
-            "name": "refresh_master_shot_table",
-            "description": """Refresh MASTER_SHOT_TABLE with latest production data from Snowflake. This is the FOUNDATION TABLE used by all 7 analysis modules (ROI, CT Deviation, CT Efficiency, RCA, Tooling EOL). Run this periodically (daily/hourly) to ensure analyses use fresh data. Supports incremental mode (fast, only new data with overlap) and full mode (complete historical reload).""",
+            "name": "refresh_demo_table",
+            "description": """Refresh DEMO_TABLE with latest production data from Snowflake. This is the FOUNDATION TABLE used by all 7 analysis modules (ROI, CT Deviation, CT Efficiency, RCA, Tooling EOL). Run this periodically (daily/hourly) to ensure analyses use fresh data. Supports incremental mode (fast, only new data with overlap) and full mode (complete historical reload).""",
             "inputSchema": {
                 "json": {
                     "type": "object",

@@ -320,7 +320,7 @@ def predict_end_of_life(
     """Run EOL prediction for all molds present in the dataframe.
 
     Args:
-        df: MASTER_SHOT_TABLE DataFrame.
+        df: DEMO_TABLE DataFrame.
         bins: Utilization bins for categorization.
         maintenance_events: Optional DataFrame with maintenance history.
 

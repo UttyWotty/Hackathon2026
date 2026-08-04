@@ -20,7 +20,7 @@ def format_timestamp(value: datetime) -> str:
 
 
 def shot_row(shot: Shot) -> Sequence[Any]:
-    """Serialize one shot into MASTER_SHOT_TABLE column order.
+    """Serialize one shot into DEMO_TABLE column order.
 
     intended_stop_kind is deliberately omitted: it is generator metadata, not a table column.
     """

@@ -2,7 +2,7 @@
 Master Shot Table Pipeline
 ==========================
 
-Foundation data pipeline that transforms raw shot data into the MASTER_SHOT_TABLE.
+Foundation data pipeline that transforms raw shot data into the DEMO_TABLE.
 Supports incremental (7-day overlap) and full historical processing modes.
 """
 

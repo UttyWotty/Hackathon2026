@@ -28,7 +28,7 @@ WEEK_TWO = "2026-06-15"
 
 
 def _frame(rows: List[dict]) -> pd.DataFrame:
-    """Build a MASTER_SHOT_TABLE-shaped frame from row dictionaries."""
+    """Build a DEMO_TABLE-shaped frame from row dictionaries."""
     return pd.DataFrame(rows)
 
 

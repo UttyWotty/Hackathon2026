@@ -1,7 +1,7 @@
 """
 Local CSV data source standing in for Snowflake during development.
 
-Serves MASTER_SHOT_TABLE rows from the synthetic generator's output so the
+Serves DEMO_TABLE rows from the synthetic generator's output so the
 sense tools, and the autonomous controller above them, can run with no
 Snowflake account. Activated only when LOCAL_DATA_DIR is set, so production
 paths are untouched by its presence.
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # which is the default and the only behaviour in production.
 LOCAL_DATA_DIR = os.getenv("LOCAL_DATA_DIR", "")
 
-MASTER_SHOT_TABLE_FILE = "MASTER_SHOT_TABLE.csv"
+DEMO_TABLE_FILE = "DEMO_TABLE.csv"
 GROUND_TRUTH_FILE = "ground_truth.json"
 
 # Columns the CT efficiency query projects.
@@ -64,9 +64,9 @@ def is_local_data_enabled() -> bool:
 
 
 @lru_cache(maxsize=1)
-def load_master_shot_table(data_dir: str = "") -> pd.DataFrame:
+def load_demo_table(data_dir: str = "") -> pd.DataFrame:
     """
-    Read MASTER_SHOT_TABLE.csv into a DataFrame, cached for the process.
+    Read DEMO_TABLE.csv into a DataFrame, cached for the process.
 
     The file is roughly 50 MB and 230,000 rows, so it is parsed once and
     reused. LOCAL_SHOT_TIME is parsed to datetime to match the Snowflake
@@ -89,7 +89,7 @@ def load_master_shot_table(data_dir: str = "") -> pd.DataFrame:
             "output, for example ./synthetic_out."
         )
 
-    path = os.path.join(directory, MASTER_SHOT_TABLE_FILE)
+    path = os.path.join(directory, DEMO_TABLE_FILE)
     if not os.path.exists(path):
         raise LocalDataError(
             f"{path} not found. Generate it with: "
@@ -141,7 +141,7 @@ def query_shots(
     data_dir: str = "",
 ) -> pd.DataFrame:
     """
-    Return filtered shot rows, the local equivalent of a MASTER_SHOT_TABLE query.
+    Return filtered shot rows, the local equivalent of a DEMO_TABLE query.
 
     Args:
         start_date: Inclusive lower date bound. Defaults to None.
@@ -154,7 +154,7 @@ def query_shots(
     Returns:
         A filtered copy of the shot table, ordered by LOCAL_SHOT_TIME.
     """
-    frame = load_master_shot_table(data_dir)
+    frame = load_demo_table(data_dir)
     return filter_shots(
         frame,
         start_date=start_date,
@@ -188,7 +188,7 @@ def query_efficiency_shots(
         The eight columns the efficiency query selects.
     """
     frame = filter_shots(
-        load_master_shot_table(data_dir),
+        load_demo_table(data_dir),
         start_date=start_date,
         end_date=end_date,
         supplier_names=supplier_names,
@@ -268,7 +268,7 @@ def load_work_order_csv(data_dir: str = "") -> pd.DataFrame:
 # ==================== RCA query ==================== #
 
 
-# Columns the RCA pipeline selects from MASTER_SHOT_TABLE.
+# Columns the RCA pipeline selects from DEMO_TABLE.
 RCA_COLUMNS = [
     COL_SUPPLIER,
     COL_EQUIPMENT,
@@ -308,7 +308,7 @@ def query_rca_shots(
         DataFrame matching the RCA SQL shape, ordered by LOCAL_SHOT_TIME DESC,
         limited to 100000 rows (matching the Snowflake query LIMIT).
     """
-    frame = load_master_shot_table(data_dir)
+    frame = load_demo_table(data_dir)
     frame = frame[frame[COL_SUPPLIER].notna() & frame["PART_NAME"].notna()]
 
     if equipment_code:
@@ -347,7 +347,7 @@ TOOLING_EOL_COLUMNS = [
 
 def query_tooling_eol_shots(data_dir: str = "") -> pd.DataFrame:
     """
-    Return shot rows shaped as tooling EOL's read_master_shot_table returns.
+    Return shot rows shaped as tooling EOL's read_demo_table returns.
 
     Applies only the WHERE LOCAL_SHOT_TIME IS NOT NULL filter, adds SHOT_COUNT=1,
     and ensures numeric types match what the EOL pipeline expects.
@@ -358,7 +358,7 @@ def query_tooling_eol_shots(data_dir: str = "") -> pd.DataFrame:
     Returns:
         DataFrame with EOL columns plus SHOT_COUNT.
     """
-    frame = load_master_shot_table(data_dir)
+    frame = load_demo_table(data_dir)
     frame = frame[frame[COL_SHOT_TIME].notna()]
 
     available_cols = [c for c in TOOLING_EOL_COLUMNS if c in frame.columns]

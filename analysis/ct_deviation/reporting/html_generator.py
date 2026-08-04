@@ -257,7 +257,7 @@ def _generate_metrics_table(metrics_list: List[DeviationMetrics]) -> str:
         str: HTML table section
     """
     html = """
-        <h2>📋 Detailed Metrics</h2>
+        <h2>Detailed Metrics</h2>
         <table>
             <thead>
                 <tr>

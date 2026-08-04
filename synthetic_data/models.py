@@ -61,7 +61,7 @@ class Location:
 class Part:
     """A produced part row for the PART dimension table.
 
-    Note that MASTER_SHOT_TABLE.PART_ID carries part_code (a string), not this numeric id.
+    Note that DEMO_TABLE.PART_ID carries part_code (a string), not this numeric id.
     """
 
     id: int
@@ -74,7 +74,7 @@ class Mold:
     """A tool/mold row for the MOLD dimension table and the grain of shot generation.
 
     contracted_cycle_time is stored in deci-seconds exactly as the production table does;
-    approved_ct in MASTER_SHOT_TABLE is this value divided by ten.
+    approved_ct in DEMO_TABLE is this value divided by ten.
     """
 
     id: int
@@ -100,9 +100,9 @@ class Mold:
 
 @dataclass(frozen=True)
 class Shot:
-    """One MASTER_SHOT_TABLE row plus the generator's ground-truth stop tag.
+    """One DEMO_TABLE row plus the generator's ground-truth stop tag.
 
-    Column names and types match the authoritative DDL in the master_shot_table pipeline.
+    Column names and types match the authoritative DDL in the demo_table pipeline.
     intended_stop_kind is generator metadata and is never written to the shot table.
     """
 
@@ -217,7 +217,7 @@ class GenerationConfig:
 class ShotContext:
     """Dimension lookups needed to denormalise a shot row.
 
-    MASTER_SHOT_TABLE is fully denormalised, so every shot must carry supplier, plant,
+    DEMO_TABLE is fully denormalised, so every shot must carry supplier, plant,
     and part attributes resolved from the dimension tables at generation time.
     """
 

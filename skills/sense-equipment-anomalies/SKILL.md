@@ -3,7 +3,7 @@ name: sense-equipment-anomalies
 description: >
   Sweep injection-moulding equipment for production anomalies and rank what is abnormal.
   Detects cycle time drift against approved CT and declining week-over-week stability,
-  reading shot-level data from MASTER_SHOT_TABLE.
+  reading shot-level data from DEMO_TABLE.
   Triggers: which machines are underperforming, check the fleet for anomalies, is anything
   drifting, equipment health check, what looks abnormal, run the anomaly sweep, cycle time
   deviation, stability decline.
@@ -24,7 +24,7 @@ skill only observes. Judging severity and deciding what to do are your job, not 
 
 ## Prerequisites
 
-Either a Snowflake connection with `MASTER_SHOT_TABLE`, or `LOCAL_DATA_DIR` pointing at a
+Either a Snowflake connection with `DEMO_TABLE`, or `LOCAL_DATA_DIR` pointing at a
 generated dataset for offline work. The script reads whichever is configured.
 
 ## Workflow

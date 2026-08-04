@@ -41,9 +41,9 @@ warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 
 try:
-    from .master_shot_table import fetch_data_from_snowflake, session
+    from .demo_table import fetch_data_from_snowflake, session
 except ImportError:
-    from master_shot_table import (  # type: ignore[no-redef]
+    from demo_table import (  # type: ignore[no-redef]
         fetch_data_from_snowflake,
         session,
     )

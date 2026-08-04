@@ -5,7 +5,7 @@ Contains data pipelines that feed the analysis modules:
 - Master Shot Table Pipeline: Foundation data processing
 """
 
-from .master_shot_table.pipeline import MasterShotPipeline
+from .demo_table.pipeline import MasterShotPipeline
 from .shared_config import PipelineConfig
 
 # Legacy alias for backwards compatibility

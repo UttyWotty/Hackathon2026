@@ -22,7 +22,7 @@ RECENCY_ZERO_SCORE_HOURS: float = 168.0
 
 
 def _master_metrics(days: int) -> Dict[str, Dict[str, Any]]:
-    """Per-equipment shot metrics from MASTER_SHOT_TABLE over the window."""
+    """Per-equipment shot metrics from DEMO_TABLE over the window."""
     rows = query_records(f"""
         SELECT
             EQUIPMENT_CODE,
@@ -34,7 +34,7 @@ def _master_metrics(days: int) -> Dict[str, Dict[str, Any]]:
                      THEN 100.0 WHEN CT < {HARD_STOP_CT} AND APPROVED_CT > 0
                      THEN 0.0 END) AS CT_PERFORMANCE,
             DATEDIFF('hour', MAX(LOCAL_SHOT_TIME), CURRENT_TIMESTAMP()) AS HOURS_SINCE_LAST_SHOT
-        FROM MASTER_SHOT_TABLE
+        FROM DEMO_TABLE
         WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
           AND EQUIPMENT_CODE IS NOT NULL
         GROUP BY EQUIPMENT_CODE
@@ -43,35 +43,41 @@ def _master_metrics(days: int) -> Dict[str, Dict[str, Any]]:
 
 
 def _production_efficiency(days: int) -> Dict[str, float]:
-    """Per-equipment run efficiency percentage from the PRODUCTION_METRICS table."""
-    rows = query_records(f"""
-        SELECT EQUIPMENT_CODE,
-               SUM(PRODUCTION_TIME_SEC) / NULLIF(SUM(RUN_TIME_SEC), 0) * 100 AS RUN_EFFICIENCY
-        FROM PRODUCTION_METRICS
-        WHERE START_DATE >= DATEADD(day, -{days}, CURRENT_DATE())
-        GROUP BY EQUIPMENT_CODE
-        """)
-    return {
-        r["EQUIPMENT_CODE"]: r["RUN_EFFICIENCY"]
-        for r in rows
-        if r.get("RUN_EFFICIENCY") is not None
-    }
+    """Per-equipment run efficiency percentage. Returns empty if table unavailable."""
+    try:
+        rows = query_records(f"""
+            SELECT EQUIPMENT_CODE,
+                   SUM(PRODUCTION_TIME_SEC) / NULLIF(SUM(RUN_TIME_SEC), 0) * 100 AS RUN_EFFICIENCY
+            FROM PRODUCTION_METRICS
+            WHERE START_DATE >= DATEADD(day, -{days}, CURRENT_DATE())
+            GROUP BY EQUIPMENT_CODE
+            """)
+        return {
+            r["EQUIPMENT_CODE"]: r["RUN_EFFICIENCY"]
+            for r in rows
+            if r.get("RUN_EFFICIENCY") is not None
+        }
+    except Exception:
+        return {}
 
 
 def _capacity_utilization(days: int) -> Dict[str, float]:
-    """Per-equipment actual vs optimal output percentage from CAPACITY_DAILY."""
-    rows = query_records(f"""
-        SELECT EQUIPMENT_CODE,
-               SUM(ACTUAL_OUTPUT) / NULLIF(SUM(OPTIMAL_OUTPUT), 0) * 100 AS UTILIZATION
-        FROM CAPACITY_DAILY
-        WHERE START_DATE >= DATEADD(day, -{days}, CURRENT_DATE())
-        GROUP BY EQUIPMENT_CODE
-        """)
-    return {
-        r["EQUIPMENT_CODE"]: r["UTILIZATION"]
-        for r in rows
-        if r.get("UTILIZATION") is not None
-    }
+    """Per-equipment utilization percentage. Returns empty if table unavailable."""
+    try:
+        rows = query_records(f"""
+            SELECT EQUIPMENT_CODE,
+                   SUM(ACTUAL_OUTPUT) / NULLIF(SUM(OPTIMAL_OUTPUT), 0) * 100 AS UTILIZATION
+            FROM CAPACITY_DAILY
+            WHERE START_DATE >= DATEADD(day, -{days}, CURRENT_DATE())
+            GROUP BY EQUIPMENT_CODE
+            """)
+        return {
+            r["EQUIPMENT_CODE"]: r["UTILIZATION"]
+            for r in rows
+            if r.get("UTILIZATION") is not None
+        }
+    except Exception:
+        return {}
 
 
 def _recency_score(hours_since_last_shot: Optional[float]) -> Optional[float]:

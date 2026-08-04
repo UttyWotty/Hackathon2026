@@ -83,7 +83,7 @@ TEMPERATURE_DRIFT_COEFFICIENT_C: Final[float] = 26.0
 TEMPERATURE_STOP_DROP_C: Final[float] = 12.0
 
 # --- Snowflake object names ---
-TABLE_MASTER_SHOT: Final[str] = "MASTER_SHOT_TABLE"
+TABLE_MASTER_SHOT: Final[str] = "DEMO_TABLE"
 TABLE_MOLD: Final[str] = "MOLD"
 TABLE_COMPANY: Final[str] = "COMPANY"
 TABLE_LOCATION: Final[str] = "LOCATION"

@@ -22,7 +22,7 @@ from .core import (
     create_snowpark_session,
     predict_end_of_life,
     read_maintenance_events,
-    read_master_shot_table,
+    read_demo_table,
     read_mold_table,
 )
 from .models.config import get_utilization_bins
@@ -76,14 +76,14 @@ def run_analysis_api(
         session = create_snowpark_session()
 
         # Read shot data
-        logger.info("Reading MASTER_SHOT_TABLE...")
-        df = read_master_shot_table(session)
+        logger.info("Reading DEMO_TABLE...")
+        df = read_demo_table(session)
 
         if df.empty:
-            logger.warning("MASTER_SHOT_TABLE returned no rows.")
+            logger.warning("DEMO_TABLE returned no rows.")
             return {
                 "status": "error",
-                "error": "No data found in MASTER_SHOT_TABLE",
+                "error": "No data found in DEMO_TABLE",
                 "predictions": pd.DataFrame(),
                 "output_files": {},
                 "message": "No data available for prediction",
@@ -113,7 +113,7 @@ def run_analysis_api(
                     how="left",
                     suffixes=("", "_MOLD"),
                 )
-                # Prefer EQUIPMENT_CODE from MASTER_SHOT_TABLE; keep merged column only if missing
+                # Prefer EQUIPMENT_CODE from DEMO_TABLE; keep merged column only if missing
                 if (
                     "EQUIPMENT_CODE" not in df.columns
                     and "EQUIPMENT_CODE_MOLD" in df.columns

@@ -83,7 +83,7 @@ def setup_module_logger(
     # Prevent propagation to root logger
     logger.propagate = False
 
-    logger.info(f"📝 Logger initialized for {module_name}")
+    logger.info(f"Logger initialized for {module_name}")
     return logger
 
 

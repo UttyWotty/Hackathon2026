@@ -124,7 +124,7 @@ def fetch_efficiency_data(
     supplier_names: Optional[list] = None,
     client: Optional[str] = None,
 ) -> pd.DataFrame:
-    """Fetch cycle time data from MASTER_SHOT_TABLE for efficiency analysis.
+    """Fetch cycle time data from DEMO_TABLE for efficiency analysis.
 
     Args:
         session: Snowpark session
@@ -166,7 +166,7 @@ def fetch_efficiency_data(
             LOCAL_SHOT_TIME,
             PART_ID,
             PART_NAME
-        FROM MASTER_SHOT_TABLE
+        FROM DEMO_TABLE
         WHERE CT IS NOT NULL
         AND APPROVED_CT IS NOT NULL
         AND CT > 0

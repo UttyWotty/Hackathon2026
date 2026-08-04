@@ -137,7 +137,7 @@ async def _run(args: argparse.Namespace) -> int:
     )
 
     print(SEPARATOR, flush=True)
-    print("running autonomous cycle... (local models are slow)", flush=True)
+    print("running autonomous cycle...", flush=True)
 
     result = await controller.run(trigger=TRIGGER_MANUAL)
 

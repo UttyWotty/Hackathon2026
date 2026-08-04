@@ -57,7 +57,7 @@ def weekly_deviation(df: pd.DataFrame) -> pd.DataFrame:
     chart and the agent's own sense tools agree on which shots count.
 
     Args:
-        df: Raw MASTER_SHOT_TABLE rows.
+        df: Raw DEMO_TABLE rows.
 
     Returns:
         A long frame with equipment, week_start and deviation_pct, sorted by

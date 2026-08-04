@@ -8,6 +8,7 @@ read-only SQL text. Keeps every insights adapter free of duplicated query plumbi
 import json
 import re
 import sqlite3
+from collections import Counter
 from typing import Any, Dict, List
 
 SAFE_PARAM_PATTERN: re.Pattern = re.compile(r"^[A-Za-z0-9_\-\. ]+$")
@@ -112,13 +113,41 @@ def _translate_snowflake_sql(sql: str) -> str:
     # ILIKE -> LIKE (SQLite LIKE is case-insensitive for ASCII)
     translated = re.sub(r"\bILIKE\b", "LIKE", translated, flags=re.IGNORECASE)
 
+    # ::TIMESTAMP / ::DATE / ::VARCHAR casts -> remove (SQLite has no cast syntax)
+    translated = re.sub(r"::(TIMESTAMP|DATE|VARCHAR|STRING|NUMBER|INT)", "", translated, flags=re.IGNORECASE)
+
+    # NULLS LAST / NULLS FIRST -> remove (SQLite default is NULLS LAST)
+    translated = re.sub(r"\bNULLS\s+(LAST|FIRST)\b", "", translated, flags=re.IGNORECASE)
+
     return translated
+
+
+class _ModeAggregate:
+    """SQLite custom aggregate implementing Snowflake MODE (statistical mode)."""
+
+    def __init__(self) -> None:
+        self.values: List[Any] = []
+
+    def step(self, value: Any) -> None:
+        if value is not None:
+            self.values.append(value)
+
+    def finalize(self) -> Any:
+        if not self.values:
+            return None
+        counter = Counter(self.values)
+        return counter.most_common(1)[0][0]
+
+
+def _register_mode_aggregate(conn: sqlite3.Connection) -> None:
+    """Register the MODE aggregate function on a SQLite connection."""
+    conn.create_aggregate("MODE", 1, _ModeAggregate)
 
 
 def _query_records_local(query: str) -> List[Dict[str, Any]]:
     """Run a read-only query against the local CSV via in-memory SQLite.
 
-    Loads MASTER_SHOT_TABLE (and MOLD/WORK_ORDER if referenced) into SQLite,
+    Loads DEMO_TABLE (and MOLD/WORK_ORDER if referenced) into SQLite,
     translates Snowflake SQL to SQLite, and returns JSON-safe row dicts.
 
     Args:
@@ -128,20 +157,39 @@ def _query_records_local(query: str) -> List[Dict[str, Any]]:
         List of row dicts (column name -> JSON-safe value).
     """
     from analysis.shared.local_source import (
-        load_master_shot_table,
+        load_demo_table,
         load_mold_csv,
         load_work_order_csv,
     )
 
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
+    _register_mode_aggregate(conn)
 
     # Load tables referenced in the query
     query_upper = query.upper()
-    if "MASTER_SHOT_TABLE" in query_upper:
-        df = load_master_shot_table()
-        df.to_sql("MASTER_SHOT_TABLE", conn, if_exists="replace", index=False)
-    if "MOLD" in query_upper and "MASTER_SHOT" not in query_upper.split("MOLD")[0][-5:]:
+    if "DEMO_TABLE" in query_upper:
+        df = load_demo_table()
+        df.to_sql("DEMO_TABLE", conn, if_exists="replace", index=False)
+    if "MOLD_MAINTENANCE" in query_upper:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS MOLD_MAINTENANCE ("
+            "ID INTEGER, MOLD_ID INTEGER, MAINTENANCE_STATUS TEXT, "
+            "MAINTENANCED_AT TEXT, START_TIME TEXT, END_TIME TEXT, "
+            "SHOT_COUNT INTEGER, ACCUMULATED_SHOT INTEGER, "
+            "WORK_ORDER_ID INTEGER, MAINTENANCE_BY TEXT)"
+        )
+    if "MOLD_LOCATION" in query_upper:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS MOLD_LOCATION ("
+            "MOLD_ID INTEGER, RELOCATION_TYPE TEXT, LOCATION_ID INTEGER, "
+            "PREVIOUS_LOCATION_ID INTEGER, MOLD_LOCATION_STATUS TEXT, "
+            "CONFIRMED_AT TEXT, CREATED_AT TEXT, LATEST INTEGER)"
+        )
+    if "MOLD" in query_upper and "MOLD_MAINTENANCE" not in query_upper and "MOLD_LOCATION" not in query_upper:
+        mold = load_mold_csv()
+        mold.to_sql("MOLD", conn, if_exists="replace", index=False)
+    elif re.search(r"\bFROM\s+MOLD\b", query_upper) or re.search(r"\bJOIN\s+MOLD\b", query_upper):
         mold = load_mold_csv()
         mold.to_sql("MOLD", conn, if_exists="replace", index=False)
     if "WORK_ORDER" in query_upper:

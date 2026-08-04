@@ -19,7 +19,7 @@ from analysis.shared import create_snowflake_connection
 from analysis.shared.error_handling import ProcessingError
 from analysis.shared.logging import setup_module_logger
 
-logger = setup_module_logger("MASTER_SHOT_TABLE")
+logger = setup_module_logger("DEMO_TABLE")
 
 # ---------------------------------------------------------------------
 # Load Snowflake credentials from .env
@@ -77,7 +77,7 @@ def get_session():
 # -------------------------------------------------------
 def fetch_data_from_snowflake(session=None):
     """
-    Fetches data from the existing MASTER_SHOT_TABLE in Snowflake.
+    Fetches data from the existing DEMO_TABLE in Snowflake.
 
     Args:
         session (snowflake.snowpark.Session): Active Snowflake session (optional - created if None).
@@ -95,7 +95,7 @@ def fetch_data_from_snowflake(session=None):
         session = get_session()
         logger.info("✅ Session created successfully")
 
-    # Query MASTER_SHOT_TABLE directly (RCA uses raw data)
+    # Query DEMO_TABLE directly (RCA uses raw data)
     # RCA needs the full shot-level data for root cause analysis
     # Get database and schema from environment
     database = os.getenv("SNOWFLAKE_DATABASE", "MMS")
@@ -110,35 +110,35 @@ def fetch_data_from_snowflake(session=None):
     if not re.match(r"^[a-zA-Z0-9_]+$", schema):
         raise ValueError(f"Invalid schema name format: {schema}")
 
-    logger.info("📝 Environment variables:")
+    logger.info("Environment variables:")
     logger.info(f"   Database: {database}")
     logger.info(f"   Schema: {schema}")
-    logger.info(f"   Target table: {database}.{schema}.MASTER_SHOT_TABLE")
+    logger.info(f"   Target table: {database}.{schema}.DEMO_TABLE")
 
     # First, check if table exists and has data
     try:
         check_query = (
-            f"SELECT COUNT(*) as ROW_COUNT FROM {database}.{schema}.MASTER_SHOT_TABLE"
+            f"SELECT COUNT(*) as ROW_COUNT FROM {database}.{schema}.DEMO_TABLE"
         )
         logger.info(f"🔍 Checking table existence: {check_query}")
 
         count_df = session.sql(check_query).to_pandas()
 
         # Debug: Log the DataFrame info
-        logger.info(f"📋 DataFrame columns: {count_df.columns.tolist()}")
-        logger.info(f"📋 DataFrame shape: {count_df.shape}")
-        logger.info(f"📋 DataFrame dtypes: {count_df.dtypes.to_dict()}")
-        logger.info(f"📋 DataFrame head:\n{count_df.head()}")
+        logger.info(f"DataFrame columns: {count_df.columns.tolist()}")
+        logger.info(f"DataFrame shape: {count_df.shape}")
+        logger.info(f"DataFrame dtypes: {count_df.dtypes.to_dict()}")
+        logger.info(f"DataFrame head:\n{count_df.head()}")
 
         # Snowflake returns uppercase column names by default
         total_rows = count_df["ROW_COUNT"].iloc[0] if not count_df.empty else 0
-        logger.info(f"📊 MASTER_SHOT_TABLE has {total_rows:,} total rows")
+        logger.info(f"📊 DEMO_TABLE has {total_rows:,} total rows")
 
         if total_rows == 0:
-            logger.error("❌ MASTER_SHOT_TABLE exists but is empty!")
+            logger.error("❌ DEMO_TABLE exists but is empty!")
             return pd.DataFrame()
     except Exception as e:
-        logger.error(f"❌ Error checking MASTER_SHOT_TABLE: {str(e)}")
+        logger.error(f"❌ Error checking DEMO_TABLE: {str(e)}")
         logger.error(f"❌ Error type: {type(e).__name__}")
         logger.error("💡 Table might not exist or you don't have access")
         import traceback
@@ -165,7 +165,7 @@ def fetch_data_from_snowflake(session=None):
         MOLD_ID,
         COMPANY_ID,
         PART_ID
-    FROM {database}.{schema}.MASTER_SHOT_TABLE
+    FROM {database}.{schema}.DEMO_TABLE
     WHERE SUPPLIER_NAME IS NOT NULL 
     AND PART_NAME IS NOT NULL
     ORDER BY LOCAL_SHOT_TIME DESC
@@ -174,21 +174,21 @@ def fetch_data_from_snowflake(session=None):
     start_time = time.time()
     logger.info("🔍 Executing main data query...")
     logger.info(f"Full query: {sql_query}")
-    logger.info(f"🔍 Querying: {database}.{schema}.MASTER_SHOT_TABLE")
+    logger.info(f"🔍 Querying: {database}.{schema}.DEMO_TABLE")
 
     try:
         df = session.sql(sql_query).to_pandas()
         elapsed = round(time.time() - start_time, 2)
         logger.info(f"✅ Query executed in {elapsed} seconds")
-        logger.info(f"✅ Retrieved {len(df)} rows from MASTER_SHOT_TABLE")
+        logger.info(f"✅ Retrieved {len(df)} rows from DEMO_TABLE")
         logger.info(f"📊 DataFrame shape: {df.shape}")
         logger.info(f"📊 DataFrame columns: {df.columns.tolist()}")
         logger.info(
-            f"✅ Retrieved {len(df):,} rows from MASTER_SHOT_TABLE in {elapsed}s"
+            f"✅ Retrieved {len(df):,} rows from DEMO_TABLE in {elapsed}s"
         )
     except Exception as e:
         logger.error(f"❌ Error executing main query: {str(e)}")
-        raise ProcessingError(f"MASTER_SHOT_TABLE query failed: {e}") from e
+        raise ProcessingError(f"DEMO_TABLE query failed: {e}") from e
 
     if len(df) > 0:
         logger.info(
@@ -213,7 +213,7 @@ def fetch_data_from_snowflake(session=None):
 # -------------------------------------------------------
 def create_result_table(session):
     """
-    Creates the MASTER_SHOT_TABLE result table in Snowflake if it does not already exist.
+    Creates the DEMO_TABLE result table in Snowflake if it does not already exist.
 
     Args:
         session (snowflake.snowpark.Session): Active Snowflake session.
@@ -223,12 +223,12 @@ def create_result_table(session):
     """
     exists_query = """
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
-    WHERE TABLE_SCHEMA = 'CALDERA' AND TABLE_NAME = 'MASTER_SHOT_TABLE'
+    WHERE TABLE_SCHEMA = 'CALDERA' AND TABLE_NAME = 'DEMO_TABLE'
     """
     result = session.sql(exists_query).collect()
     if result[0][0] == 0:
         create_query = """
-        CREATE TABLE MMS.CALDERA.MASTER_SHOT_TABLE (
+        CREATE TABLE MMS.CALDERA.DEMO_TABLE (
             SUPPLIER_NAME STRING,
             EQUIPMENT_CODE STRING,
             COUNTER_CODE STRING,
@@ -249,7 +249,7 @@ def create_result_table(session):
         )
         """
         session.sql(create_query).collect()
-        logger.info("✅ Created table: MASTER_SHOT_TABLE")
+        logger.info("✅ Created table: DEMO_TABLE")
     else:
         logger.warning("ℹ️ Table already exists")
 
@@ -259,11 +259,11 @@ def create_result_table(session):
 
 def upload_data_to_snowflake(connector_conn, df, chunk_size=500000):
     """
-    Uploads the processed MASTER_SHOT_TABLE DataFrame to the Snowflake MASTER_SHOT_TABLE table in chunks.
+    Uploads the processed DEMO_TABLE DataFrame to the Snowflake DEMO_TABLE table in chunks.
 
     Args:
         connector_conn (snowflake.connector.SnowflakeConnection): Snowflake connector connection.
-        df (pd.DataFrame): DataFrame containing processed MASTER_SHOT_TABLE data.
+        df (pd.DataFrame): DataFrame containing processed DEMO_TABLE data.
         chunk_size (int, optional): Number of rows per upload chunk. Defaults to 500000.
 
     Returns:
@@ -294,7 +294,7 @@ def upload_data_to_snowflake(connector_conn, df, chunk_size=500000):
             write_pandas(
                 conn=connector_conn,
                 df=chunk,
-                table_name="MASTER_SHOT_TABLE",
+                table_name="DEMO_TABLE",
                 schema="CALDERA",
                 database="MMS",
                 overwrite=not overwrite_done,

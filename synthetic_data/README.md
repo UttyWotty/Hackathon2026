@@ -1,7 +1,7 @@
 # Synthetic manufacturing dataset generator
 
 Generates a reproducible, client-free manufacturing dataset whose schema matches the production
-`MASTER_SHOT_TABLE` contract, so the existing sense tools run against it unmodified. Every defect
+`DEMO_TABLE` contract, so the existing sense tools run against it unmodified. Every defect
 in the data is planted deliberately and declared up front, which turns the hackathon demo into a
 verifiable claim instead of an anecdote. Generation is pure and self-contained: this package
 must never import from the application it supplies data to.
@@ -27,7 +27,7 @@ That yields roughly 230,000 shots. All flags are listed by `--help`.
 
 | Table | Rows (default) | Purpose |
 |---|---|---|
-| `MASTER_SHOT_TABLE` | ~230,000 | The central fact table every sense tool reads |
+| `DEMO_TABLE` | ~230,000 | The central fact table every sense tool reads |
 | `MOLD` | 8 | Tool master data; drives tooling_eol remaining-life logic |
 | `COMPANY` / `LOCATION` / `PART` | 3 / 2 / 8 | Dimensions the master shot builder denormalises from |
 | `WORK_ORDER` | 16 | Completed maintenance events for maintenance-interval analysis |

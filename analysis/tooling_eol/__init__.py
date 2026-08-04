@@ -50,7 +50,7 @@ from .core import (
     predict_end_of_life,
     predict_end_of_life_for_mold,
     read_maintenance_events,
-    read_master_shot_table,
+    read_demo_table,
     read_mold_table,
 )
 from .models.config import (
@@ -75,7 +75,7 @@ __all__ = [
     "get_design_life",
     # Core functions
     "create_snowpark_session",
-    "read_master_shot_table",
+    "read_demo_table",
     "read_maintenance_events",
     "read_mold_table",
     "predict_end_of_life",

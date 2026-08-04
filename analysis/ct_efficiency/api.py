@@ -163,7 +163,7 @@ def run_analysis_api(
         )
 
         # Generate efficiency summary
-        logger.info("📋 Generating efficiency summary...")
+        logger.info("Generating efficiency summary...")
         efficiency_summary = generate_efficiency_summary(tool_metrics)
 
         # Benchmark suppliers

@@ -1,6 +1,6 @@
 """Mold history and maintenance impact tool adapters.
 
-Joins MOLD, MOLD_MAINTENANCE, MOLD_LOCATION, and MASTER_SHOT_TABLE to expose a mold's
+Joins MOLD, MOLD_MAINTENANCE, MOLD_LOCATION, and DEMO_TABLE to expose a mold's
 lifecycle and to measure production metrics before versus after maintenance events.
 Impact classification is delegated to analysis.insights.maintenance_impact.
 """
@@ -36,11 +36,10 @@ def _find_molds(
     else:
         raise InvalidToolParameterError("Provide equipment_code or mold_id")
     return query_records("""
-        SELECT ID, EQUIPMENT_CODE, SUPPLIER_MOLD_CODE, TOOLING_STATUS,
-               OPERATING_STATUS, DESIGNED_SHOT, LAST_SHOT, COUNTER_SHOT_COUNT,
-               MAINTENANCE_COUNT, LAST_MAINTENANCE_DATE, LAST_SHOT_AT,
-               CONTRACTED_CYCLE_TIME, WEIGHTED_AVERAGE_CYCLE_TIME, TOTAL_CAVITIES,
-               UTILIZATION_RATE
+        SELECT ID, EQUIPMENT_CODE, COUNTER_CODE, COUNTER_ID,
+               SUPPLIER_COMPANY_ID, LOCATION_ID, PART_ID, TOOLING_TYPE,
+               CONTRACTED_CYCLE_TIME, TOTAL_CAVITIES, DESIGNED_SHOT,
+               DAILY_MAX_CAPACITY, PRODUCTION_DAYS, SHIFTS_PER_DAY
         FROM MOLD
         WHERE %s
         """ % where)
@@ -84,7 +83,7 @@ def get_mold_history(
             """)
         shots_since = query_records(f"""
             SELECT COUNT(*) AS SHOTS
-            FROM MASTER_SHOT_TABLE
+            FROM DEMO_TABLE
             WHERE MOLD_ID = {mold_pk}
               AND LOCAL_SHOT_TIME > (
                   SELECT COALESCE(MAX(MAINTENANCED_AT), '1970-01-01'::TIMESTAMP)
@@ -124,7 +123,7 @@ def _window_metrics_for_mold(
     rows = query_records(f"""
         SELECT AVG(CASE WHEN CT < {HARD_STOP_CT} THEN CT END) AS AVG_CT,
                COUNT(*) AS SHOTS
-        FROM MASTER_SHOT_TABLE
+        FROM DEMO_TABLE
         WHERE MOLD_ID = {mold_pk} AND {time_filter}
         """)
     row = rows[0] if rows else {}

@@ -1,7 +1,7 @@
 """
 Data tool definitions for database operations and master table management.
 
-Contains 5 data tools: refresh_master_shot_table, run_sql_query, list_tables,
+Contains 5 data tools: refresh_demo_table, run_sql_query, list_tables,
 describe_table, and get_master_table_progress for Snowflake data operations.
 """
 
@@ -10,8 +10,8 @@ from typing import Any, Dict, List
 DATA_TOOLS: List[Dict[str, Any]] = [
     {
         "toolSpec": {
-            "name": "refresh_master_shot_table",
-            "description": """Refresh MASTER_SHOT_TABLE with latest production data from Snowflake. This is the FOUNDATION TABLE used by all 7 analysis modules (ROI, CT Deviation, CT Efficiency, RCA, Tooling EOL). Run this periodically (daily/hourly) to ensure analyses use fresh data. Supports incremental mode (fast, only new data with overlap) and full mode (complete historical reload).""",
+            "name": "refresh_demo_table",
+            "description": """Refresh DEMO_TABLE with latest production data from Snowflake. This is the FOUNDATION TABLE used by all 7 analysis modules (ROI, CT Deviation, CT Efficiency, RCA, Tooling EOL). Run this periodically (daily/hourly) to ensure analyses use fresh data. Supports incremental mode (fast, only new data with overlap) and full mode (complete historical reload).""",
             "tags": {
                 "server": "mfg",
                 "domain": "data",
@@ -128,7 +128,7 @@ DATA_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "table_name": {
                             "type": "string",
-                            "description": "Name of the table to describe (e.g., 'MASTER_SHOT_TABLE', 'MOLD', 'PART')",
+                            "description": "Name of the table to describe (e.g., 'DEMO_TABLE', 'MOLD', 'PART')",
                         },
                     },
                     "required": ["table_name"],

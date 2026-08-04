@@ -73,7 +73,7 @@ METRIC_DEFINITIONS: Dict[str, Dict[str, str]] = {
             "validate against observed mode CT (validate_approved_cts tool). Tool "
             "comparisons are only meaningful within the same approved CT group."
         ),
-        "source": "MASTER_SHOT_TABLE.APPROVED_CT",
+        "source": "DEMO_TABLE.APPROVED_CT",
     },
     "ct_efficiency": {
         "definition": (

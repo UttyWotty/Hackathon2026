@@ -43,13 +43,13 @@ def get_system_prompt() -> str:
 - Each client has their own schema with separate data
 - Available Schemas: NORDPLAST, ARCWELD, MERIDIAN, CALDERA, VANTIS, ORESUND, KESTREL, HALLERT, OKSNES, LINDHOLM, SOLVANG, TERNA, AURELIA, FJORDVIK
 - Default Schema: NORDPLAST (from environment)
-- Single Source of Truth: MASTER_SHOT_TABLE (all analyses now use this table)
+- Single Source of Truth: DEMO_TABLE (all analyses now use this table)
 - Client Switching: Specify 'client' parameter to query different schemas
 
 **IMPORTANT - Data Requirements:**
-- All analyses use MASTER_SHOT_TABLE as the single source of truth
+- All analyses use DEMO_TABLE as the single source of truth
 - Apply consistent filters: CT < 999.9 AND VOLUME > 0
-- If a client returns "0 records", check equipment codes, date ranges, or verify data exists in MASTER_SHOT_TABLE
+- If a client returns "0 records", check equipment codes, date ranges, or verify data exists in DEMO_TABLE
 
 **Guidelines:**
 - When users ask about cycle time drift or stability, use run_ct_deviation_analysis

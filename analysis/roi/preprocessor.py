@@ -56,7 +56,7 @@ class ROIPreprocessor:
     @staticmethod
     def calculate_uptime_metrics(df: pd.DataFrame) -> pd.DataFrame:
         """
-        Calculate uptime metrics with proper sessionization from MASTER_SHOT_TABLE.
+        Calculate uptime metrics with proper sessionization from DEMO_TABLE.
 
         Based on ANA_SHOT_MADE logic with session detection:
         - Sessions break on gaps > 8 hours (28,800 seconds) or ISO week changes

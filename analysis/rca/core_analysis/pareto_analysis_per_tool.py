@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# Import the data fetching function from master_shot_table
-from .master_shot_table import fetch_data_from_snowflake, session
+# Import the data fetching function from demo_table
+from .demo_table import fetch_data_from_snowflake, session
 from .pareto_ct_deviations import calculate_statistical_ct_deviations
 from .pareto_downtime import calculate_real_downtime, detect_downtime_events
 from .pareto_issue_analyzer import (

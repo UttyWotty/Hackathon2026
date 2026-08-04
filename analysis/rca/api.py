@@ -55,16 +55,16 @@ def run_analysis_api(
     import logging
 
     logging.info("=" * 100)
-    logging.info("🔥 RCA API ENTRY POINT")
+    logging.info("RCA API ENTRY POINT")
     logging.info("=" * 100)
     logging.info(
-        f"📋 Parameters: equipment_code={equipment_code}, supplier_name={supplier_name}"
+        f"Parameters: equipment_code={equipment_code}, supplier_name={supplier_name}"
     )
     print("=" * 100)
-    print("🔥 RCA API ENTRY POINT")
+    print("RCA API ENTRY POINT")
     print("=" * 100)
     print(
-        f"📋 Parameters: equipment_code={equipment_code}, supplier_name={supplier_name}"
+        f"Parameters: equipment_code={equipment_code}, supplier_name={supplier_name}"
     )
 
     try:
@@ -73,8 +73,8 @@ def run_analysis_api(
 
         from dotenv import load_dotenv
 
-        logging.info("🔐 Loading environment variables...")
-        print("🔐 Loading environment variables...")
+        logging.info("Loading environment variables...")
+        print("Loading environment variables...")
         load_dotenv()
 
         # Log critical env vars (without sensitive data)
@@ -91,16 +91,16 @@ def run_analysis_api(
 
         # Create and run pipeline
         logging.info(
-            f"🏗️ Creating RootCauseAnalysisPipeline with equipment_filter={equipment_code}"
+            f"Creating RootCauseAnalysisPipeline with equipment_filter={equipment_code}"
         )
         print(
-            f"🏗️ Creating RootCauseAnalysisPipeline with equipment_filter={equipment_code}"
+            f"Creating RootCauseAnalysisPipeline with equipment_filter={equipment_code}"
         )
         pipeline = RootCauseAnalysisPipeline(equipment_filter=equipment_code)
 
         # Run complete analysis
-        logging.info("▶️ Running complete pipeline...")
-        print("▶️ Running complete pipeline...")
+        logging.info("Running complete pipeline...")
+        print("Running complete pipeline...")
         results = pipeline.run_complete_pipeline()
 
         if not results:

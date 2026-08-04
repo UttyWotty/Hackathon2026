@@ -361,7 +361,7 @@ class TestDatabaseConstants:
     def test_table_names_are_uppercase(self) -> None:
         """All table name constants are uppercase (Snowflake convention)."""
         tables = [
-            DatabaseTables.MASTER_SHOT_TABLE,
+            DatabaseTables.DEMO_TABLE,
             DatabaseTables.PRODUCT,
             DatabaseTables.ANA_SHOT_MADE,
             DatabaseTables.ROI_TABLE,

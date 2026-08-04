@@ -1,7 +1,7 @@
 """Cycle time savings simulation tool adapter.
 
 Aggregates observed versus target cycle times per equipment/part from
-MASTER_SHOT_TABLE and sizes the opportunity with analysis.insights.savings.
+DEMO_TABLE and sizes the opportunity with analysis.insights.savings.
 Targets are the approved CT or the best observed CT within the same approved CT group.
 """
 
@@ -46,7 +46,7 @@ def _fetch_aggregates(
             MAX(APPROVED_CT) AS APPROVED_CT,
             AVG(CASE WHEN CT < {HARD_STOP_CT} THEN CT END) AS AVG_CT,
             COUNT(CASE WHEN CT < {HARD_STOP_CT} THEN 1 END) AS SHOTS
-        FROM MASTER_SHOT_TABLE
+        FROM DEMO_TABLE
         WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
           AND EQUIPMENT_CODE IS NOT NULL
           {equipment_filter}

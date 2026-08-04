@@ -45,7 +45,7 @@ Trigger (schedule/manual)
 ```
 
 Single FastAPI application. Cortex REST Messages API for LLM. All data in Snowflake
-(`MMS_DEMO.PUBLIC.MASTER_SHOT_TABLE`). 243,000 synthetic shots across 8 machines, 6 weeks.
+(`MMS_DEMO.PUBLIC.DEMO_TABLE`). 243,000 synthetic shots across 8 machines, 6 weeks.
 
 ## CoCo CLI Skills (3)
 

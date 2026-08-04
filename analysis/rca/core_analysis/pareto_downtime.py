@@ -45,8 +45,6 @@ def calculate_real_downtime(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         The input DataFrame with TIME_BETWEEN_SHOTS and DOWNTIME columns added.
     """
-    print("  Calculating real downtime using company logic...")
-
     df = df.sort_values("LOCAL_SHOT_TIME")
     df["TIME_BETWEEN_SHOTS"] = df["LOCAL_SHOT_TIME"].diff().dt.total_seconds()
     df["DOWNTIME"] = 0.0

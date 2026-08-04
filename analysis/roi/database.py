@@ -195,10 +195,10 @@ class ROIDatabase:
 
         where_clause = " AND ".join(where_conditions)
 
-        # Get MASTER_SHOT_TABLE location from env or session
+        # Get DEMO_TABLE location from env or session
         shots_db = os.getenv("SHOT_DB") or self.session.get_current_database()
         shots_schema = os.getenv("SHOT_SCHEMA") or self.session.get_current_schema()
-        master_table = f"{shots_db}.{shots_schema}.MASTER_SHOT_TABLE"
+        master_table = f"{shots_db}.{shots_schema}.DEMO_TABLE"
 
         sql_query = f"""
         SELECT 
@@ -369,10 +369,10 @@ class ROIDatabase:
         Returns:
             DataFrame shaped like the ROI SQL query output.
         """
-        from analysis.shared.local_source import load_master_shot_table
+        from analysis.shared.local_source import load_demo_table
 
         logger.info("Serving ROI data from local dataset")
-        frame = load_master_shot_table()
+        frame = load_demo_table()
 
         # Apply same filters as the Snowflake query
         frame = frame[(frame["VOLUME"] > 0) & frame["LOCAL_SHOT_TIME"].notna()]

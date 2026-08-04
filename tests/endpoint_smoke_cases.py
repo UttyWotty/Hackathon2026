@@ -18,7 +18,7 @@ ANALYTICS_SCHEMA = "NORDPLAST"
 SAMPLE_EQUIPMENT_CODE = "MX-7101"
 SAMPLE_START_DATE = "2025-11-01"
 SAMPLE_END_DATE = "2025-11-30"
-SAMPLE_TABLE = "MASTER_SHOT_TABLE"
+SAMPLE_TABLE = "DEMO_TABLE"
 
 # A pure, I/O-free dispatch target (all args optional, no Snowflake) used to
 # exercise the MCP tool-dispatch registry without an external dependency.

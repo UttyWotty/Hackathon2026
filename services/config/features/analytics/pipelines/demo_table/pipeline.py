@@ -19,7 +19,7 @@ from utils.sql_validation import sanitize_sql_identifier, validate_date_param
 from ..shared_config import PipelineConfig, get_database_schema, setup_pipeline_logging
 from .sql_builder import build_optimized_shot_query
 
-logger = setup_pipeline_logging("MASTER_SHOT")
+logger = setup_pipeline_logging("DEMO_TABLE")
 
 
 def _normalize_datetime_column(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
@@ -72,7 +72,7 @@ class MasterShotPipeline:
         """
         query = f"""
         SELECT MAX(LOCAL_SHOT_TIME)
-        FROM {self.database}.{self.schema}.MASTER_SHOT_TABLE
+        FROM {self.database}.{self.schema}.DEMO_TABLE
         """
         result = self.session.sql(query).collect()
         if result and result[0][0] is not None:
@@ -80,7 +80,7 @@ class MasterShotPipeline:
             date_str = global_max.strftime("%Y-%m-%d")
             logger.info("Global MAX(LOCAL_SHOT_TIME): %s", date_str)
             return date_str
-        logger.warning("MASTER_SHOT_TABLE is empty - no data found")
+        logger.warning("DEMO_TABLE is empty - no data found")
         return None
 
     def get_date_chunks(self) -> List[Tuple[str, str]]:
@@ -166,8 +166,8 @@ class MasterShotPipeline:
                     raise
 
     def create_result_table(self):
-        """Create the MASTER_SHOT_TABLE if it doesn't exist."""
-        table_name = "MASTER_SHOT_TABLE"
+        """Create the DEMO_TABLE if it doesn't exist."""
+        table_name = "DEMO_TABLE"
         safe_schema = sanitize_sql_identifier(self.schema)
         exists_query = f"""SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_SCHEMA = '{safe_schema}' AND TABLE_NAME = '{table_name}'"""
@@ -201,8 +201,8 @@ class MasterShotPipeline:
             logger.info(f"Table {table_name} already exists")
 
     def truncate_table(self):
-        """Truncate the MASTER_SHOT_TABLE."""
-        table_name = "MASTER_SHOT_TABLE"
+        """Truncate the DEMO_TABLE."""
+        table_name = "DEMO_TABLE"
         try:
             truncate_query = f"""TRUNCATE TABLE IF EXISTS {self.database}.{self.schema}.{table_name}
             """
@@ -213,8 +213,8 @@ class MasterShotPipeline:
             raise
 
     def deduplicate_final_table(self):
-        """Deduplicate MASTER_SHOT_TABLE based on all data columns."""
-        table_name = "MASTER_SHOT_TABLE"
+        """Deduplicate DEMO_TABLE based on all data columns."""
+        table_name = "DEMO_TABLE"
         try:
             dup_check_query = f"""SELECT COUNT(*) as duplicate_count
             FROM (
@@ -326,7 +326,7 @@ class MasterShotPipeline:
                 write_pandas(
                     conn=self.sf_conn,
                     df=batch,
-                    table_name="MASTER_SHOT_TABLE",
+                    table_name="DEMO_TABLE",
                     schema=self.schema,
                     database=self.database,
                     overwrite=False,
@@ -356,11 +356,11 @@ class MasterShotPipeline:
             safe_start = validate_date_param(start_date)
             safe_end = validate_date_param(end_date)
 
-            total_count_query = f"""SELECT COUNT(*) FROM {self.database}.{self.schema}.MASTER_SHOT_TABLE
+            total_count_query = f"""SELECT COUNT(*) FROM {self.database}.{self.schema}.DEMO_TABLE
             """
             total_rows = self.session.sql(total_count_query).collect()[0][0]
 
-            count_query = f"""SELECT COUNT(*) FROM {self.database}.{self.schema}.MASTER_SHOT_TABLE
+            count_query = f"""SELECT COUNT(*) FROM {self.database}.{self.schema}.DEMO_TABLE
             WHERE LOCAL_SHOT_TIME >= '{safe_start}'::TIMESTAMP
             AND LOCAL_SHOT_TIME < '{safe_end}'::TIMESTAMP
             """
@@ -375,7 +375,7 @@ class MasterShotPipeline:
                 f"Deleting {rows_to_delete:,} rows from {start_date} to {end_date}"
             )
 
-            delete_query = f"""DELETE FROM {self.database}.{self.schema}.MASTER_SHOT_TABLE
+            delete_query = f"""DELETE FROM {self.database}.{self.schema}.DEMO_TABLE
             WHERE LOCAL_SHOT_TIME >= '{safe_start}'::TIMESTAMP
             AND LOCAL_SHOT_TIME < '{safe_end}'::TIMESTAMP
             """
@@ -463,7 +463,7 @@ class MasterShotPipeline:
         and re-fetches from (max_date - overlap_days) to today. This keeps
         the incremental window small and predictable.
 
-        Falls back to full load if MASTER_SHOT_TABLE is empty.
+        Falls back to full load if DEMO_TABLE is empty.
 
         Args:
             overlap_days: Extra days to subtract for safety overlap.

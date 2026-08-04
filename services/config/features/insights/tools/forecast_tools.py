@@ -1,6 +1,6 @@
 """Production metric forecasting tool adapter.
 
-Builds a daily history series from MASTER_SHOT_TABLE for shot volume or average cycle
+Builds a daily history series from DEMO_TABLE for shot volume or average cycle
 time and extrapolates it with the trend/moving-average logic in analysis.insights.
 Exposes the forecast_metric MCP tool.
 """
@@ -70,7 +70,7 @@ def forecast_metric(
         rows = query_records(f"""
             SELECT DATE(LOCAL_SHOT_TIME) AS DAY,
                    {METRIC_EXPRESSIONS[metric]} AS VALUE
-            FROM MASTER_SHOT_TABLE
+            FROM DEMO_TABLE
             WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{history_days}, CURRENT_DATE())
               AND EQUIPMENT_CODE IS NOT NULL
               {equipment_filter}

@@ -176,7 +176,7 @@ equipment_col = ColumnNames.EQUIPMENT_CODE
 ct_col = ColumnNames.CYCLE_TIME
 
 # Use table names
-query = f"SELECT * FROM {DatabaseTables.MASTER_SHOT_TABLE}"
+query = f"SELECT * FROM {DatabaseTables.DEMO_TABLE}"
 ```
 
 ## 🚀 Quick Start

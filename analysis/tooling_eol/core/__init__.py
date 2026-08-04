@@ -10,7 +10,7 @@ from .data_loader import (
     get_db_schema,
     normalize_columns,
     read_maintenance_events,
-    read_master_shot_table,
+    read_demo_table,
     read_mold_table,
 )
 from .eol_predictor import (
@@ -32,7 +32,7 @@ __all__ = [
     # Data loading
     "create_snowpark_session",
     "get_db_schema",
-    "read_master_shot_table",
+    "read_demo_table",
     "read_maintenance_events",
     "read_mold_table",
     "normalize_columns",

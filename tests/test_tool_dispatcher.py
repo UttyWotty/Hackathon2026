@@ -28,7 +28,7 @@ def test_tool_registry_contains_all_tools():
         "run_ct_efficiency_analysis",
         "run_ct_deviation_analysis",
         "run_tooling_eol_analysis",
-        "refresh_master_shot_table",
+        "refresh_demo_table",
     ]
 
     for tool_name in expected_tools:

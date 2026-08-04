@@ -1,6 +1,6 @@
 """Period-over-period comparison and top-mover tool adapters.
 
-Aggregates per-equipment metrics for two adjacent windows from MASTER_SHOT_TABLE and
+Aggregates per-equipment metrics for two adjacent windows from DEMO_TABLE and
 delegates delta math and ranking to analysis.insights.period_compare.
 Exposes the compare_periods and find_top_movers MCP tools.
 """
@@ -45,7 +45,7 @@ def _window_metrics(
             COUNT(*) AS SHOTS,
             AVG(CASE WHEN CT < {HARD_STOP_CT} THEN CT END) AS AVG_CT,
             COUNT(DISTINCT DATE(LOCAL_SHOT_TIME)) AS ACTIVE_DAYS
-        FROM MASTER_SHOT_TABLE
+        FROM DEMO_TABLE
         WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{start_offset_days}, CURRENT_DATE())
           AND LOCAL_SHOT_TIME < DATEADD(day, -{end_offset_days}, CURRENT_DATE())
           AND EQUIPMENT_CODE IS NOT NULL

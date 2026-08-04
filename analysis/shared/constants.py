@@ -121,7 +121,7 @@ class FilePaths:
 class DatabaseTables:
     """Standard Snowflake table names."""
 
-    MASTER_SHOT_TABLE = "MASTER_SHOT_TABLE"
+    DEMO_TABLE = "DEMO_TABLE"
     PRODUCT = "PRODUCT"
     ANA_SHOT_MADE = "ANA_SHOT_MADE"
     ROI_TABLE = "ROI"

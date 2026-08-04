@@ -43,9 +43,9 @@ _ANALYTICS_TOOL_IMPORTS: Dict[str, tuple] = {
         "run_tooling_eol_analysis",
     ),
 
-    "refresh_master_shot_table": (
+    "refresh_demo_table": (
         "services.config.features.analytics.tools.master_table_tools",
-        "refresh_master_shot_table",
+        "refresh_demo_table",
     ),
     "generate_presentation": (
         "services.config.features.analytics.tools.ppt_tools",

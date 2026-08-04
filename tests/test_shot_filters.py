@@ -1,5 +1,5 @@
 """
-Tests for the pure MASTER_SHOT_TABLE filter predicates.
+Tests for the pure DEMO_TABLE filter predicates.
 
 Asserts that the local CSV path applies the same validity bounds, date windows
 and membership rules as the analysis SQL, since any divergence would make local
