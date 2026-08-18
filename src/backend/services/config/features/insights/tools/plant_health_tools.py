@@ -27,12 +27,12 @@ def _master_metrics(days: int) -> Dict[str, Dict[str, Any]]:
         SELECT
             MACHINE_ID,
             COUNT(*) AS SHOTS,
-            AVG(CASE WHEN CT < {HARD_STOP_DURATION} THEN CT END) AS AVG_DURATION,
+            AVG(CASE WHEN DURATION < {HARD_STOP_DURATION} THEN DURATION END) AS AVG_DURATION,
             MAX(TARGET_DURATION) AS TARGET_DURATION,
-            AVG(CASE WHEN CT < {HARD_STOP_DURATION} AND TARGET_DURATION > 0
+            AVG(CASE WHEN DURATION < {HARD_STOP_DURATION} AND TARGET_DURATION > 0
                      AND DURATION <= TARGET_DURATION * {CT_WITHIN_TOLERANCE}
-                     THEN 100.0 WHEN CT < {HARD_STOP_DURATION} AND TARGET_DURATION > 0
-                     THEN 0.0 END) AS CT_PERFORMANCE,
+                     THEN 100.0 WHEN DURATION < {HARD_STOP_DURATION} AND TARGET_DURATION > 0
+                     THEN 0.0 END) AS DURATION_PERFORMANCE,
             DATEDIFF('hour', MAX(SHOT_TIME), CURRENT_TIMESTAMP()) AS HOURS_SINCE_LAST_SHOT
         FROM SHOT_DATA
         WHERE SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
@@ -116,7 +116,7 @@ def get_plant_health_snapshot(days: int = DEFAULT_WINDOW_DAYS) -> Dict[str, Any]
                 code,
                 {
                     "run_efficiency": efficiency.get(code),
-                    "ct_performance": m.get("CT_PERFORMANCE"),
+                    "duration_performance": m.get("DURATION_PERFORMANCE"),
                     "utilization": utilization.get(code),
                     "recency": _recency_score(m.get("HOURS_SINCE_LAST_SHOT")),
                 },

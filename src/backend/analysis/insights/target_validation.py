@@ -22,7 +22,7 @@ def validate_ct_record(
     target_duration: Optional[float],
     observed_duration: Optional[float],
     shot_count: int,
-    stale_threshold_pct: float = DEFAULT_STALE_THRESHOLD_Pduration,
+    stale_threshold_pct: float = DEFAULT_STALE_THRESHOLD_PCT,
     min_shots: int = DEFAULT_MIN_SHOTS,
 ) -> Dict[str, Any]:
     """Classify one approved duration against its observed duration.
@@ -65,7 +65,7 @@ def validate_ct_record(
 
 def validate_ct_records(
     records: List[Dict[str, Any]],
-    stale_threshold_pct: float = DEFAULT_STALE_THRESHOLD_Pduration,
+    stale_threshold_pct: float = DEFAULT_STALE_THRESHOLD_PCT,
     min_shots: int = DEFAULT_MIN_SHOTS,
 ) -> Dict[str, Any]:
     """Validate a batch of approved duration records.

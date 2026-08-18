@@ -18,7 +18,7 @@ from .constants import (
     STATUS_IDLE,
     GAP_SAFETY_MARGIN_SEC,
     GAP_TIME_TOLERANCE_SECONDS,
-    HARD_STOP_duration,
+    HARD_STOP_DURATION,
     NORMAL_CT_STEP_OFFSETS,
     NORMAL_CT_STEP_WEIGHTS,
     NORMAL_GAP_JITTER_SEC,
@@ -126,7 +126,7 @@ def _hard_stop_burst(rng: Random, behaviour: RunBehaviour) -> List[ShotEvent]:
     count = rng.randint(1, behaviour.max_consecutive_hard_stops)
     return [
         (
-            HARD_STOP_duration,
+            HARD_STOP_DURATION,
             rng.uniform(behaviour.hard_stop_min_sec, behaviour.hard_stop_max_sec),
             StopKind.HARD_STOP,
         )

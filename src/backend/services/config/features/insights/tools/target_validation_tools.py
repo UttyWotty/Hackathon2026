@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 
 from analysis.insights.target_validation import (
     DEFAULT_MIN_SHOTS,
-    DEFAULT_STALE_THRESHOLD_Pduration,
+    DEFAULT_STALE_THRESHOLD_PCT,
     validate_ct_records,
 )
 from services.config.features.insights.tools.common import (
@@ -29,7 +29,7 @@ MAX_THRESHOLD_PCT: float = 100.0
 
 def validate_targets(
     days: int = DEFAULT_WINDOW_DAYS,
-    stale_threshold_pct: float = DEFAULT_STALE_THRESHOLD_Pduration,
+    stale_threshold_pct: float = DEFAULT_STALE_THRESHOLD_PCT,
     min_shots: int = DEFAULT_MIN_SHOTS,
     machine_id: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -64,8 +64,8 @@ def validate_targets(
                 PRODUCT_ID,
                 MAX(PRODUCT_NAME) AS PRODUCT_NAME,
                 MAX(TARGET_DURATION) AS TARGET_DURATION,
-                MODE(CASE WHEN CT < {HARD_STOP_DURATION} THEN CT END) AS OBSERVED_duration,
-                COUNT(CASE WHEN CT < {HARD_STOP_DURATION} THEN 1 END) AS SHOT_COUNT
+                MODE(CASE WHEN DURATION < {HARD_STOP_DURATION} THEN DURATION END) AS OBSERVED_DURATION,
+                COUNT(CASE WHEN DURATION < {HARD_STOP_DURATION} THEN 1 END) AS SHOT_COUNT
             FROM SHOT_DATA
             WHERE SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
               AND MACHINE_ID IS NOT NULL

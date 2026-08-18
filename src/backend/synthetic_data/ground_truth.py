@@ -62,7 +62,7 @@ def _finding_for(profile: EquipmentProfile) -> ExpectedFinding:
             claim=claim,
             metric="deviation_pct",
             expected_direction=DIRECTION_ABOVE,
-            expected_value=DEVIATION_CRITICAL_Pduration,
+            expected_value=DEVIATION_CRITICAL_PCT,
         )
     if profile.kind is ProfileKind.FREQUENT_STOPS:
         return ExpectedFinding(
@@ -92,7 +92,7 @@ def _finding_for(profile: EquipmentProfile) -> ExpectedFinding:
             claim=claim,
             metric="stability_decline_pct",
             expected_direction=DIRECTION_ABOVE,
-            expected_value=RISK_TOWER_DECLINE_THRESHOLD_Pduration,
+            expected_value=RISK_TOWER_DECLINE_THRESHOLD_PCT,
         )
     return ExpectedFinding(
         machine_id=machine_id,

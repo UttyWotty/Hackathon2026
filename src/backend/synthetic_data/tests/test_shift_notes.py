@@ -12,7 +12,7 @@ from typing import Dict, List
 
 import pytest
 
-from synthetic_data.constants import DEVIATION_CRITICAL_Pduration, HARD_STOP_DURATION
+from synthetic_data.constants import DEVIATION_CRITICAL_PCT, HARD_STOP_DURATION
 from synthetic_data.dataset import build_dataset
 from synthetic_data.models import GenerationConfig, ProfileKind, ShiftNote, Shot
 from synthetic_data.notes import (

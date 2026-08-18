@@ -20,7 +20,7 @@ def classify_metric_impact(
     metric: str,
     before: Optional[float],
     after: Optional[float],
-    neutral_threshold_pct: float = NEUTRAL_THRESHOLD_Pduration,
+    neutral_threshold_pct: float = NEUTRAL_THRESHOLD_PCT,
 ) -> Dict[str, Any]:
     """Classify the impact of a maintenance event on one metric.
 
@@ -61,7 +61,7 @@ def classify_metric_impact(
 def compare_before_after(
     before_metrics: Dict[str, Optional[float]],
     after_metrics: Dict[str, Optional[float]],
-    neutral_threshold_pct: float = NEUTRAL_THRESHOLD_Pduration,
+    neutral_threshold_pct: float = NEUTRAL_THRESHOLD_PCT,
 ) -> Dict[str, Any]:
     """Compare all metrics across maintenance windows and summarize the verdict.
 

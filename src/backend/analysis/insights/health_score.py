@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 HEALTH_WEIGHTS: Dict[str, float] = {
     "run_efficiency": 0.40,
-    "ct_performance": 0.30,
+    "duration_performance": 0.30,
     "utilization": 0.20,
     "recency": 0.10,
 }

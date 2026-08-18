@@ -72,7 +72,7 @@ def rank_top_movers(
     comparison: Dict[str, Dict[str, Dict[str, Optional[float]]]],
     metric: str,
     top_n: int = DEFAULT_TOP_N,
-    sort_by: str = SORT_BY_Pduration,
+    sort_by: str = SORT_BY_PCT,
 ) -> List[Dict[str, Any]]:
     """Rank entities by the magnitude of change in one metric.
 
@@ -89,7 +89,7 @@ def rank_top_movers(
     Raises:
         UnknownSortKeyError: When sort_by is not a supported key.
     """
-    if sort_by not in (SORT_BY_Pduration, SORT_BY_ABS):
+    if sort_by not in (SORT_BY_PCT, SORT_BY_ABS):
         raise UnknownSortKeyError("Unsupported sort key: %s" % sort_by)
 
     movers: List[Dict[str, Any]] = []

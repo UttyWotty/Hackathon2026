@@ -141,11 +141,11 @@ def _add_performance_indicators(
         metrics["ct_variance_target"] = target["DURATION"].var()
         metrics["ct_variance_comparison"] = comparison["DURATION"].var()
         if metrics["target_duration_mean"] > metrics["comparison_ct_mean"]:
-            metrics["ct_performance_gap"] = (
+            metrics["duration_performance_gap"] = (
                 metrics["target_duration_mean"] - metrics["comparison_ct_mean"]
             )
         else:
-            metrics["ct_performance_gap"] = 0
+            metrics["duration_performance_gap"] = 0
     if "EFFICIENCY" in target.columns:
         if metrics["target_efficiency_mean"] < metrics["comparison_efficiency_mean"]:
             metrics["efficiency_gap"] = (

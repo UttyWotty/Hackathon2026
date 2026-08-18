@@ -121,7 +121,7 @@ def _window_metrics_for_mold(
             % (event_time, window_days, event_time)
         )
     rows = query_records(f"""
-        SELECT AVG(CASE WHEN CT < {HARD_STOP_DURATION} THEN CT END) AS AVG_DURATION,
+        SELECT AVG(CASE WHEN DURATION < {HARD_STOP_DURATION} THEN DURATION END) AS AVG_DURATION,
                COUNT(*) AS SHOTS
         FROM SHOT_DATA
         WHERE TOOL_ID = {mold_pk} AND {time_filter}

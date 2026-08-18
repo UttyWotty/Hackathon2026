@@ -34,7 +34,7 @@ def apply_validity_filter(df: pd.DataFrame) -> pd.DataFrame:
     """
     Drop rows the analysis SQL excludes as invalid.
 
-    Mirrors: CT IS NOT NULL AND TARGET_DURATION IS NOT NULL AND DURATION > 0
+    Mirrors: DURATION IS NOT NULL AND TARGET_DURATION IS NOT NULL AND DURATION > 0
     AND TARGET_DURATION > 0 AND DURATION < 999.9
 
     Args:
