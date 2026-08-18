@@ -46,7 +46,7 @@ TABLE_COLUMNS: Final[Dict[str, List[str]]] = {
         "MACHINE_ID STRING",
         "SENSOR_CODE STRING",
         "SENSOR_ID NUMBER",
-        "VENDOR_VENDOR_ID NUMBER",
+        "VENDOR_COMPANY_ID NUMBER",
         "LOCATION_ID NUMBER",
         "PRODUCT_ID NUMBER",
         "TYPE STRING",

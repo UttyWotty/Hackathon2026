@@ -37,7 +37,7 @@ def _find_molds(
         raise InvalidToolParameterError("Provide machine_id or tool_id")
     return query_records("""
         SELECT ID, MACHINE_ID, SENSOR_CODE, SENSOR_ID,
-               VENDOR_VENDOR_ID, LOCATION_ID, PRODUCT_ID, TYPE,
+               VENDOR_COMPANY_ID, LOCATION_ID, PRODUCT_ID, TYPE,
                TARGET_DURATION, TOTAL_CAVITIES, DESIGNED_SHOT,
                MAX_DAILY_OUTPUT, PRODUCTION_DAYS, SHIFTS_PER_DAY
         FROM TOOL
