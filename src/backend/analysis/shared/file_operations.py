@@ -41,7 +41,7 @@ def get_output_dir(module_name: str, create: bool = True) -> Path:
     """
     Get standardized output directory for a module.
 
-    All modules save to: manufacturing-api/output/{module_name}/
+    Outputs go to /tmp to avoid polluting the project directory.
 
     Args:
         module_name: Name of the analysis module (e.g., "roi", "deviation")
@@ -49,17 +49,11 @@ def get_output_dir(module_name: str, create: bool = True) -> Path:
 
     Returns:
         Path: Absolute path to the module's output directory
-
-    Example:
-        >>> output_dir = get_output_dir("roi")
-        >>> print(output_dir)  # /path/to/manufacturing-api/output/roi
     """
-    project_root = get_project_root()
-    output_dir = project_root / "output" / module_name
+    output_dir = Path("/tmp/agent_output") / module_name
 
     if create:
         output_dir.mkdir(parents=True, exist_ok=True)
-        logger.debug(f"✅ Output directory ready: {output_dir}")
 
     return output_dir
 
