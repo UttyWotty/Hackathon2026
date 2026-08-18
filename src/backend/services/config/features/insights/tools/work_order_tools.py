@@ -1,8 +1,7 @@
-"""Work order genealogy tool adapter.
+"""Work order trace tool adapter.
 
-Traces a work order through its linked maintenance event, mold, mounted parts, and
-recent production quality records to answer end-to-end "what happened" questions.
-Exposes the trace_work_order MCP tool.
+Traces a work order through its linked tool and production data to answer
+end-to-end 'what happened' questions. Uses WORK_ORDER and TOOL tables.
 """
 
 import logging
@@ -12,78 +11,37 @@ from services.config.features.insights.tools.common import query_records, safe_p
 
 logger = logging.getLogger(__name__)
 
-MAX_PRODUCED_PART_ROWS: int = 50
-
 
 def _find_work_order(work_order_id: str) -> Optional[Dict[str, Any]]:
-    """Find a work order by its business key or numeric primary key."""
+    """Find a work order by numeric ID."""
     key = safe_param(work_order_id, "work_order_id")
-    id_clause = "WORK_ORDER_ID = '%s'" % key
-    if key.isdigit():
-        id_clause += " OR ID = %s" % key
+    id_clause = "ID = %s" % key if key.isdigit() else "1=0"
     rows = query_records(f"""
-        SELECT ID, WORK_ORDER_ID, ORDER_TYPE, STATUS, PRIORITY, DETAILS,
-               "START", "END", STARTED_ON, COMPLETED_ON, COST_ESTIMATE,
-               MOLD_MAINTENANCE_ID, REPORT_FAILURE_SHOT, START_WORK_ORDER_SHOT,
-               ACCUM_SHOT_COUNT, CREATED_AT
+        SELECT ID, TOOL_ID, STATUS, COMPLETED_AT, ORDER_TYPE
         FROM WORK_ORDER
         WHERE {id_clause}
         """)
     return rows[0] if rows else None
 
 
-def _linked_maintenance(work_order: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Maintenance events linked from either side of the relationship."""
-    clauses = []
-    if work_order.get("MOLD_MAINTENANCE_ID"):
-        clauses.append("ID = %d" % int(work_order["MOLD_MAINTENANCE_ID"]))
-    clauses.append("WORK_ORDER_ID = %d" % int(work_order["ID"]))
-    return query_records("""
-        SELECT ID, TOOL_ID, MAINTENANCE_STATUS, MAINTENANCED_AT, START_TIME,
-               END_TIME, SHOT_COUNT, ACCUMULATED_SHOT, MAINTENANCE_BY
-        FROM TOOL_MAINTENANCE
-        WHERE %s
-        """ % " OR ".join(clauses))
-
-
-def _mold_context(mold_pk: int) -> Dict[str, Any]:
-    """Mold summary, mounted parts, and recent quality rows for a mold."""
-    molds = query_records(f"""
-        SELECT ID, MACHINE_ID, SUPPLIER_MOLD_CODE, TOOLING_STATUS,
-               OPERATING_STATUS, DESIGNED_SHOT, LAST_SHOT, TOTAL_CAVITIES
-        FROM TOOL WHERE ID = {mold_pk}
+def _tool_context(tool_id: int) -> Dict[str, Any]:
+    """Tool summary for a given tool ID."""
+    tools = query_records(f"""
+        SELECT ID, MACHINE_ID, TYPE, TARGET_DURATION,
+               TOTAL_CAVITIES, DESIGNED_SHOT, MAX_DAILY_OUTPUT
+        FROM TOOL WHERE ID = {tool_id}
         """)
-    parts = query_records(f"""
-        SELECT mp.TOOL_ID, mp.PRODUCT_ID, mp.CAVITY, mp.TOTAL_CAVITIES,
-               p.NAME AS PRODUCT_NAME, p.PRODUCT_CODE
-        FROM TOOL_PART mp
-        LEFT JOIN PART p ON p.ID = mp.PRODUCT_ID
-        WHERE mp.TOOL_ID = {mold_pk}
-        """)
-    produced = query_records(f"""
-        SELECT PRODUCT_ID, DAY, TOTAL_PRODUCED_AMOUNT, TOTAL_REJECTED_AMOUNT,
-               REJECTED_RATE, REJECTED_RATE_STATUS
-        FROM PRODUCED_PART
-        WHERE TOOL_ID = {mold_pk}
-        ORDER BY CREATED_AT DESC
-        LIMIT {MAX_PRODUCED_PART_ROWS}
-        """)
-    return {
-        "mold": molds[0] if molds else None,
-        "parts": parts,
-        "recent_production": produced,
-    }
+    return {"tool": tools[0] if tools else None}
 
 
 def trace_work_order(work_order_id: str) -> Dict[str, Any]:
-    """Trace a work order to its maintenance event, mold, parts, and output.
+    """Trace a work order to its linked tool and context.
 
     Args:
-        work_order_id: WORK_ORDER.WORK_ORDER_ID business key or numeric ID.
+        work_order_id: WORK_ORDER.ID numeric key.
 
     Returns:
-        dict with the work order, linked maintenance events, and the mold context
-        (mold summary, mounted parts, recent production quality rows).
+        dict with the work order and tool context.
     """
     try:
         work_order = _find_work_order(work_order_id)
@@ -93,17 +51,14 @@ def trace_work_order(work_order_id: str) -> Dict[str, Any]:
                 "error": "Work order not found: %s" % work_order_id,
             }
 
-        maintenance = _linked_maintenance(work_order)
-        mold_context: Optional[Dict[str, Any]] = None
-        tool_ids = sorted({int(m["TOOL_ID"]) for m in maintenance if m.get("TOOL_ID")})
-        if tool_ids:
-            mold_context = _mold_context(tool_ids[0])
+        tool_context: Optional[Dict[str, Any]] = None
+        if work_order.get("TOOL_ID"):
+            tool_context = _tool_context(int(work_order["TOOL_ID"]))
 
         return {
             "status": "success",
             "work_order": work_order,
-            "maintenance_events": maintenance,
-            "mold_context": mold_context,
+            "tool_context": tool_context,
         }
     except Exception as e:
         logger.error("trace_work_order failed: %s", e, exc_info=True)

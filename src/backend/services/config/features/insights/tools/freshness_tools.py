@@ -22,20 +22,13 @@ TABLE_FRESHNESS_EXPECTATIONS: Dict[str, Dict[str, Any]] = {
         "time_column": "SHOT_TIME",
         "expected_max_age_hours": 26.0,
     },
-    "ANA_SHOT_MADE_TABLE": {
-        "time_column": "SHOT_TIME",
+    "WORK_ORDER": {
+        "time_column": "COMPLETED_AT",
+        "expected_max_age_hours": 192.0,
+    },
+    "SHIFT_NOTE": {
+        "time_column": "SHIFT_DATE",
         "expected_max_age_hours": 26.0,
-    },
-    "ROI": {"time_column": "SHOT_TIME", "expected_max_age_hours": 26.0},
-    "PRODUCTION_METRICS": {
-        "time_column": "START_DATE",
-        "expected_max_age_hours": 192.0,
-    },
-    "EFFICIENCY": {"time_column": "SHOT_DATE", "expected_max_age_hours": 192.0},
-    "CAPACITY_DAILY": {"time_column": "START_DATE", "expected_max_age_hours": 26.0},
-    "DURATION_DEVIATION": {
-        "time_column": "UPDATED_AT",
-        "expected_max_age_hours": 192.0,
     },
 }
 

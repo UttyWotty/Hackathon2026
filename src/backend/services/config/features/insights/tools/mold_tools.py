@@ -66,19 +66,10 @@ def get_mold_history(
         mold_pk = int(mold["ID"])
 
         maintenance = query_records(f"""
-            SELECT ID, MAINTENANCE_STATUS, MAINTENANCED_AT, START_TIME, END_TIME,
-                   SHOT_COUNT, ACCUMULATED_SHOT, WORK_ORDER_ID, MAINTENANCE_BY
-            FROM TOOL_MAINTENANCE
+            SELECT ID, STATUS, COMPLETED_AT, ORDER_TYPE
+            FROM WORK_ORDER
             WHERE TOOL_ID = {mold_pk}
-            ORDER BY MAINTENANCED_AT DESC NULLS LAST
-            LIMIT {MAX_EVENT_ROWS}
-            """)
-        locations = query_records(f"""
-            SELECT RELOCATION_TYPE, LOCATION_ID, PREVIOUS_LOCATION_ID,
-                   MOLD_LOCATION_STATUS, CONFIRMED_AT, CREATED_AT, LATEST
-            FROM TOOL_LOCATION
-            WHERE TOOL_ID = {mold_pk}
-            ORDER BY CREATED_AT DESC
+            ORDER BY COMPLETED_AT DESC NULLS LAST
             LIMIT {MAX_EVENT_ROWS}
             """)
         shots_since = query_records(f"""
@@ -86,15 +77,14 @@ def get_mold_history(
             FROM SHOT_DATA
             WHERE TOOL_ID = {mold_pk}
               AND SHOT_TIME > (
-                  SELECT COALESCE(MAX(MAINTENANCED_AT), '1970-01-01'::TIMESTAMP)
-                  FROM TOOL_MAINTENANCE WHERE TOOL_ID = {mold_pk}
+                  SELECT COALESCE(MAX(COMPLETED_AT), '1970-01-01'::TIMESTAMP)
+                  FROM WORK_ORDER WHERE TOOL_ID = {mold_pk}
               )
             """)
         return {
             "status": "success",
             "mold": mold,
             "maintenance_events": maintenance,
-            "location_history": locations,
             "shots_since_last_maintenance": (
                 int(shots_since[0]["SHOTS"]) if shots_since else None
             ),
@@ -161,15 +151,15 @@ def maintenance_impact_analysis(
         mold_pk = int(mold["ID"])
 
         events = query_records(f"""
-            SELECT ID, MAINTENANCED_AT, MAINTENANCE_STATUS, SHOT_COUNT
-            FROM TOOL_MAINTENANCE
-            WHERE TOOL_ID = {mold_pk} AND MAINTENANCED_AT IS NOT NULL
-            ORDER BY MAINTENANCED_AT DESC
+            SELECT ID, COMPLETED_AT, STATUS, ORDER_TYPE
+            FROM WORK_ORDER
+            WHERE TOOL_ID = {mold_pk} AND COMPLETED_AT IS NOT NULL
+            ORDER BY COMPLETED_AT DESC
             LIMIT {MAX_EVENTS_ANALYZED}
             """)
         analyzed = []
         for event in events:
-            event_time = event["MAINTENANCED_AT"]
+            event_time = event["COMPLETED_AT"]
             before = _window_metrics_for_mold(
                 mold_pk, event_time, window_days, before=True
             )
