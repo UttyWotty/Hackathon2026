@@ -21,6 +21,15 @@ from action_loop import (
     render_audit_trail,
     render_skill_log,
 )
+from analysis_panels import (
+    render_pareto_panel,
+    render_five_whys_panel,
+    render_efficiency_panel,
+    render_tooling_eol_panel,
+    render_maintenance_panel,
+    render_decision_trail_panel,
+    render_insights_panel,
+)
 
 PAGE_TITLE = "Autonomous Manufacturing Workflow Agent"
 DATABASE = "DEMO"
@@ -458,13 +467,36 @@ def main():
     st.divider()
 
     # Tabbed views
-    tab_drift, tab_stability, tab_fleet = st.tabs(
-        ["Duration Drift Detection", "Stability Trends", "Fleet Overview"]
-    )
+    tab_drift, tab_pareto, tab_whys, tab_efficiency, tab_eol, tab_maint, tab_trail, tab_insights, tab_stability, tab_fleet = st.tabs([
+        "Drift Detection", "Pareto", "5 Whys", "Efficiency",
+        "Tooling Life", "Maintenance", "Decision Trail", "Insights",
+        "Stability", "Fleet Overview",
+    ])
 
     with tab_drift:
         deviation_df = load_fleet_deviation()
         render_drift_tab(deviation_df)
+
+    with tab_pareto:
+        render_pareto_panel()
+
+    with tab_whys:
+        render_five_whys_panel()
+
+    with tab_efficiency:
+        render_efficiency_panel()
+
+    with tab_eol:
+        render_tooling_eol_panel()
+
+    with tab_maint:
+        render_maintenance_panel()
+
+    with tab_trail:
+        render_decision_trail_panel()
+
+    with tab_insights:
+        render_insights_panel()
 
     with tab_stability:
         stability_df = load_stability_trend()

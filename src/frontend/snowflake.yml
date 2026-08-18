@@ -12,3 +12,4 @@ entities:
     artifacts:
       - "interactive_controls.py"
       - "action_loop.py"
+      - "analysis_panels.py"
