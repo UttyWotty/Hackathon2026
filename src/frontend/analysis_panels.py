@@ -7,6 +7,7 @@ decision trail, and insights panels that render directly from Snowflake queries.
 import altair as alt
 import pandas as pd
 import streamlit as st
+from datetime import date, timedelta
 from snowflake.snowpark.context import get_active_session
 
 DATABASE = "DEMO"
@@ -18,6 +19,31 @@ AUDIT_TABLE = f"{DATABASE}.{SCHEMA}.AUDIT_LOG"
 SHIFT_NOTE_TABLE = f"{DATABASE}.{SCHEMA}.SHIFT_NOTE"
 
 HARD_STOP = 999.9
+DEFAULT_LOOKBACK_DAYS = 42
+DEVIATION_THRESHOLD = 3.0
+
+GRANULARITY_MAP = {
+    "Daily": "DAY",
+    "Weekly": "WEEK",
+    "Monthly": "MONTH",
+}
+
+
+def _render_date_range(key_prefix: str) -> tuple:
+    """Render date range picker and return (start_date, end_date) strings."""
+    col_start, col_end = st.columns(2)
+    default_end = date(2026, 8, 18)
+    default_start = default_end - timedelta(days=DEFAULT_LOOKBACK_DAYS)
+    with col_start:
+        start = st.date_input("From", value=default_start, key=f"{key_prefix}_start")
+    with col_end:
+        end = st.date_input("To", value=default_end, key=f"{key_prefix}_end")
+    return str(start), str(end)
+
+
+def _date_filter(start: str, end: str) -> str:
+    """Return SQL WHERE clause fragment for SHOT_TIME date range."""
+    return f"SHOT_TIME >= '{start}' AND SHOT_TIME <= '{end} 23:59:59'"
 
 
 def render_pareto_panel():
@@ -27,6 +53,9 @@ def render_pareto_panel():
     st.subheader("Pareto Analysis - Deviation Contribution")
     st.caption("Which machines contribute the most to total fleet deviation from target?")
 
+    start, end = _render_date_range("pareto")
+    date_clause = _date_filter(start, end)
+
     df = session.sql(f"""
         SELECT
             MACHINE_ID,
@@ -35,6 +64,7 @@ def render_pareto_panel():
             ROUND(AVG(ABS(DURATION - TARGET_DURATION)), 2) AS AVG_ABS_DEVIATION
         FROM {FULL_TABLE}
         WHERE DURATION < {HARD_STOP} AND VOLUME > 0 AND TARGET_DURATION > 0
+          AND {date_clause}
         GROUP BY MACHINE_ID
         ORDER BY TOTAL_DEVIATION_SEC DESC
     """).to_pandas()
@@ -47,16 +77,18 @@ def render_pareto_panel():
     df["CONTRIBUTION_PCT"] = (df["TOTAL_DEVIATION_SEC"] / total * 100).round(1)
     df["CUMULATIVE_PCT"] = df["CONTRIBUTION_PCT"].cumsum()
 
-    bars = alt.Chart(df).mark_bar(color="#dc3545").encode(
+    base = alt.Chart(df).encode(
         x=alt.X("MACHINE_ID:N", sort="-y", title="Machine"),
-        y=alt.Y("CONTRIBUTION_PCT:Q", title="Contribution to Total Deviation (%)"),
+    )
+    bars = base.mark_bar(color="#dc3545").encode(
+        y=alt.Y("CONTRIBUTION_PCT:Q", title="Contribution (%)"),
         tooltip=["MACHINE_ID", "CONTRIBUTION_PCT", "SHOT_COUNT", "AVG_ABS_DEVIATION"],
     )
-    line = alt.Chart(df).mark_line(color="#333", point=True, strokeDash=[4, 4]).encode(
-        x=alt.X("MACHINE_ID:N", sort="-y"),
-        y=alt.Y("CUMULATIVE_PCT:Q", title="Cumulative %", scale=alt.Scale(domain=[0, 100])),
+    line = base.mark_line(color="#333", point=True, strokeDash=[4, 4]).encode(
+        y=alt.Y("CUMULATIVE_PCT:Q", title="Cumulative (%)"),
     )
-    st.altair_chart(bars + line, use_container_width=True)
+    chart = alt.layer(bars, line).resolve_scale(y="independent").properties(height=320)
+    st.altair_chart(chart, use_container_width=True)
 
     st.markdown(
         f"**Top contributor:** {df.iloc[0]['MACHINE_ID']} accounts for "
@@ -69,70 +101,154 @@ def render_five_whys_panel():
     session = get_active_session()
 
     st.subheader("5 Whys - Temporal Root Cause Drill-Down")
-    st.caption("Break down deviation by time dimension to find WHEN the problem occurs")
+    st.caption("Drill through 5 layers of WHY to isolate the root cause")
 
     machines = session.sql(
         f"SELECT DISTINCT MACHINE_ID FROM {FULL_TABLE} ORDER BY MACHINE_ID"
     ).to_pandas()["MACHINE_ID"].tolist()
 
-    selected = st.selectbox("Machine for 5 Whys", machines, index=2, key="5whys_machine")
+    ctrl1, ctrl2 = st.columns([2, 1])
+    with ctrl1:
+        selected = st.selectbox("Machine", machines, index=2, key="5whys_machine")
+    with ctrl2:
+        granularity = st.selectbox("Time Granularity", list(GRANULARITY_MAP.keys()), key="5whys_gran")
+
+    start, end = _render_date_range("5whys")
+    date_clause = _date_filter(start, end)
+    trunc_unit = GRANULARITY_MAP[granularity]
+    base_where = (
+        f"MACHINE_ID = '{selected}' AND DURATION < {HARD_STOP} AND VOLUME > 0 AND {date_clause}"
+    )
+
+    # Why 1: Time trend
+    st.markdown(f"**Why 1: Is there a {granularity.lower()} trend?**")
+    trend = session.sql(f"""
+        SELECT DATE_TRUNC('{trunc_unit}', SHOT_TIME) AS PERIOD,
+               ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
+               COUNT(*) AS SHOTS
+        FROM {FULL_TABLE}
+        WHERE {base_where}
+        GROUP BY 1 ORDER BY 1
+    """).to_pandas()
+    if not trend.empty:
+        trend["STATUS"] = trend["AVG_DEVIATION"].apply(
+            lambda v: "High" if v > DEVIATION_THRESHOLD else "Normal"
+        )
+        chart = alt.Chart(trend).mark_bar().encode(
+            x="PERIOD:T", y="AVG_DEVIATION:Q",
+            color=alt.Color("STATUS:N", scale=alt.Scale(
+                domain=["High", "Normal"], range=["#dc3545", "#28a745"]
+            ), legend=None),
+            tooltip=["PERIOD:T", "AVG_DEVIATION", "SHOTS"],
+        ).properties(height=180)
+        st.altair_chart(chart, use_container_width=True)
 
     col1, col2 = st.columns(2)
 
+    # Why 2: Hour of day
     with col1:
-        st.markdown("**Why 1: Which weeks are worst?**")
-        weekly = session.sql(f"""
-            SELECT DATE_TRUNC('WEEK', SHOT_TIME) AS WEEK,
-                   ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION
-            FROM {FULL_TABLE}
-            WHERE MACHINE_ID = '{selected}' AND DURATION < {HARD_STOP} AND VOLUME > 0
-            GROUP BY 1 ORDER BY 1
-        """).to_pandas()
-        if not weekly.empty:
-            chart = alt.Chart(weekly).mark_bar().encode(
-                x="WEEK:T", y="AVG_DEVIATION:Q",
-                color=alt.condition(
-                    alt.datum.AVG_DEVIATION > 3, alt.value("#dc3545"), alt.value("#28a745")
-                ),
-            ).properties(height=180)
-            st.altair_chart(chart, use_container_width=True)
-
-    with col2:
-        st.markdown("**Why 2: Which hours of day?**")
+        st.markdown("**Why 2: Which hours of day are worst?**")
         hourly = session.sql(f"""
             SELECT HOUR(SHOT_TIME) AS HOUR_OF_DAY,
                    ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION
             FROM {FULL_TABLE}
-            WHERE MACHINE_ID = '{selected}' AND DURATION < {HARD_STOP} AND VOLUME > 0
+            WHERE {base_where}
             GROUP BY 1 ORDER BY 1
         """).to_pandas()
         if not hourly.empty:
+            hourly["STATUS"] = hourly["AVG_DEVIATION"].apply(
+                lambda v: "High" if v > DEVIATION_THRESHOLD else "Normal"
+            )
             chart = alt.Chart(hourly).mark_bar().encode(
                 x="HOUR_OF_DAY:O", y="AVG_DEVIATION:Q",
-                color=alt.condition(
-                    alt.datum.AVG_DEVIATION > 3, alt.value("#dc3545"), alt.value("#28a745")
-                ),
+                color=alt.Color("STATUS:N", scale=alt.Scale(
+                    domain=["High", "Normal"], range=["#dc3545", "#28a745"]
+                ), legend=None),
+                tooltip=["HOUR_OF_DAY", "AVG_DEVIATION"],
             ).properties(height=180)
             st.altair_chart(chart, use_container_width=True)
 
-    st.markdown("**Why 3: Is there a day-of-week pattern?**")
-    dow = session.sql(f"""
-        SELECT DAYOFWEEK(SHOT_TIME) AS DOW,
-               ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
-               COUNT(*) AS SHOTS
-        FROM {FULL_TABLE}
-        WHERE MACHINE_ID = '{selected}' AND DURATION < {HARD_STOP} AND VOLUME > 0
-        GROUP BY 1 ORDER BY 1
-    """).to_pandas()
-    if not dow.empty:
-        chart = alt.Chart(dow).mark_bar().encode(
-            x=alt.X("DOW:O", title="Day of Week (0=Mon)"),
-            y="AVG_DEVIATION:Q",
-            color=alt.condition(
-                alt.datum.AVG_DEVIATION > 3, alt.value("#dc3545"), alt.value("#28a745")
-            ),
-        ).properties(height=150)
-        st.altair_chart(chart, use_container_width=True)
+    # Why 3: Day of week
+    with col2:
+        st.markdown("**Why 3: Is there a day-of-week pattern?**")
+        dow = session.sql(f"""
+            SELECT DAYOFWEEK(SHOT_TIME) AS DOW,
+                   ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
+                   COUNT(*) AS SHOTS
+            FROM {FULL_TABLE}
+            WHERE {base_where}
+            GROUP BY 1 ORDER BY 1
+        """).to_pandas()
+        if not dow.empty:
+            dow["STATUS"] = dow["AVG_DEVIATION"].apply(
+                lambda v: "High" if v > DEVIATION_THRESHOLD else "Normal"
+            )
+            chart = alt.Chart(dow).mark_bar().encode(
+                x=alt.X("DOW:O", title="Day of Week (0=Mon)"),
+                y="AVG_DEVIATION:Q",
+                color=alt.Color("STATUS:N", scale=alt.Scale(
+                    domain=["High", "Normal"], range=["#dc3545", "#28a745"]
+                ), legend=None),
+                tooltip=["DOW", "AVG_DEVIATION", "SHOTS"],
+            ).properties(height=180)
+            st.altair_chart(chart, use_container_width=True)
+
+    col3, col4 = st.columns(2)
+
+    # Why 4: By shift (morning/afternoon/night)
+    with col3:
+        st.markdown("**Why 4: Which shift is responsible?**")
+        shift = session.sql(f"""
+            SELECT
+                CASE
+                    WHEN HOUR(SHOT_TIME) BETWEEN 6 AND 13 THEN 'Morning (06-14)'
+                    WHEN HOUR(SHOT_TIME) BETWEEN 14 AND 21 THEN 'Afternoon (14-22)'
+                    ELSE 'Night (22-06)'
+                END AS SHIFT,
+                ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
+                COUNT(*) AS SHOTS
+            FROM {FULL_TABLE}
+            WHERE {base_where}
+            GROUP BY 1 ORDER BY AVG_DEVIATION DESC
+        """).to_pandas()
+        if not shift.empty:
+            shift["STATUS"] = shift["AVG_DEVIATION"].apply(
+                lambda v: "High" if v > DEVIATION_THRESHOLD else "Normal"
+            )
+            chart = alt.Chart(shift).mark_bar().encode(
+                x=alt.X("SHIFT:N", title="Shift"),
+                y="AVG_DEVIATION:Q",
+                color=alt.Color("STATUS:N", scale=alt.Scale(
+                    domain=["High", "Normal"], range=["#dc3545", "#28a745"]
+                ), legend=None),
+                tooltip=["SHIFT", "AVG_DEVIATION", "SHOTS"],
+            ).properties(height=180)
+            st.altair_chart(chart, use_container_width=True)
+
+    # Why 5: By product
+    with col4:
+        st.markdown("**Why 5: Is a specific product causing it?**")
+        product = session.sql(f"""
+            SELECT PRODUCT_NAME,
+                   ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
+                   COUNT(*) AS SHOTS
+            FROM {FULL_TABLE}
+            WHERE {base_where}
+            GROUP BY 1 ORDER BY AVG_DEVIATION DESC
+        """).to_pandas()
+        if not product.empty:
+            product["STATUS"] = product["AVG_DEVIATION"].apply(
+                lambda v: "High" if v > DEVIATION_THRESHOLD else "Normal"
+            )
+            chart = alt.Chart(product).mark_bar().encode(
+                x=alt.X("PRODUCT_NAME:N", sort="-y", title="Product"),
+                y="AVG_DEVIATION:Q",
+                color=alt.Color("STATUS:N", scale=alt.Scale(
+                    domain=["High", "Normal"], range=["#dc3545", "#28a745"]
+                ), legend=None),
+                tooltip=["PRODUCT_NAME", "AVG_DEVIATION", "SHOTS"],
+            ).properties(height=180)
+            st.altair_chart(chart, use_container_width=True)
 
 
 def render_efficiency_panel():
@@ -142,6 +258,9 @@ def render_efficiency_panel():
     st.subheader("Duration Efficiency - Fleet Comparison")
     st.caption("How efficiently each machine runs relative to its target (100% = perfect)")
 
+    start, end = _render_date_range("efficiency")
+    date_clause = _date_filter(start, end)
+
     df = session.sql(f"""
         SELECT
             MACHINE_ID,
@@ -150,6 +269,7 @@ def render_efficiency_panel():
             ROUND(STDDEV(DURATION) / NULLIF(AVG(DURATION), 0) * 100, 1) AS CV_PCT
         FROM {FULL_TABLE}
         WHERE DURATION < {HARD_STOP} AND DURATION > 0 AND VOLUME > 0 AND TARGET_DURATION > 0
+          AND {date_clause}
         GROUP BY MACHINE_ID
         ORDER BY EFFICIENCY_PCT
     """).to_pandas()
@@ -158,13 +278,17 @@ def render_efficiency_panel():
         st.warning("No data.")
         return
 
+    df["STATUS"] = df["EFFICIENCY_PCT"].apply(
+        lambda v: "Critical" if v < 90 else ("Warning" if v < 98 else "Normal")
+    )
+    color_scale = alt.Scale(
+        domain=["Critical", "Warning", "Normal"],
+        range=["#dc3545", "#ffc107", "#28a745"],
+    )
     chart = alt.Chart(df).mark_bar().encode(
         y=alt.Y("MACHINE_ID:N", sort="x", title="Machine"),
         x=alt.X("EFFICIENCY_PCT:Q", title="Efficiency %", scale=alt.Scale(domain=[0, 105])),
-        color=alt.condition(
-            alt.datum.EFFICIENCY_PCT < 90, alt.value("#dc3545"),
-            alt.condition(alt.datum.EFFICIENCY_PCT < 98, alt.value("#ffc107"), alt.value("#28a745"))
-        ),
+        color=alt.Color("STATUS:N", scale=color_scale, legend=alt.Legend(title="Status")),
         tooltip=["MACHINE_ID", "EFFICIENCY_PCT", "SHOTS", "CV_PCT"],
     ).properties(height=300)
 
@@ -200,14 +324,17 @@ def render_tooling_eol_panel():
         return
 
     df["REMAINING_PCT"] = (100 - df["LIFE_USED_PCT"]).clip(lower=0)
-
+    df["STATUS"] = df["LIFE_USED_PCT"].apply(
+        lambda v: "Critical" if v > 80 else ("Warning" if v > 50 else "Normal")
+    )
+    color_scale = alt.Scale(
+        domain=["Critical", "Warning", "Normal"],
+        range=["#dc3545", "#ffc107", "#28a745"],
+    )
     chart = alt.Chart(df).mark_bar().encode(
         y=alt.Y("MACHINE_ID:N", sort="-x", title="Machine"),
         x=alt.X("LIFE_USED_PCT:Q", title="Tool Life Used (%)", scale=alt.Scale(domain=[0, 100])),
-        color=alt.condition(
-            alt.datum.LIFE_USED_PCT > 80, alt.value("#dc3545"),
-            alt.condition(alt.datum.LIFE_USED_PCT > 50, alt.value("#ffc107"), alt.value("#28a745"))
-        ),
+        color=alt.Color("STATUS:N", scale=color_scale, legend=alt.Legend(title="Status")),
         tooltip=["MACHINE_ID", "TYPE", "ACCUMULATED_SHOTS", "DESIGNED_SHOT", "LIFE_USED_PCT"],
     ).properties(height=300)
     st.altair_chart(chart, use_container_width=True)

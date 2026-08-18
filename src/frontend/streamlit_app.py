@@ -394,37 +394,6 @@ def render_fleet_tab(summary_df):
     st.subheader("Fleet Health Summary")
     st.dataframe(summary_df, use_container_width=True)
 
-    st.divider()
-    st.subheader("Agent Architecture")
-    st.code("""
-    [TRIGGER] Schedule, manual command, or dashboard button
-         |
-         v
-    [SENSE] Duration Deviation + Stability (fleet sweep)
-         |
-         v
-    [REASON] Snowflake Cortex LLM
-         |   - Cross-signal reasoning across detectors
-         |   - Decides which machines need investigation
-         v
-    [ACT] Root Cause Analysis, Log Work Orders
-         |
-         v
-    [RECORD] Decision Trail + Self-grade against ground truth
-    """, language=None)
-
-    st.divider()
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown("**Skill 1: $sense-equipment-anomalies**")
-        st.markdown("Sweeps fleet for duration drift and stability decline.")
-    with col2:
-        st.markdown("**Skill 2: $investigate-shift-notes**")
-        st.markdown("Searches operator notes to explain WHY a machine is abnormal.")
-    with col3:
-        st.markdown("**Skill 3: $report-and-act**")
-        st.markdown("Records decision, evidence, and actions to audit trail.")
-
 
 def main():
     """Main app layout with interactive sidebar."""
@@ -436,6 +405,45 @@ def main():
     render_sweep_panel()
     render_rca_selector()
     render_csv_upload()
+
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Agent Architecture")
+    st.sidebar.code(
+        "[TRIGGER] Schedule / command / button\n"
+        "     |\n"
+        "     v\n"
+        "[SENSE] Multi-signal fleet sweep\n"
+        "  - Duration deviation from target\n"
+        "  - Week-over-week stability decline\n"
+        "  - Efficiency degradation\n"
+        "  - Tooling wear (shot accumulation)\n"
+        "     |\n"
+        "     v\n"
+        "[REASON] Snowflake Cortex LLM\n"
+        "  - Cross-signal correlation\n"
+        "  - Prioritize by severity\n"
+        "  - Decide investigation targets\n"
+        "     |\n"
+        "     v\n"
+        "[ACT] Investigate + Respond\n"
+        "  - Temporal root cause breakdown\n"
+        "  - Corroborate with operator notes\n"
+        "  - Log work orders / send alerts\n"
+        "  - Update equipment status\n"
+        "     |\n"
+        "     v\n"
+        "[RECORD] Audit + Self-evaluate\n"
+        "  - Full decision trail to AUDIT_LOG\n"
+        "  - Evidence + severity recorded\n"
+        "  - Self-grade against ground truth",
+        language=None,
+    )
+    st.sidebar.markdown("**$sense-equipment-anomalies**")
+    st.sidebar.caption("Sweeps fleet for duration drift and stability decline.")
+    st.sidebar.markdown("**$investigate-shift-notes**")
+    st.sidebar.caption("Searches operator notes to explain WHY a machine is abnormal.")
+    st.sidebar.markdown("**$report-and-act**")
+    st.sidebar.caption("Records decision, evidence, and actions to audit trail.")
 
     # Main area
     st.title(PAGE_TITLE)
@@ -506,11 +514,9 @@ def main():
         render_fleet_tab(summary_df)
 
     st.divider()
-    st.info(
-        "This demo uses synthetic data (243K shots, 8 machines, 6 weeks) with "
-        "planted anomalies. The autonomous agent sweeps the fleet, reasons across "
-        "detectors, investigates anomalies, and records decisions - "
-        "with zero human intervention."
+    st.caption(
+        "Synthetic data: 243K shots, 8 machines, 6 weeks. "
+        "Agent sweeps fleet, reasons, investigates, and records decisions autonomously."
     )
 
 
