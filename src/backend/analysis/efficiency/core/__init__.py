@@ -4,7 +4,7 @@ Duration Efficiency Core Package.
 Exports data loading, efficiency calculation, and supplier benchmarking functions.
 """
 
-from .target_duration_staleness import detect_stale_baselines
+from .target_staleness import detect_stale_baselines
 from .data_loader import (
     create_snowflake_connector,
     create_snowpark_session,

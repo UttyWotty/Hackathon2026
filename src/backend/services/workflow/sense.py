@@ -60,7 +60,6 @@ class SenseFinding:
 DEFAULT_SENSE_TASKS: List[SenseTask] = [
     SenseTask(tool_name="run_deviation_analysis", arguments={}),
     SenseTask(tool_name="run_efficiency_analysis", arguments={}),
-    SenseTask(tool_name="get_plant_health_snapshot", arguments={}),
 ]
 
 DEVIATION_TOOL = "run_deviation_analysis"
