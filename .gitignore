@@ -176,3 +176,4 @@ HACKATHON_PLAN.md
 submission_deck.pptx
 DEMO_RUNBOOK.md
 root_cause_analysis_report_*.json
+data/*.db
