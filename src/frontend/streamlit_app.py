@@ -254,8 +254,8 @@ def render_drift_tab(deviation_df):
     st.divider()
     st.subheader("Corroborating Evidence: Telemetry + Operator Notes")
     st.caption(
-        "Numeric drift signal alongside unstructured operator shift notes for "
-        f"{DRIFT_EQUIPMENT}. Note how operators sensed the problem before alerts fired."
+        f"Numeric drift for {DRIFT_EQUIPMENT} matched against unstructured operator "
+        "shift notes. Highlighted notes directly corroborate the statistical anomaly."
     )
 
     session = get_session()
@@ -287,12 +287,34 @@ def render_drift_tab(deviation_df):
             st.altair_chart(bar_inline, use_container_width=True)
 
         with col_notes:
-            st.markdown("**Operator Shift Notes**")
-            st.dataframe(
-                notes[["SHIFT_DATE", "AUTHOR_ROLE", "NOTE_TEXT"]],
-                use_container_width=True,
-                height=250,
-            )
+            st.markdown("**Corroborating Operator Notes**")
+            corroboration_keywords = [
+                "drift", "creep", "slow", "over standard", "compensation",
+                "sluggish", "cooling", "ejection", "drag", "recommend pulling",
+                "significantly long", "well over",
+            ]
+            for _, note_row in notes.iterrows():
+                note_text = str(note_row["NOTE_TEXT"]).lower()
+                is_corroborating = any(
+                    kw in note_text for kw in corroboration_keywords
+                )
+                if is_corroborating:
+                    st.warning(
+                        f"**{note_row['SHIFT_DATE']}** | {note_row['AUTHOR_ROLE']}\n\n"
+                        f"{note_row['NOTE_TEXT']}"
+                    )
+                else:
+                    st.text(
+                        f"[{note_row['SHIFT_DATE']}] {note_row['NOTE_TEXT']}"
+                    )
+
+        st.markdown("---")
+        st.markdown(
+            "**Key insight:** Operators noted 'cycle drifting further from standard' "
+            "and 'ejection sluggish on the B half' weeks before the deviation crossed "
+            "the critical 15% threshold. The agent correlates these unstructured signals "
+            "with the quantitative drift to build a complete picture."
+        )
 
 
 def render_stability_tab(stability_df, deviation_df):
@@ -419,12 +441,12 @@ def main():
     render_rca_results()
     render_upload_preview()
 
-    # Agent Activity Log (Item 3: visible skill invocations)
-    with st.expander("Agent Activity Log (CoCo Skill Invocations)", expanded=False):
+    # Agent Activity Log (Item 3: visible skill invocations) - DEFAULT OPEN
+    with st.expander("Agent Activity Log (CoCo Skill Invocations)", expanded=True):
         render_skill_log()
 
     # Audit Trail (Item 4: autonomous action records)
-    with st.expander("Audit Trail (Work Orders and Alerts)", expanded=False):
+    with st.expander("Audit Trail (Work Orders and Alerts)", expanded=True):
         render_audit_trail()
 
     st.divider()
