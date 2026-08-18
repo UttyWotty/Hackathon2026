@@ -84,7 +84,7 @@ def render_pareto_panel():
         y=alt.Y("CONTRIBUTION_PCT:Q", title="Contribution (%)"),
         tooltip=["MACHINE_ID", "CONTRIBUTION_PCT", "SHOT_COUNT", "AVG_ABS_DEVIATION"],
     )
-    line = base.mark_line(color="#333", point=True, strokeDash=[4, 4]).encode(
+    line = base.mark_line(color="#00d4ff", point=True, strokeWidth=3).encode(
         y=alt.Y("CUMULATIVE_PCT:Q", title="Cumulative (%)"),
     )
     chart = alt.layer(bars, line).resolve_scale(y="independent").properties(height=320)
