@@ -33,5 +33,10 @@ sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 force_single_line = false
 combine_as_imports = true
 skip_gitignore = true
+src_paths = ["src/backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src/backend"]
 
 
