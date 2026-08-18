@@ -2,7 +2,7 @@
 System prompts and prompt templates for the Manufacturing Analytics AI Assistant.
 
 This module centralizes all prompt engineering and LLM instructions.
-Prompts are designed to be >1024 tokens for AWS Bedrock prompt caching.
+Prompts are designed to be >1024 tokens for Snowflake Cortex prompt caching.
 """
 
 from datetime import datetime
@@ -121,7 +121,7 @@ def get_system_prompt() -> str:
 
 **Remember:** Your analysis is only valuable if it's SPECIFIC, HONEST, and ACTIONABLE.
 
-This prompt is designed to be >1024 tokens for efficient AWS Bedrock prompt caching."""
+This prompt is designed to be >1024 tokens for efficient Cortex prompt caching."""
 
 
 def get_welcome_message() -> str:
@@ -158,7 +158,7 @@ def get_error_message(error_type: str = "general") -> str:
     messages = {
         "general": "An unexpected error occurred. Please try again or rephrase your question.",
         "tool": "There was an issue executing the analysis tool. Please check your parameters.",
-        "api": "Error connecting to AWS Bedrock. Please check your credentials and try again.",
+        "api": "Error connecting to Snowflake Cortex. Please check your credentials and try again.",
         "data": "No data found for the specified criteria. Try adjusting your equipment codes or date range.",
     }
     return messages.get(error_type, messages["general"])
