@@ -6,9 +6,8 @@ root cause investigation triggers for the Streamlit-in-Snowflake app.
 
 import pandas as pd
 import streamlit as st
-from snowflake.snowpark.context import get_active_session
-
 from action_loop import _log_skill
+from snowflake.snowpark.context import get_active_session
 
 DATABASE = "DEMO"
 SCHEMA = "PUBLIC"

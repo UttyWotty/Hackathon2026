@@ -15,8 +15,8 @@ import numpy as np  # type: ignore[import-untyped]
 import pandas as pd  # type: ignore[import-untyped]
 
 from .tool_comparison import (
-    TARGET_DURATION_TOLERANCE,
     MIN_EQUIPMENT_PER_GROUP,
+    TARGET_DURATION_TOLERANCE,
     build_target_duration_groups,
 )
 

@@ -4,10 +4,11 @@ Provides SQL-driven Pareto, 5 Whys, efficiency, tooling EOL, maintenance impact,
 decision trail, and insights panels that render directly from Snowflake queries.
 """
 
+from datetime import date, timedelta
+
 import altair as alt
 import pandas as pd
 import streamlit as st
-from datetime import date, timedelta
 from snowflake.snowpark.context import get_active_session
 
 DATABASE = "DEMO"

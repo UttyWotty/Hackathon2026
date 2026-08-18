@@ -164,8 +164,8 @@ def _query_records_local(query: str) -> List[Dict[str, Any]]:
         List of row dicts (column name -> JSON-safe value).
     """
     from analysis.shared.local_source import (
-        load_shot_data,
         load_mold_csv,
+        load_shot_data,
         load_work_order_csv,
     )
 

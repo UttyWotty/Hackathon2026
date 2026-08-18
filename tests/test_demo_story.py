@@ -10,7 +10,6 @@ from typing import List
 
 import pandas as pd
 import pytest
-
 from demo.story import (
     COL_DEVIATION,
     COL_WEEK,

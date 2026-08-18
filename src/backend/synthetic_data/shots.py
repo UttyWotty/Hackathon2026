@@ -14,14 +14,14 @@ from .constants import (
     ABNORMAL_CT_LOW_FACTOR,
     CT_DECIMALS,
     CT_RESOLUTION_SEC,
-    STATUS_ACTIVE,
-    STATUS_IDLE,
     GAP_SAFETY_MARGIN_SEC,
     GAP_TIME_TOLERANCE_SECONDS,
     HARD_STOP_DURATION,
     NORMAL_CT_STEP_OFFSETS,
     NORMAL_CT_STEP_WEIGHTS,
     NORMAL_GAP_JITTER_SEC,
+    STATUS_ACTIVE,
+    STATUS_IDLE,
     TEMPERATURE_BASE_C,
     TEMPERATURE_DRIFT_COEFFICIENT_C,
     TEMPERATURE_JITTER_C,
@@ -88,7 +88,7 @@ def resolve_behaviour(
         hard_stop_rate = profile.base_hard_stop_rate
 
     return RunBehaviour(
-        mode_ct=round(profile.mold.target_duration * drift_factor, DURATION_DECIMALS),
+        mode_ct=round(profile.mold.target_duration * drift_factor, CT_DECIMALS),
         hard_stop_rate=hard_stop_rate,
         abnormal_rate=profile.base_abnormal_rate,
         time_gap_rate=profile.base_time_gap_rate,
@@ -107,7 +107,7 @@ def _normal_ct(rng: Random, mode_ct: float) -> float:
     +/-5% band so a normal cycle is never misread as an Abnormal Cycle stop.
     """
     steps = rng.choices(NORMAL_CT_STEP_OFFSETS, weights=NORMAL_CT_STEP_WEIGHTS, k=1)[0]
-    return round(mode_ct + steps * CT_RESOLUTION_SEC, DURATION_DECIMALS)
+    return round(mode_ct + steps * CT_RESOLUTION_SEC, CT_DECIMALS)
 
 
 def _normal_advance(rng: Random, ct: float, previous_ct: float) -> float:
@@ -150,7 +150,7 @@ def _next_events(
             if rng.random() < ABNORMAL_SHORT_SHARE
             else ABNORMAL_CT_HIGH_FACTOR
         )
-        ct = round(behaviour.mode_ct * factor, DURATION_DECIMALS)
+        ct = round(behaviour.mode_ct * factor, CT_DECIMALS)
         return [(ct, ct, StopKind.ABNORMAL_CYCLE)]
     roll -= behaviour.abnormal_rate
 

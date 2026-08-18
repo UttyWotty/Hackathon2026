@@ -16,11 +16,11 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from analysis.shared.shot_filters import (
-    COL_TARGET_DURATION,
     COL_DURATION,
     COL_EQUIPMENT,
     COL_SHOT_TIME,
     COL_SUPPLIER,
+    COL_TARGET_DURATION,
     COL_VOLUME,
     START_OF_DAY,
     filter_shots,

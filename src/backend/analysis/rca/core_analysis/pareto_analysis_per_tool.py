@@ -12,13 +12,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# Import the data fetching function from shot_data
-from .shot_data import fetch_data_from_snowflake, session
 from .pareto_deviations import calculate_statistical_deviations
 from .pareto_downtime import calculate_real_downtime, detect_downtime_events
 from .pareto_issue_analyzer import (
-    analyze_duration_issues,
     analyze_downtime_patterns,
+    analyze_duration_issues,
     analyze_equipment_performance,
     analyze_scrap_patterns,
     analyze_temperature_issues,
@@ -26,6 +24,9 @@ from .pareto_issue_analyzer import (
     time_series_analysis,
 )
 from .pareto_scrap_detector import calculate_scrap_statistics, detect_scrap_indicators
+
+# Import the data fetching function from shot_data
+from .shot_data import fetch_data_from_snowflake, session
 
 warnings.filterwarnings("ignore")
 

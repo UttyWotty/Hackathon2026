@@ -8,12 +8,12 @@ strings only; executing them is the loader's responsibility.
 from typing import Dict, Final, List
 
 from .constants import (
-    TABLE_VENDOR,
     TABLE_LOCATION,
     TABLE_MASTER_SHOT,
-    TABLE_TOOL,
-    TABLE_PRODUduration,
+    TABLE_PRODUCT,
     TABLE_SHIFT_NOTE,
+    TABLE_TOOL,
+    TABLE_VENDOR,
     TABLE_WORK_ORDER,
 )
 

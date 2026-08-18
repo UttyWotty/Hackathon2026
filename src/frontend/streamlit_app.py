@@ -6,8 +6,20 @@ and per-equipment root cause investigations.
 """
 
 import streamlit as st
-from snowflake.snowpark.context import get_active_session
-
+from action_loop import (
+    render_action_buttons,
+    render_audit_trail,
+    render_skill_log,
+)
+from analysis_panels import (
+    render_decision_trail_panel,
+    render_efficiency_panel,
+    render_five_whys_panel,
+    render_insights_panel,
+    render_maintenance_panel,
+    render_pareto_panel,
+    render_tooling_eol_panel,
+)
 from interactive_controls import (
     render_csv_upload,
     render_rca_results,
@@ -16,20 +28,7 @@ from interactive_controls import (
     render_sweep_results,
     render_upload_preview,
 )
-from action_loop import (
-    render_action_buttons,
-    render_audit_trail,
-    render_skill_log,
-)
-from analysis_panels import (
-    render_pareto_panel,
-    render_five_whys_panel,
-    render_efficiency_panel,
-    render_tooling_eol_panel,
-    render_maintenance_panel,
-    render_decision_trail_panel,
-    render_insights_panel,
-)
+from snowflake.snowpark.context import get_active_session
 
 PAGE_TITLE = "Autonomous Manufacturing Workflow Agent"
 DATABASE = "DEMO"
@@ -389,7 +388,6 @@ def render_stability_tab(stability_df, deviation_df):
 
 def render_fleet_tab(summary_df):
     """Render fleet overview tab."""
-    import altair as alt
 
     st.subheader("Fleet Health Summary")
     st.dataframe(summary_df, use_container_width=True)

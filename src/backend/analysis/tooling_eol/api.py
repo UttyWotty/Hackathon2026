@@ -21,8 +21,8 @@ from dotenv import load_dotenv
 from .core import (
     create_snowpark_session,
     predict_end_of_life,
-    read_shot_data,
     read_maintenance_events,
+    read_shot_data,
     read_tool_table,
 )
 from .models.config import get_utilization_bins

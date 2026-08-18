@@ -9,12 +9,12 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Sequence
 
 from .constants import (
-    TABLE_VENDOR,
     TABLE_LOCATION,
     TABLE_MASTER_SHOT,
-    TABLE_TOOL,
-    TABLE_PRODUduration,
+    TABLE_PRODUCT,
     TABLE_SHIFT_NOTE,
+    TABLE_TOOL,
+    TABLE_VENDOR,
     TABLE_WORK_ORDER,
 )
 from .dimensions import (
@@ -38,12 +38,12 @@ from .models import (
 )
 from .notes import build_shift_notes
 from .rows import (
-    vendor_row,
     location_row,
     mold_row,
     product_row,
     shift_note_row,
     shot_rows,
+    vendor_row,
     work_order_row,
 )
 from .shots import generate_all_shots

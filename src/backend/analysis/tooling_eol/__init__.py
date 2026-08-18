@@ -49,8 +49,8 @@ from .core import (
     create_snowpark_session,
     predict_end_of_life,
     predict_end_of_life_for_mold,
-    read_shot_data,
     read_maintenance_events,
+    read_shot_data,
     read_tool_table,
 )
 from .models.config import (

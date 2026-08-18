@@ -8,13 +8,13 @@ stable across runs. All functions here are pure and perform no I/O.
 from typing import Dict, Final, List, Tuple
 
 from .constants import (
-    VENDOR_ID_BASE,
-    SENSOR_ID_BASE,
     LOCATION_ID_BASE,
+    SENSOR_ID_BASE,
     TOOL_ID_BASE,
     TYPE_DIE_CASTING,
     TYPE_INJECTION,
     TYPE_STAMPING,
+    VENDOR_ID_BASE,
 )
 from .models import Company, EquipmentProfile, Location, Mold, Part, ProfileKind
 

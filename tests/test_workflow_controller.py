@@ -13,7 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from models.database import Base
-from models.decision_trail import PHASE_Aduration, PHASE_REASON, PHASE_SENSE
+from models.decision_trail import PHASE_ACT, PHASE_REASON, PHASE_SENSE
 from services.workflow.controller import (
     WorkflowController,
     WorkflowControllerError,
@@ -138,7 +138,7 @@ def _controller(client, recorder, dispatcher, **kwargs):
 
 class TestSummarize:
     def test_list_metrics_render_per_equipment(self):
-        text = summarize_sense_result("run_deviation_analysis", DURATION_RESULT)
+        text = summarize_sense_result("run_deviation_analysis", CT_RESULT)
         assert "MX-7103" in text
         assert "deviation_percentage=12.68" in text
 
@@ -154,7 +154,7 @@ class TestSummarize:
         assert "Snowflake unreachable" in text
 
     def test_category_distribution_is_included(self):
-        assert "category_distribution" in summarize_sense_result("t", DURATION_RESULT)
+        assert "category_distribution" in summarize_sense_result("t", CT_RESULT)
 
     def test_empty_metrics_say_so(self):
         text = summarize_sense_result("t", {"status": "success", "metrics": []})
@@ -198,7 +198,7 @@ class TestRunSenseTasks:
 class TestDeriveFollowups:
     def test_returns_empty_list(self):
         tasks = derive_followup_tasks(
-            [SenseFinding("run_deviation_analysis", "success", "", DURATION_RESULT)]
+            [SenseFinding("run_deviation_analysis", "success", "", CT_RESULT)]
         )
         assert tasks == []
 

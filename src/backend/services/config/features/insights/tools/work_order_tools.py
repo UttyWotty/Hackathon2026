@@ -5,7 +5,7 @@ end-to-end 'what happened' questions. Uses WORK_ORDER and TOOL tables.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from services.config.features.insights.tools.common import query_records, safe_param
 
