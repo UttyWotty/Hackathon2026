@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 # Common tool parameter descriptions
 DESC_CLIENT_PARAM = (
-    "Client name/schema to query (e.g., 'NORDPLAST', 'AURELIA', 'MERIDIAN', 'ARCWELD'). "
+    "Client name/schema to query (e.g., 'PUBLIC', 'AURELIA', 'MERIDIAN', 'ARCWELD'). "
     "If not provided, uses default from environment."
 )
 

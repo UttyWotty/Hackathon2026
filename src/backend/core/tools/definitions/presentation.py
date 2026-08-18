@@ -108,7 +108,7 @@ PRESENTATION_TOOLS: List[Dict[str, Any]] = [
                         },
                         "client": {
                             "type": "string",
-                            "description": "Optional client schema name (e.g., 'VANTIS', 'NORDPLAST')",
+                            "description": "Optional client schema name (e.g., 'VANTIS', 'PUBLIC')",
                         },
                         "output_dir": {
                             "type": "string",

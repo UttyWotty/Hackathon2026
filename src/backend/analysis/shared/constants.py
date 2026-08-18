@@ -132,7 +132,7 @@ class DatabaseSchemas:
     """Standard Snowflake schema names."""
 
     PUBLIC = "PUBLIC"
-    NORDPLAST = "NORDPLAST"
+    NORDPLAST = "PUBLIC"
     ANALYTICS = "ANALYTICS"
 
 

@@ -25,7 +25,7 @@ SCHEDULER_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "Descriptive name for the job (e.g., 'Daily NORDPLAST Master Table Refresh')",
+                            "description": "Descriptive name for the job (e.g., 'Daily Shot Data Refresh')",
                         },
                         "tool_name": {
                             "type": "string",

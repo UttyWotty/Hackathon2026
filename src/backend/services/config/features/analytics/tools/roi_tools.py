@@ -43,7 +43,7 @@ async def run_roi_analysis(
         start_date: Analysis start date (YYYY-MM-DD)
         end_date: Analysis end date (YYYY-MM-DD)
         delta_tolerance: CT tolerance percentage (default: 0.05 = 5%)
-        client: Client name/schema (e.g., "NORDPLAST", "AURELIA", "MERIDIAN") - overrides .env
+        client: Client name/schema (e.g., "PUBLIC", "AURELIA", "MERIDIAN") - overrides .env
         aggregation_level: Time aggregation - "daily", "weekly", or "monthly" (default: "daily")
 
     Returns:
@@ -270,7 +270,7 @@ ROI_TOOLS = [
                 },
                 "client": {
                     "type": "string",
-                    "description": "Client name/schema (e.g., 'NORDPLAST', 'ARCWELD', 'MERIDIAN') - overrides .env setting",
+                    "description": "Client name/schema (e.g., 'PUBLIC', 'ARCWELD', 'MERIDIAN') - overrides .env setting",
                 },
             },
             "required": ["start_date", "end_date"],

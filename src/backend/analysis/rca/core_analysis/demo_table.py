@@ -99,7 +99,7 @@ def fetch_data_from_snowflake(session=None):
     # RCA needs the full shot-level data for root cause analysis
     # Get database and schema from environment
     database = os.getenv("SNOWFLAKE_DATABASE", "MMS")
-    schema = os.getenv("SNOWFLAKE_SCHEMA", "NORDPLAST")
+    schema = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")
 
     # Validate database/schema names to prevent SQL injection
     # SQL identifiers must be alphanumeric, underscore, or quoted

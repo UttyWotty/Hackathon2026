@@ -44,7 +44,7 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
                         "schemas": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Client schema(s) to process (e.g., ['NORDPLAST', 'ARCWELD']). If not provided, uses SNOWFLAKE_SCHEMA from .env. Supports single or multiple clients.",
+                            "description": "Client schema(s) to process (e.g., ['PUBLIC', 'ARCWELD']). If not provided, uses SNOWFLAKE_SCHEMA from .env. Supports single or multiple clients.",
                         },
                     },
                 }
@@ -79,7 +79,7 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
                         },
                         "client": {
                             "type": "string",
-                            "description": "Client name/schema to query (e.g., 'NORDPLAST', 'AURELIA', 'MERIDIAN', 'ARCWELD'). If not provided, uses default from environment.",
+                            "description": "Client name/schema to query (e.g., 'PUBLIC', 'AURELIA', 'MERIDIAN', 'ARCWELD'). If not provided, uses default from environment.",
                         },
                         "aggregation_level": {
                             "type": "string",

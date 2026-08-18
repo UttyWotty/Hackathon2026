@@ -58,7 +58,7 @@ def refresh_shot_data(
         chunk_size_days: Number of days to process in each chunk (default: 7)
         delete_overlap: If True, delete overlap period before processing (default: True)
                        If False, append new data without deleting (may create duplicates)
-        schemas: List of client schemas to process (e.g., ["NORDPLAST", "ARCWELD"])
+        schemas: List of client schemas to process (e.g., ["PUBLIC", "ARCWELD"])
                 If None, uses SNOWFLAKE_SCHEMA from .env
         job_id: Optional job ID for progress tracking (used by async execution)
 
@@ -69,7 +69,7 @@ def refresh_shot_data(
     Example Response (single schema):
         {
           "status": "success",
-          "schema": "NORDPLAST",
+          "schema": "PUBLIC",
           "mode": "incremental",
           "rows_processed": 1500000,
           "chunks_processed": 1,
@@ -83,17 +83,17 @@ def refresh_shot_data(
           "schemas_processed": 2,
           "total_execution_time_seconds": 120.5,
           "results": [
-            {"schema": "NORDPLAST", "status": "success", ...},
+            {"schema": "PUBLIC", "status": "success", ...},
             {"schema": "ARCWELD", "status": "success", ...}
           ]
         }
 
     Usage Examples:
         # Single client
-        refresh_shot_data(mode="incremental", schemas=["NORDPLAST"])
+        refresh_shot_data(mode="incremental", schemas=["PUBLIC"])
 
         # Multiple clients
-        refresh_shot_data(mode="incremental", schemas=["NORDPLAST", "ARCWELD"])
+        refresh_shot_data(mode="incremental", schemas=["PUBLIC", "ARCWELD"])
 
         # Use .env default (no schema specified)
         refresh_shot_data(mode="incremental")

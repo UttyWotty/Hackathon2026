@@ -36,7 +36,7 @@ async def run_rca_analysis(
     Args:
         machine_ids: Equipment identifier(s) - list (optional - analyzes all if not provided)
         vendor_names: Supplier name(s) - list (optional)
-        snowflake_schema: Snowflake schema (e.g., "NORDPLAST", "KESTREL") - overrides .env
+        snowflake_schema: Snowflake schema (e.g., "PUBLIC", "KESTREL") - overrides .env
 
     Returns:
         dict: Analysis results with root causes and recommendations
@@ -155,7 +155,7 @@ RCA_TOOLS = [
                 },
                 "snowflake_schema": {
                     "type": "string",
-                    "description": "Snowflake schema (e.g., 'NORDPLAST', 'KESTREL') - overrides .env setting",
+                    "description": "Snowflake schema (e.g., 'PUBLIC', 'KESTREL') - overrides .env setting",
                 },
             },
             "required": [],

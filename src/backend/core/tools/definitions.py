@@ -65,7 +65,7 @@ SCHEDULER_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "name": {
                             "type": "string",
-                            "description": "Descriptive name for the job (e.g., 'Daily NORDPLAST Master Table Refresh')",
+                            "description": "Descriptive name for the job (e.g., 'Daily Shot Data Refresh')",
                         },
                         "tool_name": {
                             "type": "string",
@@ -154,7 +154,7 @@ DATA_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "schema": {
                             "type": "string",
-                            "description": "Optional: specify a schema (e.g., 'NORDPLAST', 'ARCWELD'). If not provided, uses default from environment.",
+                            "description": "Optional: specify a schema (e.g., 'PUBLIC', 'ARCWELD'). If not provided, uses default from environment.",
                         },
                     },
                 }

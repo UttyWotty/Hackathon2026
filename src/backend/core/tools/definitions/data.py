@@ -51,7 +51,7 @@ DATA_TOOLS: List[Dict[str, Any]] = [
                         "schemas": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Client schema(s) to process (e.g., ['NORDPLAST', 'ARCWELD']). If not provided, uses SNOWFLAKE_SCHEMA from .env. Supports single or multiple clients.",
+                            "description": "Client schema(s) to process (e.g., ['PUBLIC', 'ARCWELD']). If not provided, uses SNOWFLAKE_SCHEMA from .env. Supports single or multiple clients.",
                         },
                     },
                 }
@@ -104,7 +104,7 @@ DATA_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "schema": {
                             "type": "string",
-                            "description": "Optional: specify a schema (e.g., 'NORDPLAST', 'ARCWELD'). If not provided, uses default from environment.",
+                            "description": "Optional: specify a schema (e.g., 'PUBLIC', 'ARCWELD'). If not provided, uses default from environment.",
                         },
                     },
                 }

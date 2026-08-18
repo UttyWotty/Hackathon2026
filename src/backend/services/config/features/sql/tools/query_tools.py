@@ -213,7 +213,7 @@ QUERY_TOOLS = [
                 },
                 "schema": {
                     "type": "string",
-                    "description": "Target schema (e.g., NORDPLAST, defaults to configured schema in .env)",
+                    "description": "Target schema (always PUBLIC, the only schema)",
                 },
                 "params": {
                     "type": "object",
@@ -244,7 +244,7 @@ QUERY_TOOLS = [
                 },
                 "schema": {
                     "type": "string",
-                    "description": "Target schema (e.g., NORDPLAST, defaults to configured schema in .env)",
+                    "description": "Target schema (always PUBLIC, the only schema)",
                 },
                 "description": {
                     "type": "string",
@@ -272,7 +272,7 @@ QUERY_TOOLS = [
                 },
                 "schema": {
                     "type": "string",
-                    "description": "Target schema (e.g., NORDPLAST, defaults to configured schema in .env)",
+                    "description": "Target schema (always PUBLIC, the only schema)",
                 },
             },
             "required": ["query"],
