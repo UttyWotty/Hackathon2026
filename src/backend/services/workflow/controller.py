@@ -20,7 +20,7 @@ from core.cortex_wire import (
 )
 from core.tools_config import get_tools_for_llm
 from models.decision_trail import (
-    PHASE_Aduration,
+    PHASE_ACT,
     PHASE_REASON,
     PHASE_SENSE,
     STATUS_COMPLETED,
@@ -234,7 +234,7 @@ class WorkflowController:
             elapsed = (time.perf_counter() - started) * MILLISECONDS_PER_SECOND
             actions.append(name)
             self.recorder.record_step(
-                phase=PHASE_Aduration,
+                phase=PHASE_ACT,
                 status=STATUS_FAILED if failed else STATUS_COMPLETED,
                 tool_name=name,
                 payload=arguments,

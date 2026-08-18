@@ -31,8 +31,8 @@ from .rca_report_formatter import (  # noqa: E402
 # -- Column name constants -----------------------------------------------------
 COL_MACHINE_ID = "MACHINE_ID"
 COL_PRODUCT_NAME = "PRODUCT_NAME"
-COL_CT_ISSUE_FLAG = "CT_ISSUE_FLAG"
-COL_CT = "DURATION"
+COL_DURATION_ISSUE_FLAG = "CT_ISSUE_FLAG"
+COL_DURATION = "DURATION"
 COL_DOWNTIME_EVENT = "DOWNTIME_EVENT"
 COL_SCRAP_INDICATOR = "SCRAP_INDICATOR"
 COL_SHOT_TIME = "SHOT_TIME"
@@ -201,7 +201,7 @@ class RootCauseAnalysisPipeline:
         row_count = len(self.df)
         return {
             "total_shots": row_count,
-            "issue_rate": self._safe_rate(COL_CT_ISSUE_FLAG, row_count),
+            "issue_rate": self._safe_rate(COL_DURATION_ISSUE_FLAG, row_count),
             "downtime_rate": self._safe_rate(COL_DOWNTIME_EVENT, row_count),
             "scrap_rate": self._safe_rate(COL_SCRAP_INDICATOR, row_count),
             "top_equipment": self._get_top_equipment(),
@@ -222,12 +222,12 @@ class RootCauseAnalysisPipeline:
 
         equipment_issues = (
             self.df.groupby(COL_MACHINE_ID)
-            .agg({COL_CT_ISSUE_FLAG: "sum", COL_CT: "count"})
+            .agg({COL_DURATION_ISSUE_FLAG: "sum", COL_DURATION: "count"})
             .reset_index()
         )
         equipment_issues["Issue_Rate"] = (
-            equipment_issues[COL_CT_ISSUE_FLAG]
-            / equipment_issues[COL_CT]
+            equipment_issues[COL_DURATION_ISSUE_FLAG]
+            / equipment_issues[COL_DURATION]
             * PERCENTAGE_MULTIPLIER
         ).round(2)
 
@@ -244,11 +244,11 @@ class RootCauseAnalysisPipeline:
 
         part_issues = (
             self.df.groupby(COL_PRODUCT_NAME)
-            .agg({COL_CT_ISSUE_FLAG: "sum", COL_CT: "count"})
+            .agg({COL_DURATION_ISSUE_FLAG: "sum", COL_DURATION: "count"})
             .reset_index()
         )
         part_issues["Issue_Rate"] = (
-            part_issues[COL_CT_ISSUE_FLAG] / part_issues[COL_CT] * PERCENTAGE_MULTIPLIER
+            part_issues[COL_DURATION_ISSUE_FLAG] / part_issues[COL_DURATION] * PERCENTAGE_MULTIPLIER
         ).round(2)
 
         return (
@@ -261,11 +261,11 @@ class RootCauseAnalysisPipeline:
         """Get top time patterns by issue rate."""
         time_issues = (
             self.df.groupby(COL_DAY_OF_WEEK)
-            .agg({COL_CT_ISSUE_FLAG: "sum", COL_CT: "count"})
+            .agg({COL_DURATION_ISSUE_FLAG: "sum", COL_DURATION: "count"})
             .reset_index()
         )
         time_issues["Issue_Rate"] = (
-            time_issues[COL_CT_ISSUE_FLAG] / time_issues[COL_CT] * PERCENTAGE_MULTIPLIER
+            time_issues[COL_DURATION_ISSUE_FLAG] / time_issues[COL_DURATION] * PERCENTAGE_MULTIPLIER
         ).round(2)
 
         return (

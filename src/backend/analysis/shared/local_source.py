@@ -17,7 +17,7 @@ import pandas as pd
 
 from analysis.shared.shot_filters import (
     COL_TARGET_DURATION,
-    COL_duration,
+    COL_DURATION,
     COL_EQUIPMENT,
     COL_SHOT_TIME,
     COL_SUPPLIER,
@@ -38,7 +38,7 @@ GROUND_TRUTH_FILE = "ground_truth.json"
 # Columns the duration efficiency query projects.
 EFFICIENCY_COLUMNS = [
     COL_SUPPLIER,
-    COL_duration,
+    COL_DURATION,
     COL_TARGET_DURATION,
     COL_EQUIPMENT,
     "TYPE",
@@ -272,7 +272,7 @@ RCA_COLUMNS = [
     COL_SUPPLIER,
     COL_EQUIPMENT,
     "SENSOR_CODE",
-    COL_duration,
+    COL_DURATION,
     COL_TARGET_DURATION,
     "TEMPERATURE",
     "PRODUCT_NAME",
@@ -331,7 +331,7 @@ TOOLING_EOL_COLUMNS = [
     COL_SUPPLIER,
     COL_EQUIPMENT,
     "SENSOR_CODE",
-    COL_duration,
+    COL_DURATION,
     COL_TARGET_DURATION,
     COL_SHOT_TIME,
     COL_VOLUME,

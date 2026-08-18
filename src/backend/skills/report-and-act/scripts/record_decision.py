@@ -25,7 +25,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from models.database import init_database  # noqa: E402
 from models.decision_trail import (  # noqa: E402
-    PHASE_Aduration,
+    PHASE_ACT,
     PHASE_REASON,
     STATUS_COMPLETED,
     TRIGGER_MANUAL,
@@ -125,7 +125,7 @@ def _record(args: argparse.Namespace, summary: str) -> str:
 
     for action in args.action:
         recorder.record_step(
-            phase=PHASE_Aduration,
+            phase=PHASE_ACT,
             status=STATUS_COMPLETED,
             tool_name=action,
             payload={"machine_ids": args.equipment},

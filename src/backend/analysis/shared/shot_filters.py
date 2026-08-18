@@ -13,7 +13,7 @@ import pandas as pd
 
 # Column names in SHOT_DATA, as emitted by the synthetic generator and
 # returned by the Snowflake queries.
-COL_CT = "DURATION"
+COL_DURATION = "DURATION"
 COL_TARGET_DURATION = "TARGET_DURATION"
 COL_SHOT_TIME = "SHOT_TIME"
 COL_EQUIPMENT = "MACHINE_ID"
@@ -27,7 +27,7 @@ START_OF_DAY = "00:00:00"
 
 # Upper sanity bound from the duration deviation query: `AND DURATION < 999.9`. Values at or
 # above this are sentinel or corrupt readings, not real cycles.
-MAX_VALID_CT = 999.9
+MAX_VALID_DURATION = 999.9
 
 
 def apply_validity_filter(df: pd.DataFrame) -> pd.DataFrame:
@@ -44,11 +44,11 @@ def apply_validity_filter(df: pd.DataFrame) -> pd.DataFrame:
         Only rows with usable duration and approved duration.
     """
     return df[
-        df[COL_CT].notna()
+        df[COL_DURATION].notna()
         & df[COL_TARGET_DURATION].notna()
-        & (df[COL_CT] > 0)
+        & (df[COL_DURATION] > 0)
         & (df[COL_TARGET_DURATION] > 0)
-        & (df[COL_CT] < MAX_VALID_CT)
+        & (df[COL_DURATION] < MAX_VALID_DURATION)
     ]
 
 
