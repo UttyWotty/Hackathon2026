@@ -149,7 +149,8 @@ def detect_statistical_outliers(
 
     # Method 1: Mean ± 2*std
     mean_std_outliers = df[
-        (df["DURATION"] < ct_mean - 2 * ct_std) | (df["DURATION"] > ct_mean + 2 * ct_std)
+        (df["DURATION"] < ct_mean - 2 * ct_std)
+        | (df["DURATION"] > ct_mean + 2 * ct_std)
     ].copy()
 
     # Method 2: IQR method
@@ -158,7 +159,9 @@ def detect_statistical_outliers(
     iqr = q3 - q1
     lower_bound = q1 - IQR_MULTIPLIER * iqr
     upper_bound = q3 + IQR_MULTIPLIER * iqr
-    iqr_outliers = df[(df["DURATION"] < lower_bound) | (df["DURATION"] > upper_bound)].copy()
+    iqr_outliers = df[
+        (df["DURATION"] < lower_bound) | (df["DURATION"] > upper_bound)
+    ].copy()
 
     # Method 3: Z-score
     df["z_score"] = np.abs((df["DURATION"] - ct_mean) / ct_std)
@@ -191,7 +194,9 @@ def calculate_rolling_deviation(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     # Calculate rolling statistics
-    df["rolling_mean_duration"] = df["DURATION"].rolling(window=ROLLING_WINDOW_SIZE).mean()
+    df["rolling_mean_duration"] = (
+        df["DURATION"].rolling(window=ROLLING_WINDOW_SIZE).mean()
+    )
     df["rolling_std_ct"] = df["DURATION"].rolling(window=ROLLING_WINDOW_SIZE).std()
 
     # Calculate rolling deviation from approved duration

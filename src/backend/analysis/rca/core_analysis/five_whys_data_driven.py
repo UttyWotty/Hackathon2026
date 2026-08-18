@@ -282,7 +282,10 @@ def generate_why4_data_driven(
     ):
         systematic_issues.append("Inconsistent training across shifts")
 
-    if "target_duration_std" in metrics and metrics["target_duration_std"] > CT_STD_THRESHOLD:
+    if (
+        "target_duration_std" in metrics
+        and metrics["target_duration_std"] > CT_STD_THRESHOLD
+    ):
         systematic_issues.append("Non-standardized operating procedures")
 
     if (
@@ -312,7 +315,10 @@ def generate_why5_data_driven(
                 "Lack of standardized training and procedure documentation"
             )
 
-    if "target_duration_std" in metrics and metrics["target_duration_std"] > CT_STD_THRESHOLD:
+    if (
+        "target_duration_std" in metrics
+        and metrics["target_duration_std"] > CT_STD_THRESHOLD
+    ):
         root_causes.append("Absence of systematic approach to process optimization")
 
     if "equipment_analysis" in metrics:
@@ -345,7 +351,10 @@ def determine_root_cause_data_driven(
         if shift_variance > SHIFT_VARIANCE_HIGH_THRESHOLD:
             root_causes.append("inconsistent training across shifts")
 
-    if "target_duration_std" in metrics and metrics["target_duration_std"] > CT_STD_THRESHOLD:
+    if (
+        "target_duration_std" in metrics
+        and metrics["target_duration_std"] > CT_STD_THRESHOLD
+    ):
         root_causes.append("non-standardized operating procedures")
 
     if "equipment_analysis" in metrics:
@@ -377,7 +386,10 @@ def generate_recommendations_data_driven(
             recommendations.append("Standardize training programs across all shifts")
             recommendations.append("Implement shift-specific performance coaching")
 
-    if "target_duration_std" in metrics and metrics["target_duration_std"] > CT_STD_THRESHOLD:
+    if (
+        "target_duration_std" in metrics
+        and metrics["target_duration_std"] > CT_STD_THRESHOLD
+    ):
         recommendations.append("Standardize operating procedures")
         recommendations.append("Create detailed work instructions")
 

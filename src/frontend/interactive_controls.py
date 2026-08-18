@@ -97,8 +97,17 @@ def render_sweep_results():
     st.subheader("On-Demand Sweep Results")
 
     st.dataframe(
-        results[["MACHINE_ID", "SHOT_COUNT", "AVG_DURATION", "TARGET_DURATION",
-                 "DEVIATION_PCT", "STABILITY_SCORE", "SEVERITY"]],
+        results[
+            [
+                "MACHINE_ID",
+                "SHOT_COUNT",
+                "AVG_DURATION",
+                "TARGET_DURATION",
+                "DEVIATION_PCT",
+                "STABILITY_SCORE",
+                "SEVERITY",
+            ]
+        ],
         use_container_width=True,
     )
 
@@ -196,6 +205,7 @@ def render_upload_preview():
 
     if csv_text:
         import io
+
         try:
             df = pd.read_csv(io.StringIO(csv_text))
             st.dataframe(df, use_container_width=True)
@@ -216,17 +226,17 @@ def render_rca_selector():
     st.sidebar.subheader("Investigate Equipment")
 
     session = get_active_session()
-    machines = session.sql(
-        f"SELECT DISTINCT MACHINE_ID FROM {FULL_TABLE} ORDER BY MACHINE_ID"
-    ).to_pandas()["MACHINE_ID"].tolist()
+    machines = (
+        session.sql(f"SELECT DISTINCT MACHINE_ID FROM {FULL_TABLE} ORDER BY MACHINE_ID")
+        .to_pandas()["MACHINE_ID"]
+        .tolist()
+    )
 
     selected = st.sidebar.selectbox("Select Machine", [""] + machines, index=0)
     if selected == "":
         selected = None
 
-    if selected and st.sidebar.button(
-        "Run Investigation", use_container_width=True
-    ):
+    if selected and st.sidebar.button("Run Investigation", use_container_width=True):
         st.session_state["rca_machine"] = selected
         _log_skill("$investigate-shift-notes", f"Investigation started for {selected}")
 

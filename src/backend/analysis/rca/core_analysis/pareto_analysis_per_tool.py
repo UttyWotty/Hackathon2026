@@ -141,7 +141,10 @@ class ParetoAnalysis:
 
         print("\n  Downtime Detection Thresholds:")
         print("   Minimum Gap Threshold: %.1f minutes" % self.DOWNTIME_GAP_THRESHOLD)
-        print("   CT Spike Multiplier: %.1fx typical duration" % self.DOWNTIME_DURATION_MULTIPLIER)
+        print(
+            "   CT Spike Multiplier: %.1fx typical duration"
+            % self.DOWNTIME_DURATION_MULTIPLIER
+        )
 
         print("\n  Scrap Detection Thresholds:")
         print("   Warm-up Shots After Idle: %d shots" % self.WARMUP_SHOTS_AFTER_IDLE)
@@ -329,7 +332,8 @@ def main() -> None:
             )
         )
         print(
-            "  Parts produced: %d different parts" % df_filtered["PRODUCT_NAME"].nunique()
+            "  Parts produced: %d different parts"
+            % df_filtered["PRODUCT_NAME"].nunique()
         )
 
         print("\n" + "=" * 80)

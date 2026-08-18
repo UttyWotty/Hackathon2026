@@ -364,7 +364,14 @@ def query_tooling_eol_shots(data_dir: str = "") -> pd.DataFrame:
     result = frame[available_cols].copy()
     result["SHOT_COUNT"] = 1
 
-    for col in ["DURATION", "TARGET_DURATION", "VOLUME", "SENSOR_ID", "TOOL_ID", "VENDOR_ID"]:
+    for col in [
+        "DURATION",
+        "TARGET_DURATION",
+        "VOLUME",
+        "SENSOR_ID",
+        "TOOL_ID",
+        "VENDOR_ID",
+    ]:
         if col in result.columns:
             result[col] = pd.to_numeric(result[col], errors="coerce")
 

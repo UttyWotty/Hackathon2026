@@ -71,7 +71,9 @@ def _first_critical_week(shots: List[Shot]) -> int:
     weekly: Dict[int, List[float]] = defaultdict(list)
     for shot in shots:
         if shot.target_duration > 0 and shot.ct < HARD_STOP_DURATION:
-            deviation = (shot.ct - shot.target_duration) / shot.target_duration * PERCENT
+            deviation = (
+                (shot.ct - shot.target_duration) / shot.target_duration * PERCENT
+            )
             weekly[shot.shot_time.isocalendar()[1]].append(deviation)
     for week in sorted(weekly):
         if sum(weekly[week]) / len(weekly[week]) > DEVIATION_CRITICAL_PCT:

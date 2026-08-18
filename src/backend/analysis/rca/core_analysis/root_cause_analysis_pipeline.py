@@ -248,7 +248,9 @@ class RootCauseAnalysisPipeline:
             .reset_index()
         )
         part_issues["Issue_Rate"] = (
-            part_issues[COL_DURATION_ISSUE_FLAG] / part_issues[COL_DURATION] * PERCENTAGE_MULTIPLIER
+            part_issues[COL_DURATION_ISSUE_FLAG]
+            / part_issues[COL_DURATION]
+            * PERCENTAGE_MULTIPLIER
         ).round(2)
 
         return (
@@ -265,7 +267,9 @@ class RootCauseAnalysisPipeline:
             .reset_index()
         )
         time_issues["Issue_Rate"] = (
-            time_issues[COL_DURATION_ISSUE_FLAG] / time_issues[COL_DURATION] * PERCENTAGE_MULTIPLIER
+            time_issues[COL_DURATION_ISSUE_FLAG]
+            / time_issues[COL_DURATION]
+            * PERCENTAGE_MULTIPLIER
         ).round(2)
 
         return (

@@ -123,9 +123,7 @@ class TestScoreRun:
         assert report.investigated == []
 
     def test_action_backed_claim_is_not_flagged_as_claim_only(self):
-        report = score_run(
-            GROUND_TRUTH, "MX-7103", [_act({"machine_id": "MX-7103"})]
-        )
+        report = score_run(GROUND_TRUTH, "MX-7103", [_act({"machine_id": "MX-7103"})])
         assert report.claimed_only == []
         assert report.investigated == ["MX-7103"]
 

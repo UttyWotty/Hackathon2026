@@ -236,7 +236,8 @@ def chart_tool_monthly_trend(
         rows=group_count,
         cols=1,
         subplot_titles=[
-            f"Approved Duration: {g.target_duration}s - Monthly Trends" for g in display_groups
+            f"Approved Duration: {g.target_duration}s - Monthly Trends"
+            for g in display_groups
         ],
         vertical_spacing=max(0.01, 0.12 / max(1, group_count / 4)),
     )
@@ -298,7 +299,8 @@ def chart_staleness_overview(
         return ""
 
     labels = [
-        f"{r.target_duration}s - {', '.join(r.product_names[:2])}" for r in staleness_results
+        f"{r.target_duration}s - {', '.join(r.product_names[:2])}"
+        for r in staleness_results
     ]
 
     severity_colors = {

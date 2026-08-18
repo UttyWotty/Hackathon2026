@@ -114,10 +114,7 @@ def run_analysis_api(
                     suffixes=("", "_MOLD"),
                 )
                 # Prefer MACHINE_ID from SHOT_DATA; keep merged column only if missing
-                if (
-                    "MACHINE_ID" not in df.columns
-                    and "MACHINE_ID_MOLD" in df.columns
-                ):
+                if "MACHINE_ID" not in df.columns and "MACHINE_ID_MOLD" in df.columns:
                     df = df.rename(columns={"MACHINE_ID_MOLD": "MACHINE_ID"})
         except Exception as exc:
             logger.warning(f"MOLD enrichment skipped due to error: {exc}")

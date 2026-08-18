@@ -27,11 +27,13 @@ def _log_skill(skill_name: str, detail: str):
     """Append a skill invocation entry to the session skill log."""
     if "skill_log" not in st.session_state:
         st.session_state["skill_log"] = []
-    st.session_state["skill_log"].append({
-        "timestamp": datetime.now().strftime("%H:%M:%S"),
-        "skill": skill_name,
-        "detail": detail,
-    })
+    st.session_state["skill_log"].append(
+        {
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "skill": skill_name,
+            "detail": detail,
+        }
+    )
 
 
 def log_work_order(machine_id: str, severity: str, description: str):
@@ -199,7 +201,9 @@ def render_audit_trail():
     """).to_pandas()
 
     if audit_df.empty:
-        st.caption("No actions recorded yet. Run a sweep to trigger autonomous actions.")
+        st.caption(
+            "No actions recorded yet. Run a sweep to trigger autonomous actions."
+        )
         return
 
     st.dataframe(audit_df, use_container_width=True)
@@ -208,8 +212,13 @@ def render_audit_trail():
 def render_skill_log():
     """Display the CoCo CLI skill invocation log."""
     if "skill_log" not in st.session_state or not st.session_state["skill_log"]:
-        st.caption("No skill invocations yet. Run a sweep or investigation to see live activity.")
+        st.caption(
+            "No skill invocations yet. Run a sweep or investigation to see live activity."
+        )
         return
 
     for entry in reversed(st.session_state["skill_log"]):
-        st.code(f"[{entry['timestamp']}] {entry['skill']} -- {entry['detail']}", language=None)
+        st.code(
+            f"[{entry['timestamp']}] {entry['skill']} -- {entry['detail']}",
+            language=None,
+        )

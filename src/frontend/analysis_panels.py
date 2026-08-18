@@ -52,7 +52,9 @@ def render_pareto_panel():
     session = get_active_session()
 
     st.subheader("Pareto Analysis - Deviation Contribution")
-    st.caption("Which machines contribute the most to total fleet deviation from target?")
+    st.caption(
+        "Which machines contribute the most to total fleet deviation from target?"
+    )
 
     start, end = _render_date_range("pareto")
     date_clause = _date_filter(start, end)
@@ -104,22 +106,24 @@ def render_five_whys_panel():
     st.subheader("5 Whys - Temporal Root Cause Drill-Down")
     st.caption("Drill through 5 layers of WHY to isolate the root cause")
 
-    machines = session.sql(
-        f"SELECT DISTINCT MACHINE_ID FROM {FULL_TABLE} ORDER BY MACHINE_ID"
-    ).to_pandas()["MACHINE_ID"].tolist()
+    machines = (
+        session.sql(f"SELECT DISTINCT MACHINE_ID FROM {FULL_TABLE} ORDER BY MACHINE_ID")
+        .to_pandas()["MACHINE_ID"]
+        .tolist()
+    )
 
     ctrl1, ctrl2 = st.columns([2, 1])
     with ctrl1:
         selected = st.selectbox("Machine", machines, index=2, key="5whys_machine")
     with ctrl2:
-        granularity = st.selectbox("Time Granularity", list(GRANULARITY_MAP.keys()), key="5whys_gran")
+        granularity = st.selectbox(
+            "Time Granularity", list(GRANULARITY_MAP.keys()), key="5whys_gran"
+        )
 
     start, end = _render_date_range("5whys")
     date_clause = _date_filter(start, end)
     trunc_unit = GRANULARITY_MAP[granularity]
-    base_where = (
-        f"MACHINE_ID = '{selected}' AND DURATION < {HARD_STOP} AND VOLUME > 0 AND {date_clause}"
-    )
+    base_where = f"MACHINE_ID = '{selected}' AND DURATION < {HARD_STOP} AND VOLUME > 0 AND {date_clause}"
 
     # Why 1: Time trend
     st.markdown(f"**Why 1: Is there a {granularity.lower()} trend?**")
@@ -135,13 +139,23 @@ def render_five_whys_panel():
         trend["STATUS"] = trend["AVG_DEVIATION"].apply(
             lambda v: "High" if v > DEVIATION_THRESHOLD else "Normal"
         )
-        chart = alt.Chart(trend).mark_bar().encode(
-            x="PERIOD:T", y="AVG_DEVIATION:Q",
-            color=alt.Color("STATUS:N", scale=alt.Scale(
-                domain=["High", "Normal"], range=["#dc3545", "#28a745"]
-            ), legend=None),
-            tooltip=["PERIOD:T", "AVG_DEVIATION", "SHOTS"],
-        ).properties(height=180)
+        chart = (
+            alt.Chart(trend)
+            .mark_bar()
+            .encode(
+                x="PERIOD:T",
+                y="AVG_DEVIATION:Q",
+                color=alt.Color(
+                    "STATUS:N",
+                    scale=alt.Scale(
+                        domain=["High", "Normal"], range=["#dc3545", "#28a745"]
+                    ),
+                    legend=None,
+                ),
+                tooltip=["PERIOD:T", "AVG_DEVIATION", "SHOTS"],
+            )
+            .properties(height=180)
+        )
         st.altair_chart(chart, use_container_width=True)
 
     col1, col2 = st.columns(2)
@@ -160,13 +174,23 @@ def render_five_whys_panel():
             hourly["STATUS"] = hourly["AVG_DEVIATION"].apply(
                 lambda v: "High" if v > DEVIATION_THRESHOLD else "Normal"
             )
-            chart = alt.Chart(hourly).mark_bar().encode(
-                x="HOUR_OF_DAY:O", y="AVG_DEVIATION:Q",
-                color=alt.Color("STATUS:N", scale=alt.Scale(
-                    domain=["High", "Normal"], range=["#dc3545", "#28a745"]
-                ), legend=None),
-                tooltip=["HOUR_OF_DAY", "AVG_DEVIATION"],
-            ).properties(height=180)
+            chart = (
+                alt.Chart(hourly)
+                .mark_bar()
+                .encode(
+                    x="HOUR_OF_DAY:O",
+                    y="AVG_DEVIATION:Q",
+                    color=alt.Color(
+                        "STATUS:N",
+                        scale=alt.Scale(
+                            domain=["High", "Normal"], range=["#dc3545", "#28a745"]
+                        ),
+                        legend=None,
+                    ),
+                    tooltip=["HOUR_OF_DAY", "AVG_DEVIATION"],
+                )
+                .properties(height=180)
+            )
             st.altair_chart(chart, use_container_width=True)
 
     # Why 3: Day of week
@@ -184,14 +208,23 @@ def render_five_whys_panel():
             dow["STATUS"] = dow["AVG_DEVIATION"].apply(
                 lambda v: "High" if v > DEVIATION_THRESHOLD else "Normal"
             )
-            chart = alt.Chart(dow).mark_bar().encode(
-                x=alt.X("DOW:O", title="Day of Week (0=Mon)"),
-                y="AVG_DEVIATION:Q",
-                color=alt.Color("STATUS:N", scale=alt.Scale(
-                    domain=["High", "Normal"], range=["#dc3545", "#28a745"]
-                ), legend=None),
-                tooltip=["DOW", "AVG_DEVIATION", "SHOTS"],
-            ).properties(height=180)
+            chart = (
+                alt.Chart(dow)
+                .mark_bar()
+                .encode(
+                    x=alt.X("DOW:O", title="Day of Week (0=Mon)"),
+                    y="AVG_DEVIATION:Q",
+                    color=alt.Color(
+                        "STATUS:N",
+                        scale=alt.Scale(
+                            domain=["High", "Normal"], range=["#dc3545", "#28a745"]
+                        ),
+                        legend=None,
+                    ),
+                    tooltip=["DOW", "AVG_DEVIATION", "SHOTS"],
+                )
+                .properties(height=180)
+            )
             st.altair_chart(chart, use_container_width=True)
 
     col3, col4 = st.columns(2)
@@ -216,14 +249,23 @@ def render_five_whys_panel():
             shift["STATUS"] = shift["AVG_DEVIATION"].apply(
                 lambda v: "High" if v > DEVIATION_THRESHOLD else "Normal"
             )
-            chart = alt.Chart(shift).mark_bar().encode(
-                x=alt.X("SHIFT:N", title="Shift"),
-                y="AVG_DEVIATION:Q",
-                color=alt.Color("STATUS:N", scale=alt.Scale(
-                    domain=["High", "Normal"], range=["#dc3545", "#28a745"]
-                ), legend=None),
-                tooltip=["SHIFT", "AVG_DEVIATION", "SHOTS"],
-            ).properties(height=180)
+            chart = (
+                alt.Chart(shift)
+                .mark_bar()
+                .encode(
+                    x=alt.X("SHIFT:N", title="Shift"),
+                    y="AVG_DEVIATION:Q",
+                    color=alt.Color(
+                        "STATUS:N",
+                        scale=alt.Scale(
+                            domain=["High", "Normal"], range=["#dc3545", "#28a745"]
+                        ),
+                        legend=None,
+                    ),
+                    tooltip=["SHIFT", "AVG_DEVIATION", "SHOTS"],
+                )
+                .properties(height=180)
+            )
             st.altair_chart(chart, use_container_width=True)
 
     # Why 5: By product
@@ -241,14 +283,23 @@ def render_five_whys_panel():
             product["STATUS"] = product["AVG_DEVIATION"].apply(
                 lambda v: "High" if v > DEVIATION_THRESHOLD else "Normal"
             )
-            chart = alt.Chart(product).mark_bar().encode(
-                x=alt.X("PRODUCT_NAME:N", sort="-y", title="Product"),
-                y="AVG_DEVIATION:Q",
-                color=alt.Color("STATUS:N", scale=alt.Scale(
-                    domain=["High", "Normal"], range=["#dc3545", "#28a745"]
-                ), legend=None),
-                tooltip=["PRODUCT_NAME", "AVG_DEVIATION", "SHOTS"],
-            ).properties(height=180)
+            chart = (
+                alt.Chart(product)
+                .mark_bar()
+                .encode(
+                    x=alt.X("PRODUCT_NAME:N", sort="-y", title="Product"),
+                    y="AVG_DEVIATION:Q",
+                    color=alt.Color(
+                        "STATUS:N",
+                        scale=alt.Scale(
+                            domain=["High", "Normal"], range=["#dc3545", "#28a745"]
+                        ),
+                        legend=None,
+                    ),
+                    tooltip=["PRODUCT_NAME", "AVG_DEVIATION", "SHOTS"],
+                )
+                .properties(height=180)
+            )
             st.altair_chart(chart, use_container_width=True)
 
 
@@ -257,7 +308,9 @@ def render_efficiency_panel():
     session = get_active_session()
 
     st.subheader("Duration Efficiency - Fleet Comparison")
-    st.caption("How efficiently each machine runs relative to its target (100% = perfect)")
+    st.caption(
+        "How efficiently each machine runs relative to its target (100% = perfect)"
+    )
 
     start, end = _render_date_range("efficiency")
     date_clause = _date_filter(start, end)
@@ -286,16 +339,29 @@ def render_efficiency_panel():
         domain=["Critical", "Warning", "Normal"],
         range=["#dc3545", "#ffc107", "#28a745"],
     )
-    chart = alt.Chart(df).mark_bar().encode(
-        y=alt.Y("MACHINE_ID:N", sort="x", title="Machine"),
-        x=alt.X("EFFICIENCY_PCT:Q", title="Efficiency %", scale=alt.Scale(domain=[0, 105])),
-        color=alt.Color("STATUS:N", scale=color_scale, legend=alt.Legend(title="Status")),
-        tooltip=["MACHINE_ID", "EFFICIENCY_PCT", "SHOTS", "CV_PCT"],
-    ).properties(height=300)
+    chart = (
+        alt.Chart(df)
+        .mark_bar()
+        .encode(
+            y=alt.Y("MACHINE_ID:N", sort="x", title="Machine"),
+            x=alt.X(
+                "EFFICIENCY_PCT:Q",
+                title="Efficiency %",
+                scale=alt.Scale(domain=[0, 105]),
+            ),
+            color=alt.Color(
+                "STATUS:N", scale=color_scale, legend=alt.Legend(title="Status")
+            ),
+            tooltip=["MACHINE_ID", "EFFICIENCY_PCT", "SHOTS", "CV_PCT"],
+        )
+        .properties(height=300)
+    )
 
-    rule = alt.Chart(pd.DataFrame({"x": [100]})).mark_rule(
-        strokeDash=[4, 4], color="black"
-    ).encode(x="x:Q")
+    rule = (
+        alt.Chart(pd.DataFrame({"x": [100]}))
+        .mark_rule(strokeDash=[4, 4], color="black")
+        .encode(x="x:Q")
+    )
 
     st.altair_chart(chart + rule, use_container_width=True)
 
@@ -332,16 +398,42 @@ def render_tooling_eol_panel():
         domain=["Critical", "Warning", "Normal"],
         range=["#dc3545", "#ffc107", "#28a745"],
     )
-    chart = alt.Chart(df).mark_bar().encode(
-        y=alt.Y("MACHINE_ID:N", sort="-x", title="Machine"),
-        x=alt.X("LIFE_USED_PCT:Q", title="Tool Life Used (%)", scale=alt.Scale(domain=[0, 100])),
-        color=alt.Color("STATUS:N", scale=color_scale, legend=alt.Legend(title="Status")),
-        tooltip=["MACHINE_ID", "TYPE", "ACCUMULATED_SHOTS", "DESIGNED_SHOT", "LIFE_USED_PCT"],
-    ).properties(height=300)
+    chart = (
+        alt.Chart(df)
+        .mark_bar()
+        .encode(
+            y=alt.Y("MACHINE_ID:N", sort="-x", title="Machine"),
+            x=alt.X(
+                "LIFE_USED_PCT:Q",
+                title="Tool Life Used (%)",
+                scale=alt.Scale(domain=[0, 100]),
+            ),
+            color=alt.Color(
+                "STATUS:N", scale=color_scale, legend=alt.Legend(title="Status")
+            ),
+            tooltip=[
+                "MACHINE_ID",
+                "TYPE",
+                "ACCUMULATED_SHOTS",
+                "DESIGNED_SHOT",
+                "LIFE_USED_PCT",
+            ],
+        )
+        .properties(height=300)
+    )
     st.altair_chart(chart, use_container_width=True)
 
     st.dataframe(
-        df[["MACHINE_ID", "TYPE", "ACCUMULATED_SHOTS", "DESIGNED_SHOT", "LIFE_USED_PCT", "REMAINING_PCT"]],
+        df[
+            [
+                "MACHINE_ID",
+                "TYPE",
+                "ACCUMULATED_SHOTS",
+                "DESIGNED_SHOT",
+                "LIFE_USED_PCT",
+                "REMAINING_PCT",
+            ]
+        ],
         use_container_width=True,
     )
 
@@ -351,7 +443,9 @@ def render_maintenance_panel():
     session = get_active_session()
 
     st.subheader("Maintenance Impact Analysis")
-    st.caption("Did maintenance actually help? Compare duration before vs after each work order.")
+    st.caption(
+        "Did maintenance actually help? Compare duration before vs after each work order."
+    )
 
     df = session.sql(f"""
         WITH wo AS (
@@ -382,11 +476,22 @@ def render_maintenance_panel():
         st.info("No before/after data available for completed work orders.")
         return
 
-    df["CHANGE_PCT"] = ((df["AVG_AFTER"] - df["AVG_BEFORE"]) / df["AVG_BEFORE"] * 100).round(1)
+    df["CHANGE_PCT"] = (
+        (df["AVG_AFTER"] - df["AVG_BEFORE"]) / df["AVG_BEFORE"] * 100
+    ).round(1)
     df["IMPROVED"] = df["CHANGE_PCT"] < 0
 
     st.dataframe(
-        df[["MACHINE_ID", "ORDER_TYPE", "COMPLETED_AT", "AVG_BEFORE", "AVG_AFTER", "CHANGE_PCT"]],
+        df[
+            [
+                "MACHINE_ID",
+                "ORDER_TYPE",
+                "COMPLETED_AT",
+                "AVG_BEFORE",
+                "AVG_AFTER",
+                "CHANGE_PCT",
+            ]
+        ],
         use_container_width=True,
     )
 
@@ -465,14 +570,26 @@ def render_insights_panel():
         if not patterns.empty:
             st.dataframe(patterns, use_container_width=True)
 
-            chart = alt.Chart(patterns.melt(
-                id_vars=["MACHINE_ID"],
-                value_vars=["DRIFT_MENTIONS", "FAULT_MENTIONS", "MAINTENANCE_MENTIONS"],
-                var_name="Category", value_name="Count"
-            )).mark_bar().encode(
-                x="MACHINE_ID:N",
-                y="Count:Q",
-                color="Category:N",
-                tooltip=["MACHINE_ID", "Category", "Count"],
-            ).properties(height=250, title="Issue Mentions by Machine")
+            chart = (
+                alt.Chart(
+                    patterns.melt(
+                        id_vars=["MACHINE_ID"],
+                        value_vars=[
+                            "DRIFT_MENTIONS",
+                            "FAULT_MENTIONS",
+                            "MAINTENANCE_MENTIONS",
+                        ],
+                        var_name="Category",
+                        value_name="Count",
+                    )
+                )
+                .mark_bar()
+                .encode(
+                    x="MACHINE_ID:N",
+                    y="Count:Q",
+                    color="Category:N",
+                    tooltip=["MACHINE_ID", "Category", "Count"],
+                )
+                .properties(height=250, title="Issue Mentions by Machine")
+            )
             st.altair_chart(chart, use_container_width=True)

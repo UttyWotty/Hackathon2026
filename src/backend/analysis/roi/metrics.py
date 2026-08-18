@@ -70,10 +70,22 @@ class ROIMetricsCalculator:
                 TOTAL_SHOTS=("TOTAL_SHOT_COUNT", "sum"),
                 PARTS_PRODUCED=("VOLUME", "sum"),
                 TARGET_DURATION=("TARGET_DURATION", "first"),
-                WEIGHTED_DURATION_SUM=("WEIGHTED_DURATION", "sum"),  # Sum of weighted durations
-                WITHIN_SHOT_COUNT=("DURATION_CATEGORY", lambda x: (x == "WITHIN").sum()),
-                SLOWER_SHOT_COUNT=("DURATION_CATEGORY", lambda x: (x == "SLOWER").sum()),
-                FASTER_SHOT_COUNT=("DURATION_CATEGORY", lambda x: (x == "FASTER").sum()),
+                WEIGHTED_DURATION_SUM=(
+                    "WEIGHTED_DURATION",
+                    "sum",
+                ),  # Sum of weighted durations
+                WITHIN_SHOT_COUNT=(
+                    "DURATION_CATEGORY",
+                    lambda x: (x == "WITHIN").sum(),
+                ),
+                SLOWER_SHOT_COUNT=(
+                    "DURATION_CATEGORY",
+                    lambda x: (x == "SLOWER").sum(),
+                ),
+                FASTER_SHOT_COUNT=(
+                    "DURATION_CATEGORY",
+                    lambda x: (x == "FASTER").sum(),
+                ),
                 # NEW: Uptime metrics
                 PRODUCTION_TIME=("PRODUCTION_SECONDS", "sum"),
                 IDLE_TIME=("IDLE_SECONDS", "sum"),
@@ -127,7 +139,9 @@ class ROIMetricsCalculator:
         # Calculate weighted average duration for SLOWER category using efficient aggregation
         slow_df = df[df["DURATION_CATEGORY"] == "SLOWER"].copy()
         if not slow_df.empty:
-            slow_df["WEIGHTED_DURATION"] = slow_df["DURATION"] * slow_df["TOTAL_SHOT_COUNT"]
+            slow_df["WEIGHTED_DURATION"] = (
+                slow_df["DURATION"] * slow_df["TOTAL_SHOT_COUNT"]
+            )
             slow_agg = (
                 slow_df.groupby(["VENDOR_NAME", "MACHINE_ID", time_col])
                 .agg(
@@ -150,7 +164,9 @@ class ROIMetricsCalculator:
         # Calculate weighted average duration for FASTER category using efficient aggregation
         fast_df = df[df["DURATION_CATEGORY"] == "FASTER"].copy()
         if not fast_df.empty:
-            fast_df["WEIGHTED_DURATION"] = fast_df["DURATION"] * fast_df["TOTAL_SHOT_COUNT"]
+            fast_df["WEIGHTED_DURATION"] = (
+                fast_df["DURATION"] * fast_df["TOTAL_SHOT_COUNT"]
+            )
             fast_agg = (
                 fast_df.groupby(["VENDOR_NAME", "MACHINE_ID", time_col])
                 .agg(
@@ -173,7 +189,9 @@ class ROIMetricsCalculator:
         # Calculate weighted average duration for WITHIN category using efficient aggregation
         within_df = df[df["DURATION_CATEGORY"] == "WITHIN"].copy()
         if not within_df.empty:
-            within_df["WEIGHTED_DURATION"] = within_df["DURATION"] * within_df["TOTAL_SHOT_COUNT"]
+            within_df["WEIGHTED_DURATION"] = (
+                within_df["DURATION"] * within_df["TOTAL_SHOT_COUNT"]
+            )
             within_agg = (
                 within_df.groupby(["VENDOR_NAME", "MACHINE_ID", time_col])
                 .agg(
@@ -204,8 +222,12 @@ class ROIMetricsCalculator:
             within_ct, on=["VENDOR_NAME", "MACHINE_ID", time_col], how="left"
         )
 
-        grouped["AVG_DURATION_SLOW"] = grouped["AVG_DURATION_SLOW"].fillna(grouped["TARGET_DURATION"])
-        grouped["AVG_DURATION_FAST"] = grouped["AVG_DURATION_FAST"].fillna(grouped["TARGET_DURATION"])
+        grouped["AVG_DURATION_SLOW"] = grouped["AVG_DURATION_SLOW"].fillna(
+            grouped["TARGET_DURATION"]
+        )
+        grouped["AVG_DURATION_FAST"] = grouped["AVG_DURATION_FAST"].fillna(
+            grouped["TARGET_DURATION"]
+        )
         grouped["AVG_DURATION_WITHIN"] = grouped["AVG_DURATION_WITHIN"].fillna(
             grouped["TARGET_DURATION"]
         )
@@ -362,9 +384,9 @@ class ROIMetricsCalculator:
         )
 
         # Additional metrics
-        grouped["DIFFERENCE"] = (grouped["TARGET_DURATION"] - grouped["AVERAGE_DURATION"]).round(
-            2
-        )
+        grouped["DIFFERENCE"] = (
+            grouped["TARGET_DURATION"] - grouped["AVERAGE_DURATION"]
+        ).round(2)
 
         return grouped
 

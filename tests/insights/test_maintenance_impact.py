@@ -37,8 +37,12 @@ def test_small_change_is_neutral():
 
 
 def test_missing_values_are_unknown():
-    assert classify_metric_impact("avg_duration", None, 10.0)["impact"] == IMPACT_UNKNOWN
-    assert classify_metric_impact("avg_duration", 10.0, None)["impact"] == IMPACT_UNKNOWN
+    assert (
+        classify_metric_impact("avg_duration", None, 10.0)["impact"] == IMPACT_UNKNOWN
+    )
+    assert (
+        classify_metric_impact("avg_duration", 10.0, None)["impact"] == IMPACT_UNKNOWN
+    )
     assert classify_metric_impact("avg_duration", 0.0, 10.0)["impact"] == IMPACT_UNKNOWN
 
 

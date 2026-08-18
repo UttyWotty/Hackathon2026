@@ -16,7 +16,9 @@ def test_basic_savings():
 
 
 def test_cavities_multiply_extra_parts():
-    result = compute_record_savings(shots=3600, avg_duration=11.0, target_duration=10.0, cavities=4)
+    result = compute_record_savings(
+        shots=3600, avg_duration=11.0, target_duration=10.0, cavities=4
+    )
     assert result["extra_parts_possible"] == 1440
 
 
@@ -35,9 +37,24 @@ def test_missing_data_not_applicable():
 
 def test_batch_totals_and_ordering():
     records = [
-        {"machine_id": "small", "shots": 3600, "avg_duration": 10.5, "target_duration": 10.0},
-        {"machine_id": "big", "shots": 7200, "avg_duration": 12.0, "target_duration": 10.0},
-        {"machine_id": "fine", "shots": 1000, "avg_duration": 10.0, "target_duration": 10.0},
+        {
+            "machine_id": "small",
+            "shots": 3600,
+            "avg_duration": 10.5,
+            "target_duration": 10.0,
+        },
+        {
+            "machine_id": "big",
+            "shots": 7200,
+            "avg_duration": 12.0,
+            "target_duration": 10.0,
+        },
+        {
+            "machine_id": "fine",
+            "shots": 1000,
+            "avg_duration": 10.0,
+            "target_duration": 10.0,
+        },
     ]
     result = simulate_savings_records(records)
     assert result["opportunities"] == 2

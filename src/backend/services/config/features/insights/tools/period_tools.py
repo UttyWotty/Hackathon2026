@@ -55,7 +55,9 @@ def _window_metrics(
     return {
         r["MACHINE_ID"]: {
             "shots": r.get("SHOTS"),
-            "avg_duration": round(r["AVG_DURATION"], 2) if r.get("AVG_DURATION") else None,
+            "avg_duration": (
+                round(r["AVG_DURATION"], 2) if r.get("AVG_DURATION") else None
+            ),
             "active_days": r.get("ACTIVE_DAYS"),
         }
         for r in rows

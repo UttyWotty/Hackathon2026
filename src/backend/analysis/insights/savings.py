@@ -31,7 +31,12 @@ def compute_record_savings(
         equipment already meets or beats the target (or data is missing), savings
         are zero and applicable is False.
     """
-    if not shots or avg_duration is None or target_duration is None or target_duration <= 0:
+    if (
+        not shots
+        or avg_duration is None
+        or target_duration is None
+        or target_duration <= 0
+    ):
         return {"applicable": False, "hours_saved": 0.0, "extra_parts_possible": 0}
 
     ct_gap = avg_duration - target_duration

@@ -77,21 +77,15 @@ class ROIPreprocessor:
         df["NEXT_SHOT_TIME"] = df.groupby(["VENDOR_NAME", "MACHINE_ID"])[
             "SHOT_TIME"
         ].shift(-1)
-        df["GAP_SECONDS"] = (
-            df["NEXT_SHOT_TIME"] - df["SHOT_TIME"]
-        ).dt.total_seconds()
+        df["GAP_SECONDS"] = (df["NEXT_SHOT_TIME"] - df["SHOT_TIME"]).dt.total_seconds()
 
         # Extract ISO week/year for session detection
         df["ISO_WEEK"] = df["SHOT_TIME"].dt.isocalendar().week
         df["ISO_YEAR"] = df["SHOT_TIME"].dt.isocalendar().year
 
         # Get previous shot's week/year for comparison
-        df["PREV_WEEK"] = df.groupby(["VENDOR_NAME", "MACHINE_ID"])[
-            "ISO_WEEK"
-        ].shift(1)
-        df["PREV_YEAR"] = df.groupby(["VENDOR_NAME", "MACHINE_ID"])[
-            "ISO_YEAR"
-        ].shift(1)
+        df["PREV_WEEK"] = df.groupby(["VENDOR_NAME", "MACHINE_ID"])["ISO_WEEK"].shift(1)
+        df["PREV_YEAR"] = df.groupby(["VENDOR_NAME", "MACHINE_ID"])["ISO_YEAR"].shift(1)
 
         # Mark new sessions based on:
         # 1. Gap from previous shot > 8 hours (28,800 seconds)

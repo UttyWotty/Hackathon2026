@@ -155,9 +155,7 @@ def _analyze_window(
 
         eff = equip_df["efficiency_pct"]
         process_type = (
-            str(equip_df["TYPE"].iloc[0])
-            if "TYPE" in equip_df.columns
-            else "Unknown"
+            str(equip_df["TYPE"].iloc[0]) if "TYPE" in equip_df.columns else "Unknown"
         )
         vendor_name = (
             str(equip_df["VENDOR_NAME"].iloc[0])
@@ -271,7 +269,9 @@ def analyze_group_windowed(
     Returns:
         WindowedGroupResult or None if insufficient data
     """
-    product_names = sorted(group_df["PRODUCT_NAME"].dropna().unique().astype(str).tolist())
+    product_names = sorted(
+        group_df["PRODUCT_NAME"].dropna().unique().astype(str).tolist()
+    )
 
     windows = _slice_into_months(group_df)
     sorted_window_labels = sorted(windows.keys())

@@ -147,9 +147,7 @@ async def run_roi_analysis(
 
             # Get first supplier name for filename (if provided)
             supplier_filter = (
-                vendor_names[0]
-                if vendor_names and len(vendor_names) > 0
-                else None
+                vendor_names[0] if vendor_names and len(vendor_names) > 0 else None
             )
 
             # Generate Excel report

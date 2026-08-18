@@ -152,7 +152,9 @@ def run_efficiency_analysis(
             normalization_method=normalization_method or "z_score",
         )
 
-        logger.info(f"✅ duration efficiency analysis completed: {result.get('message', '')}")
+        logger.info(
+            f"✅ duration efficiency analysis completed: {result.get('message', '')}"
+        )
         return result
 
     except Exception as e:

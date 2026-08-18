@@ -252,10 +252,16 @@ def render_drift_tab(deviation_df):
             st.altair_chart(area + line + target_line, use_container_width=True)
 
         st.dataframe(
-            drift_detail[[
-                "WEEK_START", "SHOT_COUNT", "AVG_DURATION",
-                "TARGET_DURATION", "DEVIATION_PCT", "STD_DURATION",
-            ]],
+            drift_detail[
+                [
+                    "WEEK_START",
+                    "SHOT_COUNT",
+                    "AVG_DURATION",
+                    "TARGET_DURATION",
+                    "DEVIATION_PCT",
+                    "STD_DURATION",
+                ]
+            ],
             use_container_width=True,
         )
 
@@ -297,24 +303,29 @@ def render_drift_tab(deviation_df):
         with col_notes:
             st.markdown("**Corroborating Operator Notes**")
             corroboration_keywords = [
-                "drift", "creep", "slow", "over standard", "compensation",
-                "sluggish", "cooling", "ejection", "drag", "recommend pulling",
-                "significantly long", "well over",
+                "drift",
+                "creep",
+                "slow",
+                "over standard",
+                "compensation",
+                "sluggish",
+                "cooling",
+                "ejection",
+                "drag",
+                "recommend pulling",
+                "significantly long",
+                "well over",
             ]
             for _, note_row in notes.iterrows():
                 note_text = str(note_row["NOTE_TEXT"]).lower()
-                is_corroborating = any(
-                    kw in note_text for kw in corroboration_keywords
-                )
+                is_corroborating = any(kw in note_text for kw in corroboration_keywords)
                 if is_corroborating:
                     st.warning(
                         f"**{note_row['SHIFT_DATE']}** | {note_row['AUTHOR_ROLE']}\n\n"
                         f"{note_row['NOTE_TEXT']}"
                     )
                 else:
-                    st.text(
-                        f"[{note_row['SHIFT_DATE']}] {note_row['NOTE_TEXT']}"
-                    )
+                    st.text(f"[{note_row['SHIFT_DATE']}] {note_row['NOTE_TEXT']}")
 
         st.markdown("---")
         st.markdown(
@@ -342,8 +353,11 @@ def render_stability_tab(stability_df, deviation_df):
         .mark_line(point=True)
         .encode(
             x=alt.X("WEEK_START:T", title="Week"),
-            y=alt.Y("STABILITY_SCORE:Q", title="Stability Score (%)",
-                     scale=alt.Scale(domain=[40, 100])),
+            y=alt.Y(
+                "STABILITY_SCORE:Q",
+                title="Stability Score (%)",
+                scale=alt.Scale(domain=[40, 100]),
+            ),
             color=alt.Color("MACHINE_ID:N", title="Equipment"),
             opacity=alt.condition(highlight, alt.value(1.0), alt.value(0.2)),
         )
@@ -371,8 +385,11 @@ def render_stability_tab(stability_df, deviation_df):
         alt.Chart(scatter_data)
         .mark_circle(size=120)
         .encode(
-            x=alt.X("AVG_STABILITY:Q", title="Avg Stability (%)",
-                     scale=alt.Scale(domain=[50, 100])),
+            x=alt.X(
+                "AVG_STABILITY:Q",
+                title="Avg Stability (%)",
+                scale=alt.Scale(domain=[50, 100]),
+            ),
             y=alt.Y("AVG_DEVIATION:Q", title="Avg Duration Deviation (%)"),
             color=alt.Color("MACHINE_ID:N"),
             tooltip=["MACHINE_ID", "AVG_STABILITY", "AVG_DEVIATION"],
@@ -473,11 +490,31 @@ def main():
     st.divider()
 
     # Tabbed views
-    tab_drift, tab_pareto, tab_whys, tab_efficiency, tab_eol, tab_maint, tab_trail, tab_insights, tab_stability, tab_fleet = st.tabs([
-        "Drift Detection", "Pareto", "5 Whys", "Efficiency",
-        "Tooling Life", "Maintenance", "Decision Trail", "Insights",
-        "Stability", "Fleet Overview",
-    ])
+    (
+        tab_drift,
+        tab_pareto,
+        tab_whys,
+        tab_efficiency,
+        tab_eol,
+        tab_maint,
+        tab_trail,
+        tab_insights,
+        tab_stability,
+        tab_fleet,
+    ) = st.tabs(
+        [
+            "Drift Detection",
+            "Pareto",
+            "5 Whys",
+            "Efficiency",
+            "Tooling Life",
+            "Maintenance",
+            "Decision Trail",
+            "Insights",
+            "Stability",
+            "Fleet Overview",
+        ]
+    )
 
     with tab_drift:
         deviation_df = load_fleet_deviation()

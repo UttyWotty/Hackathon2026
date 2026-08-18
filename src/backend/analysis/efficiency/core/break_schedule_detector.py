@@ -44,9 +44,7 @@ def collect_break_events(
         )
         break_rows = session_df[mask]
         for _, row in break_rows.iterrows():
-            hour_of_day = (
-                row["SHOT_TIME"].hour + row["SHOT_TIME"].minute / 60.0
-            )
+            hour_of_day = row["SHOT_TIME"].hour + row["SHOT_TIME"].minute / 60.0
             breaks.append(
                 {
                     "hour_of_day": round(hour_of_day, 2),

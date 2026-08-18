@@ -165,7 +165,9 @@ def assess_group_staleness(
     Returns:
         StalenessResult or None if insufficient data
     """
-    product_names = sorted(group_df["PRODUCT_NAME"].dropna().unique().astype(str).tolist())
+    product_names = sorted(
+        group_df["PRODUCT_NAME"].dropna().unique().astype(str).tolist()
+    )
 
     snapshots = _aggregate_monthly(group_df)
     if len(snapshots) < MIN_MONTHS_FOR_STALENESS:
@@ -193,7 +195,13 @@ def assess_group_staleness(
     )
 
     reasoning = _build_reasoning(
-        target_duration, severity, trend, latest, earliest, total_drift, suggested_duration
+        target_duration,
+        severity,
+        trend,
+        latest,
+        earliest,
+        total_drift,
+        suggested_duration,
     )
 
     return StalenessResult(

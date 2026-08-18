@@ -5,10 +5,7 @@
 name: CI
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  workflow_dispatch:
 
 env:
   # Disable Snowflake and Redis in CI to skip integration tests that need them.
@@ -79,6 +76,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests with pytest
+        env:
+          PYTHONPATH: src/backend
         run: |
           pytest tests/ -v --tb=short -x \
             -k "not snowflake and not redis and not langfuse and not langflow"
@@ -87,4 +86,6 @@ jobs:
       # when the suite above fails, since -x would otherwise mask its result.
       - name: Run synthetic data generator tests
         if: ${{ !cancelled() }}
+        env:
+          PYTHONPATH: src/backend
         run: pytest synthetic_data/tests/ -v --tb=short

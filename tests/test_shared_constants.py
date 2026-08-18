@@ -107,8 +107,7 @@ class TestAnalysisThresholds:
     def test_deviation_ordering(self) -> None:
         """Warning threshold must be less than critical threshold."""
         assert (
-            AnalysisThresholds.DEVIATION_WARNING
-            < AnalysisThresholds.DEVIATION_CRITICAL
+            AnalysisThresholds.DEVIATION_WARNING < AnalysisThresholds.DEVIATION_CRITICAL
         )
 
     def test_max_acceptable_ct(self) -> None:
@@ -275,7 +274,9 @@ class TestSessionDetection:
 
     def test_hard_stop_ct_matches_max_acceptable(self) -> None:
         """Hard stop CT aligns with AnalysisThresholds MAX_ACCEPTABLE_duration."""
-        assert SessionDetection.HARD_STOP_DURATION == AnalysisThresholds.MAX_ACCEPTABLE_CT
+        assert (
+            SessionDetection.HARD_STOP_DURATION == AnalysisThresholds.MAX_ACCEPTABLE_CT
+        )
 
     def test_mode_ct_decimals(self) -> None:
         """Mode CT rounding precision is 2 decimal places."""

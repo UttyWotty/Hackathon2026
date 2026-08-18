@@ -351,9 +351,7 @@ def analyze_equipment_shifts(
         EquipmentShiftAnalysis or None if insufficient data
     """
     process_type = (
-        str(equip_df["TYPE"].iloc[0])
-        if "TYPE" in equip_df.columns
-        else "Unknown"
+        str(equip_df["TYPE"].iloc[0]) if "TYPE" in equip_df.columns else "Unknown"
     )
     vendor_name = (
         str(equip_df["VENDOR_NAME"].iloc[0])

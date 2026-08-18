@@ -117,9 +117,7 @@ def fetch_data_from_snowflake(session=None):
 
     # First, check if table exists and has data
     try:
-        check_query = (
-            f"SELECT COUNT(*) as ROW_COUNT FROM {database}.{schema}.SHOT_DATA"
-        )
+        check_query = f"SELECT COUNT(*) as ROW_COUNT FROM {database}.{schema}.SHOT_DATA"
         logger.info(f"🔍 Checking table existence: {check_query}")
 
         count_df = session.sql(check_query).to_pandas()

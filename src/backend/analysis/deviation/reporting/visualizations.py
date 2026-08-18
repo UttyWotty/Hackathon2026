@@ -182,9 +182,7 @@ def create_time_series_chart(
         if machine_id is None:
             machine_id = df["MACHINE_ID"].value_counts().index[0]
 
-        sample_data = df[df["MACHINE_ID"] == machine_id].sort_values(
-            "SHOT_TIME"
-        )
+        sample_data = df[df["MACHINE_ID"] == machine_id].sort_values("SHOT_TIME")
 
         if sample_data.empty:
             logger.warning(f"⚠️ No data for equipment {machine_id}")

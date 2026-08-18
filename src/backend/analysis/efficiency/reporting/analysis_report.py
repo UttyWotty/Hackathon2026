@@ -157,7 +157,9 @@ def _section_executive_summary(
     html += "</div>"
 
     html += '<div class="highlight critical"><strong>Key Finding:</strong> '
-    html += "All approved duration baselines are out of date. Machines run 17-43% slower "
+    html += (
+        "All approved duration baselines are out of date. Machines run 17-43% slower "
+    )
     html += "than target across all part groups. Performance differences between "
     html += "operators are negligible (ratio &lt; 0.3). The primary issue is stale "
     html += "baselines, not machine or operator performance.</div>"
@@ -216,9 +218,7 @@ def _section_tool_comparison(tool_groups: List) -> str:
     """Tool comparison within same-part groups."""
     html = '<div class="section-divider"></div>'
     html += "<h2>2. Tool Comparison (Same Part Groups)</h2>"
-    html += (
-        "<p>Equipment grouped by TARGET_DURATION (same target = same or similar parts). "
-    )
+    html += "<p>Equipment grouped by TARGET_DURATION (same target = same or similar parts). "
     html += "Machines compared head-to-head on identical work.</p>"
 
     for group in tool_groups:
@@ -321,9 +321,7 @@ def _section_staleness(staleness: List) -> str:
     html = '<div class="section-divider"></div>'
     html += "<h2>4. Approved Duration Baseline Assessment</h2>"
     html += "<p>Each approved duration is evaluated for staleness based on trend, "
-    html += (
-        "current performance level, and gap between target and actual duration.</p>"
-    )
+    html += "current performance level, and gap between target and actual duration.</p>"
 
     html += """<table>
     <thead><tr>
@@ -388,7 +386,9 @@ def _section_recommendations(staleness: List) -> str:
     html += "process parameter drift, material batch variation.</li>"
 
     html += "<li><strong>Establish periodic baseline review.</strong> "
-    html += "Approved Durations should be reviewed quarterly against actual performance "
+    html += (
+        "Approved Durations should be reviewed quarterly against actual performance "
+    )
     html += "to prevent staleness from accumulating.</li>"
 
     html += (

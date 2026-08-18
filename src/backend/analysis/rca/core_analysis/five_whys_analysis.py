@@ -134,9 +134,13 @@ class FiveWhysAnalysis:
                 self.df["TARGET_DURATION"] / self.df["DURATION"]
             ) * EFFICIENCY_CAP
             self.df["EFFICIENCY"] = self.df["EFFICIENCY"].clip(upper=EFFICIENCY_CAP)
-            logger.info("Added EFFICIENCY column (Approved Duration / Actual Duration * 100)")
+            logger.info(
+                "Added EFFICIENCY column (Approved Duration / Actual Duration * 100)"
+            )
         else:
-            logger.warning("Cannot calculate efficiency - missing DURATION or TARGET_DURATION")
+            logger.warning(
+                "Cannot calculate efficiency - missing DURATION or TARGET_DURATION"
+            )
 
     def _add_temporal_columns(self) -> None:
         """Add SHIFT, DATE, and DAY_OF_WEEK columns as needed."""
@@ -146,13 +150,8 @@ class FiveWhysAnalysis:
         if "DATE" not in self.df.columns and "SHOT_TIME" in self.df.columns:
             self.df["DATE"] = pd.to_datetime(self.df["SHOT_TIME"]).dt.date
             logger.info("Added DATE column from SHOT_TIME")
-        if (
-            "DAY_OF_WEEK" not in self.df.columns
-            and "SHOT_TIME" in self.df.columns
-        ):
-            self.df["DAY_OF_WEEK"] = pd.to_datetime(
-                self.df["SHOT_TIME"]
-            ).dt.day_name()
+        if "DAY_OF_WEEK" not in self.df.columns and "SHOT_TIME" in self.df.columns:
+            self.df["DAY_OF_WEEK"] = pd.to_datetime(self.df["SHOT_TIME"]).dt.day_name()
             logger.info("Added DAY_OF_WEEK column from SHOT_TIME")
 
     @staticmethod
@@ -193,7 +192,9 @@ class FiveWhysAnalysis:
             )
         if len(targets) < top_n and "PRODUCT_NAME" in self.df.columns:
             targets.extend(
-                self._issue_targets("PRODUCT_NAME", "Part", "Part", top_n - len(targets))
+                self._issue_targets(
+                    "PRODUCT_NAME", "Part", "Part", top_n - len(targets)
+                )
             )
         for i, t in enumerate(targets, 1):
             logger.info(
@@ -477,9 +478,7 @@ class FiveWhysAnalysis:
     def generate_industry_comparison_report(self) -> Dict[str, Any]:
         """Generate industry comparison report."""
         try:
-            chart_data = get_industry_comparison_chart_data(
-                self.df, self.type_category
-            )
+            chart_data = get_industry_comparison_chart_data(self.df, self.type_category)
             return {
                 "type_category": self.type_category,
                 "performance_summary": {

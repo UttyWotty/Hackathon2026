@@ -91,9 +91,7 @@ def data_quality_audit(days: int = DEFAULT_WINDOW_DAYS) -> Dict[str, Any]:
 
         total = int(base.get("TOTAL_SHOTS") or 0)
         checks: Dict[str, Dict[str, Any]] = {
-            "null_machine_id": _verdict(
-                int(base.get("NULL_EQUIPMENT") or 0), total
-            ),
+            "null_machine_id": _verdict(int(base.get("NULL_EQUIPMENT") or 0), total),
             "invalid_ct": _verdict(int(base.get("INVALID_CT") or 0), total),
             "hard_stop_shots": _verdict(int(base.get("HARD_STOP_SHOTS") or 0), total),
             "missing_target_duration": _verdict(

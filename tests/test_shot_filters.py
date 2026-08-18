@@ -62,11 +62,15 @@ class TestValidityFilter:
         assert kept["DURATION"].tolist() == [10.0, 12.0, 11.0, 13.0]
 
     def test_boundary_ct_is_excluded(self):
-        frame = pd.DataFrame({"DURATION": [MAX_VALID_DURATION], "TARGET_DURATION": [10.0]})
+        frame = pd.DataFrame(
+            {"DURATION": [MAX_VALID_DURATION], "TARGET_DURATION": [10.0]}
+        )
         assert apply_validity_filter(frame).empty
 
     def test_just_below_boundary_is_kept(self):
-        frame = pd.DataFrame({"DURATION": [MAX_VALID_DURATION - 0.1], "TARGET_DURATION": [10.0]})
+        frame = pd.DataFrame(
+            {"DURATION": [MAX_VALID_DURATION - 0.1], "TARGET_DURATION": [10.0]}
+        )
         assert len(apply_validity_filter(frame)) == 1
 
 

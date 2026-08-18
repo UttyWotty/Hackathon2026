@@ -110,7 +110,11 @@ def simulate_savings(
                     "product_id": row.get("PRODUCT_ID"),
                     "product_name": row.get("PRODUCT_NAME"),
                     "shots": row.get("SHOTS") or 0,
-                    "avg_duration": round(row["AVG_DURATION"], 3) if row.get("AVG_DURATION") else None,
+                    "avg_duration": (
+                        round(row["AVG_DURATION"], 3)
+                        if row.get("AVG_DURATION")
+                        else None
+                    ),
                     "target_duration": target_duration,
                 }
             )

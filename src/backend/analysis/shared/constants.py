@@ -53,7 +53,7 @@ class SessionDetection:
     SESSION_GAP_SECONDS: int = 28800  # SESSION_GAP_HOURS * 3600
     STOP_DEVIATION_THRESHOLD: float = 0.05  # +/-5% from mode duration triggers stop
     GAP_TIME_TOLERANCE_SECONDS: float = 2.0  # Gap > DURATION + this value = stop
-    HARD_STOP_DURATION: float = 999.9  #DURATION >= this value = hard stop / idle
+    HARD_STOP_DURATION: float = 999.9  # DURATION >= this value = hard stop / idle
     MODE_CT_DECIMALS: int = 2  # Rounding precision for mode duration
 
 
@@ -164,9 +164,7 @@ class ColumnNames:
     EQUIPMENT_STATUS = "EQUIPMENT_STATUS"
 
     # Part information
-    PRODUCT_ID = (
-        "PRODUCT_ID"  # Note: Stores product_code (STRING like "218-155"), not numeric ID
-    )
+    PRODUCT_ID = "PRODUCT_ID"  # Note: Stores product_code (STRING like "218-155"), not numeric ID
     PRODUCT_NAME = "PRODUCT_NAME"
 
     # Supplier information

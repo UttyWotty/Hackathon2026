@@ -282,9 +282,7 @@ class MasterShotPipeline:
         df.columns = [c.upper() for c in df.columns]
 
         if "SHOT_TIME" in df.columns:
-            df["SHOT_TIME"] = pd.to_datetime(
-                df["SHOT_TIME"], errors="coerce"
-            )
+            df["SHOT_TIME"] = pd.to_datetime(df["SHOT_TIME"], errors="coerce")
             initial_len = len(df)
             df = df.dropna(subset=["SHOT_TIME"]).copy()
             if len(df) < initial_len:
@@ -312,9 +310,7 @@ class MasterShotPipeline:
                 batch = df.iloc[start:end].copy()
                 if "SHOT_TIME" in batch.columns:
                     batch["SHOT_TIME"] = (
-                        batch["SHOT_TIME"]
-                        .dt.strftime("%Y-%m-%d %H:%M:%S.%f")
-                        .str[:-3]
+                        batch["SHOT_TIME"].dt.strftime("%Y-%m-%d %H:%M:%S.%f").str[:-3]
                     )
                 if "SHOT_TIME_UTC" in batch.columns:
                     batch["SHOT_TIME_UTC"] = (

@@ -57,9 +57,7 @@ def run_analysis_api(
     logging.info("=" * 100)
     logging.info("RCA API ENTRY POINT")
     logging.info("=" * 100)
-    logging.info(
-        f"Parameters: machine_id={machine_id}, vendor_name={vendor_name}"
-    )
+    logging.info(f"Parameters: machine_id={machine_id}, vendor_name={vendor_name}")
     print("=" * 100)
     print("RCA API ENTRY POINT")
     print("=" * 100)
@@ -91,9 +89,7 @@ def run_analysis_api(
         logging.info(
             f"Creating RootCauseAnalysisPipeline with equipment_filter={machine_id}"
         )
-        print(
-            f"Creating RootCauseAnalysisPipeline with equipment_filter={machine_id}"
-        )
+        print(f"Creating RootCauseAnalysisPipeline with equipment_filter={machine_id}")
         pipeline = RootCauseAnalysisPipeline(equipment_filter=machine_id)
 
         # Run complete analysis

@@ -87,9 +87,7 @@ async def run_rca_analysis(
         from analysis.rca import run_analysis_api
 
         # Extract parameters
-        machine_id = (
-            machine_ids[0] if machine_ids and len(machine_ids) > 0 else None
-        )
+        machine_id = machine_ids[0] if machine_ids and len(machine_ids) > 0 else None
         vendor_name = (
             vendor_names[0] if vendor_names and len(vendor_names) > 0 else None
         )

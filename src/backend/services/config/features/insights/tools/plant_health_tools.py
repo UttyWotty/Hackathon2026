@@ -122,7 +122,9 @@ def get_plant_health_snapshot(days: int = DEFAULT_WINDOW_DAYS) -> Dict[str, Any]
                 },
             )
             health["shots_in_window"] = m.get("SHOTS")
-            health["avg_duration"] = round(m["AVG_DURATION"], 2) if m.get("AVG_DURATION") else None
+            health["avg_duration"] = (
+                round(m["AVG_DURATION"], 2) if m.get("AVG_DURATION") else None
+            )
             health["target_duration"] = m.get("TARGET_DURATION")
             health["hours_since_last_shot"] = m.get("HOURS_SINCE_LAST_SHOT")
             records.append(health)

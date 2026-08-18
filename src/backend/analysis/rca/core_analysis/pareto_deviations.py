@@ -119,7 +119,9 @@ def calculate_std_deviations(
         ((df["DURATION"] - df["mean"]) / df["mean"]) * 100,
         np.nan,
     )
-    df["STD_OUTLIER"] = (df["DURATION"] < df["lower_bound"]) | (df["DURATION"] > df["upper_bound"])
+    df["STD_OUTLIER"] = (df["DURATION"] < df["lower_bound"]) | (
+        df["DURATION"] > df["upper_bound"]
+    )
     return df
 
 

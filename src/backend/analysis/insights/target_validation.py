@@ -43,7 +43,9 @@ def validate_ct_record(
             "status": STATUS_MISSING_APPROVED,
             "deviation_pct": None,
             "suggested_duration": (
-                round(observed_duration, SUGGESTED_CT_PRECISION) if observed_duration else None
+                round(observed_duration, SUGGESTED_CT_PRECISION)
+                if observed_duration
+                else None
             ),
         }
     if observed_duration is None or observed_duration <= 0 or shot_count < min_shots:
@@ -53,14 +55,20 @@ def validate_ct_record(
             "suggested_duration": None,
         }
 
-    deviation_pct = round((observed_duration - target_duration) / target_duration * 100.0, 2)
+    deviation_pct = round(
+        (observed_duration - target_duration) / target_duration * 100.0, 2
+    )
     if abs(deviation_pct) > stale_threshold_pct:
         return {
             "status": STATUS_STALE,
             "deviation_pct": deviation_pct,
             "suggested_duration": round(observed_duration, SUGGESTED_CT_PRECISION),
         }
-    return {"status": STATUS_OK, "deviation_pct": deviation_pct, "suggested_duration": None}
+    return {
+        "status": STATUS_OK,
+        "deviation_pct": deviation_pct,
+        "suggested_duration": None,
+    }
 
 
 def validate_ct_records(

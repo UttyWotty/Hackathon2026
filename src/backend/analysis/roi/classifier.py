@@ -46,7 +46,8 @@ class CycleTimeClassifier:
         delta = self.config.delta_tolerance
 
         conditions = [
-            np.abs(df["DURATION"] - df["TARGET_DURATION"]) <= df["TARGET_DURATION"] * delta,
+            np.abs(df["DURATION"] - df["TARGET_DURATION"])
+            <= df["TARGET_DURATION"] * delta,
             df["DURATION"] > df["TARGET_DURATION"] * (1 + delta),
             df["DURATION"] < df["TARGET_DURATION"] * (1 - delta),
         ]

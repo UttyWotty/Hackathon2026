@@ -7,7 +7,9 @@ higher output is better). Pure logic: callers supply pre-aggregated window metri
 
 from typing import Any, Dict, Optional
 
-LOWER_IS_BETTER: frozenset = frozenset({"avg_duration", "downtime_minutes", "stop_rate"})
+LOWER_IS_BETTER: frozenset = frozenset(
+    {"avg_duration", "downtime_minutes", "stop_rate"}
+)
 NEUTRAL_THRESHOLD_PCT: float = 2.0
 
 IMPACT_IMPROVED: str = "improved"

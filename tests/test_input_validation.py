@@ -473,10 +473,7 @@ class TestValidateAnalyticsRequest:
     def test_machine_ids_at_max_50(self) -> None:
         """50 equipment codes (max for analytics) passes."""
         codes = [f"EQ{i:03d}" for i in range(50)]
-        assert (
-            len(validate_analytics_request(machine_ids=codes)["machine_ids"])
-            == 50
-        )
+        assert len(validate_analytics_request(machine_ids=codes)["machine_ids"]) == 50
 
     def test_machine_ids_over_max_50(self) -> None:
         """51 equipment codes raises error."""

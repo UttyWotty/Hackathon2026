@@ -138,7 +138,9 @@ def analyze_group(
     """
     # Collect part info
     product_ids = sorted(group_df["PRODUCT_ID"].dropna().unique().astype(str).tolist())
-    product_names = sorted(group_df["PRODUCT_NAME"].dropna().unique().astype(str).tolist())
+    product_names = sorted(
+        group_df["PRODUCT_NAME"].dropna().unique().astype(str).tolist()
+    )
 
     # Per-equipment stats
     tool_stats = []
@@ -148,9 +150,7 @@ def analyze_group(
 
         eff = equip_df["efficiency_pct"]
         process_type = (
-            str(equip_df["TYPE"].iloc[0])
-            if "TYPE" in equip_df.columns
-            else "Unknown"
+            str(equip_df["TYPE"].iloc[0]) if "TYPE" in equip_df.columns else "Unknown"
         )
         vendor_name = (
             str(equip_df["VENDOR_NAME"].iloc[0])

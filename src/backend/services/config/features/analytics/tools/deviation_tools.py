@@ -146,7 +146,9 @@ def run_deviation_analysis(
             create_charts=create_charts if create_charts is not None else True,
         )
 
-        logger.info(f"✅ duration deviation analysis completed: {result.get('message', '')}")
+        logger.info(
+            f"✅ duration deviation analysis completed: {result.get('message', '')}"
+        )
         return result
 
     except Exception as e:

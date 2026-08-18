@@ -101,8 +101,7 @@ def _window_metrics_for_mold(
     if before:
         time_filter = (
             "SHOT_TIME >= DATEADD(day, -%d, '%s'::TIMESTAMP) "
-            "AND SHOT_TIME < '%s'::TIMESTAMP"
-            % (window_days, event_time, event_time)
+            "AND SHOT_TIME < '%s'::TIMESTAMP" % (window_days, event_time, event_time)
         )
     else:
         time_filter = (
@@ -119,7 +118,9 @@ def _window_metrics_for_mold(
     row = rows[0] if rows else {}
     shots = row.get("SHOTS") or 0
     return {
-        "avg_duration": round(row["AVG_DURATION"], 3) if row.get("AVG_DURATION") else None,
+        "avg_duration": (
+            round(row["AVG_DURATION"], 3) if row.get("AVG_DURATION") else None
+        ),
         "shots_per_day": round(shots / window_days, 1) if shots else None,
     }
 
