@@ -22,7 +22,7 @@ from tooling_eol import run_analysis_api
 result = run_analysis_api(
     save_csv=True,
     save_html=True,
-    tooling_family="Injection Molding"
+    type_category="Injection Molding"
 )
 
 if result["status"] == "success":
@@ -49,9 +49,9 @@ from .core import (
     create_snowpark_session,
     predict_end_of_life,
     predict_end_of_life_for_mold,
-    read_demo_table,
+    read_shot_data,
     read_maintenance_events,
-    read_mold_table,
+    read_tool_table,
 )
 from .models.config import (
     ELCPrediction,
@@ -75,9 +75,9 @@ __all__ = [
     "get_design_life",
     # Core functions
     "create_snowpark_session",
-    "read_demo_table",
+    "read_shot_data",
     "read_maintenance_events",
-    "read_mold_table",
+    "read_tool_table",
     "predict_end_of_life",
     "predict_end_of_life_for_mold",
     # Reporting

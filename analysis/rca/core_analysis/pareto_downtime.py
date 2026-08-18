@@ -16,12 +16,12 @@ from analysis.shared.constants import SessionDetection
 # Default thresholds (callers may override)
 # ---------------------------------------------------------------------------
 DOWNTIME_GAP_THRESHOLD: float = 5.0
-DOWNTIME_CT_MULTIPLIER: float = 2.0
+DOWNTIME_DURATION_MULTIPLIER: float = 2.0
 
 # Downtime rounding errors to ignore (seconds)
 ROUNDING_ERRORS = {-1, 0, 1}
 
-# Invalid cycle time sentinel
+# Invalid duration sentinel
 INVALID_CT_THRESHOLD: float = 999.0
 
 
@@ -31,27 +31,27 @@ INVALID_CT_THRESHOLD: float = 999.0
 
 
 def calculate_real_downtime(df: pd.DataFrame) -> pd.DataFrame:
-    """Calculate real downtime using company logic: time between shots minus previous CT.
+    """Calculate real downtime using company logic: time between shots minus previous duration.
 
     Rules applied:
-    - Skip when previous CT >= 999 (invalid).
+    - Skip when previous DURATION >= 999 (invalid).
     - Skip when gap exceeds SESSION_GAP_SECONDS (session break).
     - Ignore rounding errors (-1, 0, 1 seconds).
     - Only positive downtime is recorded.
 
     Args:
-        df: Manufacturing shot data with LOCAL_SHOT_TIME and CT columns.
+        df: Manufacturing shot data with SHOT_TIME and DURATION columns.
 
     Returns:
         The input DataFrame with TIME_BETWEEN_SHOTS and DOWNTIME columns added.
     """
-    df = df.sort_values("LOCAL_SHOT_TIME")
-    df["TIME_BETWEEN_SHOTS"] = df["LOCAL_SHOT_TIME"].diff().dt.total_seconds()
+    df = df.sort_values("SHOT_TIME")
+    df["TIME_BETWEEN_SHOTS"] = df["SHOT_TIME"].diff().dt.total_seconds()
     df["DOWNTIME"] = 0.0
 
     for i in range(1, len(df)):
         time_between = df.iloc[i]["TIME_BETWEEN_SHOTS"]
-        prev_ct = df.iloc[i - 1]["CT"]
+        prev_ct = df.iloc[i - 1]["DURATION"]
 
         if prev_ct >= INVALID_CT_THRESHOLD:
             continue
@@ -74,12 +74,12 @@ def calculate_real_downtime(df: pd.DataFrame) -> pd.DataFrame:
 def detect_downtime_events(
     df: pd.DataFrame,
     gap_threshold: float = DOWNTIME_GAP_THRESHOLD,
-    ct_multiplier: float = DOWNTIME_CT_MULTIPLIER,
+    ct_multiplier: float = DOWNTIME_DURATION_MULTIPLIER,
 ) -> pd.DataFrame:
     """Detect downtime events using timestamp gaps and CT spikes.
 
     Args:
-        df: Shot data with LOCAL_SHOT_TIME and CT columns.
+        df: Shot data with SHOT_TIME and DURATION columns.
         gap_threshold: Minimum gap in minutes to flag as downtime.
         ct_multiplier: Multiple of median CT above which a shot is a spike.
 
@@ -89,7 +89,7 @@ def detect_downtime_events(
     """
     print("\n  Detecting downtime events for equipment...")
 
-    df = df.sort_values("LOCAL_SHOT_TIME")
+    df = df.sort_values("SHOT_TIME")
 
     df["TIME_GAP_MINUTES"] = np.nan
     df["DOWNTIME_GAP_FLAG"] = False
@@ -100,12 +100,12 @@ def detect_downtime_events(
         print("  Not enough data for downtime analysis")
         return df
 
-    time_gaps = df["LOCAL_SHOT_TIME"].diff().dt.total_seconds() / 60.0
-    typical_ct = df["CT"].median()
+    time_gaps = df["SHOT_TIME"].diff().dt.total_seconds() / 60.0
+    typical_ct = df["DURATION"].median()
     ct_threshold = typical_ct * ct_multiplier
 
     downtime_gaps = time_gaps > gap_threshold
-    downtime_ct_spikes = df["CT"] > ct_threshold
+    downtime_ct_spikes = df["DURATION"] > ct_threshold
 
     df["TIME_GAP_MINUTES"] = time_gaps
     df["DOWNTIME_GAP_FLAG"] = downtime_gaps
@@ -125,7 +125,7 @@ def calculate_downtime_statistics(df: pd.DataFrame) -> Optional[pd.DataFrame]:
             DOWNTIME_CT_FLAG, and TIME_GAP_MINUTES columns.
 
     Returns:
-        Per-part downtime DataFrame, or None if PART_NAME is absent.
+        Per-part downtime DataFrame, or None if PRODUCT_NAME is absent.
     """
     total_shots = len(df)
     downtime_events = int(df["DOWNTIME_EVENT"].sum())
@@ -142,13 +142,13 @@ def calculate_downtime_statistics(df: pd.DataFrame) -> Optional[pd.DataFrame]:
     print("   CT spike downtimes: %d" % ct_downtimes)
 
     part_downtime: Optional[pd.DataFrame] = None
-    if "PART_NAME" in df.columns:
+    if "PRODUCT_NAME" in df.columns:
         part_downtime = (
-            df.groupby("PART_NAME")
+            df.groupby("PRODUCT_NAME")
             .agg(
                 {
                     "DOWNTIME_EVENT": "sum",
-                    "CT": "count",
+                    "DURATION": "count",
                     "TIME_GAP_MINUTES": ["mean", "max", "sum"],
                 }
             )
@@ -220,4 +220,4 @@ def _print_equipment_downtime_summary(df: pd.DataFrame) -> None:
     print("   Average downtime gap: %.1f minutes" % avg_gap)
     print("   Maximum downtime gap: %.1f minutes" % max_gap)
     print("   Total idle time: %.1f minutes" % total_idle)
-    print("   Typical cycle time: %.1f seconds" % df["CT"].median())
+    print("   Typical duration: %.1f seconds" % df["DURATION"].median())

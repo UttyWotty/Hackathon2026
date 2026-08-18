@@ -15,10 +15,10 @@ from typing import Any, Dict, List, Optional
 # supplier); the equipment code and dates are shaped to pass
 # utils.input_validation.validate_analytics_request so the handler actually runs.
 ANALYTICS_SCHEMA = "NORDPLAST"
-SAMPLE_EQUIPMENT_CODE = "MX-7101"
+SAMPLE_MACHINE_ID = "MX-7101"
 SAMPLE_START_DATE = "2025-11-01"
 SAMPLE_END_DATE = "2025-11-30"
-SAMPLE_TABLE = "DEMO_TABLE"
+SAMPLE_TABLE = "SHOT_DATA"
 
 # A pure, I/O-free dispatch target (all args optional, no Snowflake) used to
 # exercise the MCP tool-dispatch registry without an external dependency.
@@ -56,7 +56,7 @@ class ValidCase:
 def _analytics_body() -> Dict[str, Any]:
     """Build the shared analytics request body (single equipment, one month)."""
     return {
-        "equipment_codes": [SAMPLE_EQUIPMENT_CODE],
+        "machine_ids": [SAMPLE_MACHINE_ID],
         "start_date": SAMPLE_START_DATE,
         "end_date": SAMPLE_END_DATE,
         "client": ANALYTICS_SCHEMA,

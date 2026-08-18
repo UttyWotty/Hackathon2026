@@ -19,7 +19,7 @@ STATUS_ERROR = "error"
 # Analyses return metrics as a list of per-equipment rows.
 KEY_METRICS = "metrics"
 KEY_SUMMARY = "summary"
-KEY_EQUIPMENT = "equipment_code"
+KEY_EQUIPMENT = "machine_id"
 
 # Per-equipment fields worth putting in front of the model.
 EQUIPMENT_FIELDS = (
@@ -56,12 +56,12 @@ class SenseFinding:
         return self.status == STATUS_SUCCESS
 
 
-# The opening sweep. Cycle time deviation catches drift and stability decline.
+# The opening sweep. Duration deviation catches drift and stability decline.
 DEFAULT_SENSE_TASKS: List[SenseTask] = [
-    SenseTask(tool_name="run_ct_deviation_analysis", arguments={}),
+    SenseTask(tool_name="run_deviation_analysis", arguments={}),
 ]
 
-CT_DEVIATION_TOOL = "run_ct_deviation_analysis"
+DEVIATION_TOOL = "run_deviation_analysis"
 KEY_DEVIATION = "deviation_percentage"
 
 
@@ -69,7 +69,7 @@ def derive_followup_tasks(findings: List[SenseFinding]) -> List[SenseTask]:
     """
     Derive follow-up tasks from the opening sweep findings.
 
-    Currently returns empty - the CT deviation sweep is the only detector.
+    Currently returns empty - the duration deviation sweep is the only detector.
 
     Args:
         findings: Results of the opening sweep.

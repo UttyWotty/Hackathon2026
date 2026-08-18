@@ -29,7 +29,7 @@ def _make_shot_df(
     ct_issue_flags: Optional[List[bool]] = None,
     downtime_gap_flags: Optional[List[bool]] = None,
     temperatures: Optional[List[float]] = None,
-    part_names: Optional[List[str]] = None,
+    product_names: Optional[List[str]] = None,
     ct_values: Optional[List[float]] = None,
     base_time: datetime = datetime(2025, 6, 1, 8, 0, 0),
 ) -> pd.DataFrame:
@@ -39,19 +39,19 @@ def _make_shot_df(
     """
     times = [base_time + timedelta(seconds=i * 10) for i in range(n)]
     data: Dict[str, Any] = {
-        "LOCAL_SHOT_TIME": pd.to_datetime(times),
+        "SHOT_TIME": pd.to_datetime(times),
         "CT_ISSUE_FLAG": ct_issue_flags if ct_issue_flags is not None else [False] * n,
         "DOWNTIME_GAP_FLAG": (
             downtime_gap_flags if downtime_gap_flags is not None else [False] * n
         ),
-        "CT": ct_values if ct_values is not None else [10.0] * n,
+        "DURATION": ct_values if ct_values is not None else [10.0] * n,
     }
     if temperatures is not None:
         data["TEMPERATURE"] = temperatures
-    if part_names is not None:
-        data["PART_NAME"] = part_names
+    if product_names is not None:
+        data["PRODUCT_NAME"] = product_names
     else:
-        data["PART_NAME"] = ["PartA"] * n
+        data["PRODUCT_NAME"] = ["PartA"] * n
     return pd.DataFrame(data)
 
 
@@ -152,7 +152,7 @@ class TestDetectSensorAnomalies:
     def test_no_anomalies_within_normal_range(self) -> None:
         """Temperatures within 3-sigma are not flagged."""
         temps = [200.0, 201.0, 199.0, 200.5, 200.2]
-        df = _make_shot_df(5, temperatures=temps, part_names=["P"] * 5)
+        df = _make_shot_df(5, temperatures=temps, product_names=["P"] * 5)
         result = detect_sensor_anomalies(df)
         assert result["SCRAP_SENSOR_ANOMALY"].sum() == 0
 
@@ -168,7 +168,7 @@ class TestDetectSensorAnomalies:
         """
         temps = [200.0] * 19 + [1000.0]
         parts = ["P"] * 20
-        df = _make_shot_df(20, temperatures=temps, part_names=parts)
+        df = _make_shot_df(20, temperatures=temps, product_names=parts)
         # Add dummy columns named 'mean' and 'std' to force the merge
         # suffixes to produce 'mean_temp_stats' and 'std_temp_stats'.
         df["mean"] = 0.0
@@ -181,7 +181,7 @@ class TestDetectSensorAnomalies:
         # Use values with moderate spread
         temps = [200.0, 200.0, 200.0, 200.0, 200.0, 210.0]
         parts = ["P"] * 6
-        df = _make_shot_df(6, temperatures=temps, part_names=parts)
+        df = _make_shot_df(6, temperatures=temps, product_names=parts)
 
         result_strict = detect_sensor_anomalies(df.copy(), sensor_anomaly_threshold=1.0)
         result_loose = detect_sensor_anomalies(df.copy(), sensor_anomaly_threshold=5.0)
@@ -195,7 +195,7 @@ class TestDetectSensorAnomalies:
         """When all temperatures are identical, std is 0, no anomalies flagged."""
         temps = [200.0] * 5
         parts = ["P"] * 5
-        df = _make_shot_df(5, temperatures=temps, part_names=parts)
+        df = _make_shot_df(5, temperatures=temps, product_names=parts)
         result = detect_sensor_anomalies(df)
         # std=0 means lower==upper==mean, so no values outside
         assert result["SCRAP_SENSOR_ANOMALY"].sum() == 0
@@ -204,7 +204,7 @@ class TestDetectSensorAnomalies:
         """Anomaly detection is per-part, so different parts have independent stats."""
         temps = [200.0, 200.0, 200.0, 100.0, 100.0, 100.0]
         parts = ["A", "A", "A", "B", "B", "B"]
-        df = _make_shot_df(6, temperatures=temps, part_names=parts)
+        df = _make_shot_df(6, temperatures=temps, product_names=parts)
         result = detect_sensor_anomalies(df)
         # Within each part, all values are identical, so no anomalies
         assert result["SCRAP_SENSOR_ANOMALY"].sum() == 0
@@ -281,11 +281,11 @@ class TestCalculateScrapStatistics:
         n: int,
         scrap_indicator: Optional[List[bool]] = None,
         scrap_score: Optional[List[int]] = None,
-        part_names: Optional[List[str]] = None,
+        product_names: Optional[List[str]] = None,
     ) -> pd.DataFrame:
         """Build a DataFrame that already has all SCRAP_* columns computed."""
         data: Dict[str, Any] = {
-            "CT": [10.0] * n,
+            "DURATION": [10.0] * n,
             "SCRAP_INDICATOR": (
                 scrap_indicator if scrap_indicator is not None else [False] * n
             ),
@@ -297,17 +297,17 @@ class TestCalculateScrapStatistics:
             "SCRAP_SENSOR_ANOMALY": [False] * n,
             "SCRAP_MISSING_SENSORS": [False] * n,
         }
-        if part_names is not None:
-            data["PART_NAME"] = part_names
+        if product_names is not None:
+            data["PRODUCT_NAME"] = product_names
         return pd.DataFrame(data)
 
-    def test_returns_dataframe_with_part_name(self) -> None:
-        """Returns a per-part summary DataFrame when PART_NAME is present."""
+    def test_returns_dataframe_with_product_name(self) -> None:
+        """Returns a per-part summary DataFrame when PRODUCT_NAME is present."""
         df = self._make_scrap_df(
             4,
             scrap_indicator=[True, False, True, False],
             scrap_score=[1, 0, 1, 0],
-            part_names=["A", "A", "B", "B"],
+            product_names=["A", "A", "B", "B"],
         )
         result = calculate_scrap_statistics(df)
         assert result is not None
@@ -316,10 +316,10 @@ class TestCalculateScrapStatistics:
         assert "Total_Shots" in result.columns
         assert "Scrap_Rate" in result.columns
 
-    def test_returns_none_without_part_name(self) -> None:
-        """Returns None when PART_NAME column is absent."""
+    def test_returns_none_without_product_name(self) -> None:
+        """Returns None when PRODUCT_NAME column is absent."""
         df = self._make_scrap_df(5)
-        # No PART_NAME column
+        # No PRODUCT_NAME column
         result = calculate_scrap_statistics(df)
         assert result is None
 
@@ -329,7 +329,7 @@ class TestCalculateScrapStatistics:
             4,
             scrap_indicator=[True, True, False, False],
             scrap_score=[1, 1, 0, 0],
-            part_names=["A", "A", "A", "A"],
+            product_names=["A", "A", "A", "A"],
         )
         result = calculate_scrap_statistics(df)
         assert result is not None
@@ -343,7 +343,7 @@ class TestCalculateScrapStatistics:
             3,
             scrap_indicator=[True, True, True],
             scrap_score=[1, 1, 1],
-            part_names=["X", "X", "X"],
+            product_names=["X", "X", "X"],
         )
         result = calculate_scrap_statistics(df)
         assert result is not None
@@ -355,7 +355,7 @@ class TestCalculateScrapStatistics:
             3,
             scrap_indicator=[False, False, False],
             scrap_score=[0, 0, 0],
-            part_names=["X", "X", "X"],
+            product_names=["X", "X", "X"],
         )
         result = calculate_scrap_statistics(df)
         assert result is not None
@@ -367,7 +367,7 @@ class TestCalculateScrapStatistics:
             6,
             scrap_indicator=[True, False, True, True, False, False],
             scrap_score=[1, 0, 1, 1, 0, 0],
-            part_names=["A", "A", "B", "B", "C", "C"],
+            product_names=["A", "A", "B", "B", "C", "C"],
         )
         result = calculate_scrap_statistics(df)
         assert result is not None
@@ -380,7 +380,7 @@ class TestCalculateScrapStatistics:
             4,
             scrap_indicator=[True, True, True, False],
             scrap_score=[2, 3, 1, 0],
-            part_names=["A", "A", "B", "B"],
+            product_names=["A", "A", "B", "B"],
         )
         result = calculate_scrap_statistics(df)
         assert result is not None
@@ -393,7 +393,7 @@ class TestCalculateScrapStatistics:
             1,
             scrap_indicator=[True],
             scrap_score=[1],
-            part_names=["Solo"],
+            product_names=["Solo"],
         )
         result = calculate_scrap_statistics(df)
         assert result is not None

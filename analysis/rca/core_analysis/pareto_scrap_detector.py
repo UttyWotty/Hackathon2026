@@ -104,7 +104,7 @@ def detect_warmup_shots(
     Returns:
         DataFrame with SCRAP_WARMUP column updated.
     """
-    df = df.sort_values("LOCAL_SHOT_TIME")
+    df = df.sort_values("SHOT_TIME")
     downtime_after = df["DOWNTIME_GAP_FLAG"].shift(1).fillna(False)
 
     warmup_mask = downtime_after.copy()
@@ -124,7 +124,7 @@ def detect_low_parameter_shots(
     Pressure data is not available so SCRAP_LOW_PRESSURE is always False.
 
     Args:
-        df: DataFrame with optional TEMPERATURE and PART_NAME columns.
+        df: DataFrame with optional TEMPERATURE and PRODUCT_NAME columns.
         low_temp_threshold: Fraction of mean temperature to use as cutoff.
 
     Returns:
@@ -134,10 +134,10 @@ def detect_low_parameter_shots(
 
     if "TEMPERATURE" in df.columns:
         temp_stats = (
-            df.groupby("PART_NAME")["TEMPERATURE"].agg(["mean", "std"]).reset_index()
+            df.groupby("PRODUCT_NAME")["TEMPERATURE"].agg(["mean", "std"]).reset_index()
         )
         df = df.merge(
-            temp_stats, on="PART_NAME", how="left", suffixes=("", "_temp_stats")
+            temp_stats, on="PRODUCT_NAME", how="left", suffixes=("", "_temp_stats")
         ).reset_index(drop=True)
 
         df["SCRAP_LOW_TEMP"] = df["TEMPERATURE"] < (
@@ -156,7 +156,7 @@ def detect_sensor_anomalies(
     """Detect temperature sensor anomalies using the 3-sigma rule per part.
 
     Args:
-        df: DataFrame with optional TEMPERATURE and PART_NAME columns.
+        df: DataFrame with optional TEMPERATURE and PRODUCT_NAME columns.
         sensor_anomaly_threshold: Number of standard deviations for the bound.
 
     Returns:
@@ -172,10 +172,10 @@ def detect_sensor_anomalies(
         df = df.drop(columns=cols_to_drop)
 
     temp_stats = (
-        df.groupby("PART_NAME")["TEMPERATURE"].agg(["mean", "std"]).reset_index()
+        df.groupby("PRODUCT_NAME")["TEMPERATURE"].agg(["mean", "std"]).reset_index()
     )
     df = df.merge(
-        temp_stats, on="PART_NAME", how="left", suffixes=("", "_temp_stats")
+        temp_stats, on="PRODUCT_NAME", how="left", suffixes=("", "_temp_stats")
     ).reset_index(drop=True)
 
     mean_col = "mean_temp_stats"
@@ -221,7 +221,7 @@ def detect_missing_sensors(df: pd.DataFrame) -> pd.DataFrame:
     if "TEMPERATURE" not in df.columns:
         return df
 
-    df = df.sort_values("LOCAL_SHOT_TIME").reset_index(drop=True)
+    df = df.sort_values("SHOT_TIME").reset_index(drop=True)
     missing_before = int(df["TEMPERATURE"].isnull().sum())
 
     df["TEMPERATURE"] = df["TEMPERATURE"].interpolate(method="linear")
@@ -245,7 +245,7 @@ def calculate_scrap_statistics(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         df: DataFrame with all SCRAP_* columns already computed.
 
     Returns:
-        A per-part scrap summary DataFrame, or None if PART_NAME is absent.
+        A per-part scrap summary DataFrame, or None if PRODUCT_NAME is absent.
     """
     total_shots = len(df)
     scrap_shots = int(df["SCRAP_INDICATOR"].sum())
@@ -275,10 +275,10 @@ def calculate_scrap_statistics(df: pd.DataFrame) -> Optional[pd.DataFrame]:
             print("   %s: %d shots (%.1f%%)" % (label, count, pct))
 
     part_scrap: Optional[pd.DataFrame] = None
-    if "PART_NAME" in df.columns:
+    if "PRODUCT_NAME" in df.columns:
         part_scrap = (
-            df.groupby("PART_NAME")
-            .agg({"SCRAP_INDICATOR": "sum", "CT": "count", "SCRAP_SCORE": "sum"})
+            df.groupby("PRODUCT_NAME")
+            .agg({"SCRAP_INDICATOR": "sum", "DURATION": "count", "SCRAP_SCORE": "sum"})
             .round(2)
         )
         part_scrap.columns = ["Scrap_Shots", "Total_Shots", "Total_Scrap_Score"]
@@ -291,8 +291,8 @@ def calculate_scrap_statistics(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         print(part_scrap.head(10))
 
     if scrap_shots > 0:
-        avg_ct = df["CT"].mean()
-        time_lost_min = scrap_shots * avg_ct / 60
+        avg_duration = df["DURATION"].mean()
+        time_lost_min = scrap_shots * avg_duration / 60
         print("\n  Estimated time lost to scrap: %.1f minutes" % time_lost_min)
 
     return part_scrap

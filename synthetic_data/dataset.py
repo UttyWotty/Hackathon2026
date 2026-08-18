@@ -9,11 +9,11 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Sequence
 
 from .constants import (
-    TABLE_COMPANY,
+    TABLE_VENDOR,
     TABLE_LOCATION,
     TABLE_MASTER_SHOT,
-    TABLE_MOLD,
-    TABLE_PART,
+    TABLE_TOOL,
+    TABLE_PRODUduration,
     TABLE_SHIFT_NOTE,
     TABLE_WORK_ORDER,
 )
@@ -23,8 +23,8 @@ from .dimensions import (
     build_molds,
     build_parts,
     build_profiles,
-    part_code_by_id,
-    part_name_by_code,
+    product_code_by_id,
+    product_name_by_code,
 )
 from .ground_truth import build_expected_findings, demo_headline_equipment
 from .maintenance import build_work_orders
@@ -38,10 +38,10 @@ from .models import (
 )
 from .notes import build_shift_notes
 from .rows import (
-    company_row,
+    vendor_row,
     location_row,
     mold_row,
-    part_row,
+    product_row,
     shift_note_row,
     shot_rows,
     work_order_row,
@@ -74,10 +74,10 @@ def build_dataset(config: GenerationConfig) -> Dataset:
     profiles = build_profiles(molds)
 
     context = ShotContext(
-        supplier_name_by_company_id={company.id: company.name for company in companies},
+        vendor_name_by_vendor_id={company.id: company.name for company in companies},
         location_by_id={location.id: location for location in locations},
-        part_code_by_id=part_code_by_id(parts),
-        part_name_by_code=part_name_by_code(parts),
+        product_code_by_id=product_code_by_id(parts),
+        product_name_by_code=product_name_by_code(parts),
     )
 
     shots = generate_all_shots(profiles, context, config)
@@ -85,10 +85,10 @@ def build_dataset(config: GenerationConfig) -> Dataset:
     shift_notes = build_shift_notes(profiles, config)
 
     tables: Dict[str, List[Sequence[Any]]] = {
-        TABLE_COMPANY: [company_row(company) for company in companies],
+        TABLE_VENDOR: [vendor_row(company) for company in companies],
         TABLE_LOCATION: [location_row(location) for location in locations],
-        TABLE_PART: [part_row(part) for part in parts],
-        TABLE_MOLD: [mold_row(mold) for mold in molds],
+        TABLE_PRODUCT: [product_row(part) for part in parts],
+        TABLE_TOOL: [mold_row(mold) for mold in molds],
         TABLE_WORK_ORDER: [work_order_row(work_order) for work_order in work_orders],
         TABLE_MASTER_SHOT: shot_rows(shots),
         TABLE_SHIFT_NOTE: [shift_note_row(note) for note in shift_notes],

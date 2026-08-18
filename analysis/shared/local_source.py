@@ -1,7 +1,7 @@
 """
 Local CSV data source standing in for Snowflake during development.
 
-Serves DEMO_TABLE rows from the synthetic generator's output so the
+Serves SHOT_DATA rows from the synthetic generator's output so the
 sense tools, and the autonomous controller above them, can run with no
 Snowflake account. Activated only when LOCAL_DATA_DIR is set, so production
 paths are untouched by its presence.
@@ -16,8 +16,8 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from analysis.shared.shot_filters import (
-    COL_APPROVED_CT,
-    COL_CT,
+    COL_TARGET_DURATION,
+    COL_duration,
     COL_EQUIPMENT,
     COL_SHOT_TIME,
     COL_SUPPLIER,
@@ -32,19 +32,19 @@ logger = logging.getLogger(__name__)
 # which is the default and the only behaviour in production.
 LOCAL_DATA_DIR = os.getenv("LOCAL_DATA_DIR", "")
 
-DEMO_TABLE_FILE = "DEMO_TABLE.csv"
+SHOT_DATA_FILE = "SHOT_DATA.csv"
 GROUND_TRUTH_FILE = "ground_truth.json"
 
-# Columns the CT efficiency query projects.
+# Columns the duration efficiency query projects.
 EFFICIENCY_COLUMNS = [
     COL_SUPPLIER,
-    COL_CT,
-    COL_APPROVED_CT,
+    COL_duration,
+    COL_TARGET_DURATION,
     COL_EQUIPMENT,
-    "TOOLING_TYPE",
+    "TYPE",
     COL_SHOT_TIME,
-    "PART_ID",
-    "PART_NAME",
+    "PRODUCT_ID",
+    "PRODUCT_NAME",
 ]
 
 
@@ -63,12 +63,12 @@ def is_local_data_enabled() -> bool:
 
 
 @lru_cache(maxsize=1)
-def load_demo_table(data_dir: str = "") -> pd.DataFrame:
+def load_shot_data(data_dir: str = "") -> pd.DataFrame:
     """
-    Read DEMO_TABLE.csv into a DataFrame, cached for the process.
+    Read SHOT_DATA.csv into a DataFrame, cached for the process.
 
     The file is roughly 50 MB and 230,000 rows, so it is parsed once and
-    reused. LOCAL_SHOT_TIME is parsed to datetime to match the Snowflake
+    reused. SHOT_TIME is parsed to datetime to match the Snowflake
     column type that downstream analysis assumes.
 
     Args:
@@ -88,7 +88,7 @@ def load_demo_table(data_dir: str = "") -> pd.DataFrame:
             "output, for example ./synthetic_out."
         )
 
-    path = os.path.join(directory, DEMO_TABLE_FILE)
+    path = os.path.join(directory, SHOT_DATA_FILE)
     if not os.path.exists(path):
         raise LocalDataError(
             f"{path} not found. Generate it with: "
@@ -134,32 +134,32 @@ def load_ground_truth(data_dir: str = "") -> Dict[str, Any]:
 def query_shots(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    equipment_codes: Optional[List[str]] = None,
-    supplier_names: Optional[List[str]] = None,
+    machine_ids: Optional[List[str]] = None,
+    vendor_names: Optional[List[str]] = None,
     validity: bool = True,
     data_dir: str = "",
 ) -> pd.DataFrame:
     """
-    Return filtered shot rows, the local equivalent of a DEMO_TABLE query.
+    Return filtered shot rows, the local equivalent of a SHOT_DATA query.
 
     Args:
         start_date: Inclusive lower date bound. Defaults to None.
         end_date: Inclusive upper date bound. Defaults to None.
-        equipment_codes: Equipment codes to keep. Defaults to None (all).
-        supplier_names: Supplier names to keep. Defaults to None (all).
-        validity: Drop invalid cycle times. Defaults to True.
+        machine_ids: Equipment codes to keep. Defaults to None (all).
+        vendor_names: Supplier names to keep. Defaults to None (all).
+        validity: Drop invalid durations. Defaults to True.
         data_dir: Override the configured directory. Defaults to "".
 
     Returns:
-        A filtered copy of the shot table, ordered by LOCAL_SHOT_TIME.
+        A filtered copy of the shot table, ordered by SHOT_TIME.
     """
-    frame = load_demo_table(data_dir)
+    frame = load_shot_data(data_dir)
     return filter_shots(
         frame,
         start_date=start_date,
         end_date=end_date,
-        equipment_codes=equipment_codes,
-        supplier_names=supplier_names,
+        machine_ids=machine_ids,
+        vendor_names=vendor_names,
         validity=validity,
     )
 
@@ -167,30 +167,30 @@ def query_shots(
 def query_efficiency_shots(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    supplier_names: Optional[List[str]] = None,
+    vendor_names: Optional[List[str]] = None,
     data_dir: str = "",
 ) -> pd.DataFrame:
     """
-    Return shot rows shaped as the CT efficiency query returns them.
+    Return shot rows shaped as the duration efficiency query returns them.
 
-    Note the end bound: this query compares LOCAL_SHOT_TIME against the bare
+    Note the end bound: this query compares SHOT_TIME against the bare
     end date, which is midnight, so the end day is almost entirely excluded.
     That is the query's actual behaviour and is reproduced rather than fixed.
 
     Args:
         start_date: Inclusive lower bound as 'YYYY-MM-DD'. Defaults to None.
         end_date: Upper bound as 'YYYY-MM-DD', compared at midnight.
-        supplier_names: Supplier names to keep. Defaults to None (all).
+        vendor_names: Supplier names to keep. Defaults to None (all).
         data_dir: Override the configured directory. Defaults to "".
 
     Returns:
         The eight columns the efficiency query selects.
     """
     frame = filter_shots(
-        load_demo_table(data_dir),
+        load_shot_data(data_dir),
         start_date=start_date,
         end_date=end_date,
-        supplier_names=supplier_names,
+        vendor_names=vendor_names,
         end_time=START_OF_DAY,
     )
     return frame[EFFICIENCY_COLUMNS].reset_index(drop=True)
@@ -267,59 +267,59 @@ def load_work_order_csv(data_dir: str = "") -> pd.DataFrame:
 # ==================== RCA query ==================== #
 
 
-# Columns the RCA pipeline selects from DEMO_TABLE.
+# Columns the RCA pipeline selects from SHOT_DATA.
 RCA_COLUMNS = [
     COL_SUPPLIER,
     COL_EQUIPMENT,
-    "COUNTER_CODE",
-    COL_CT,
-    COL_APPROVED_CT,
+    "SENSOR_CODE",
+    COL_duration,
+    COL_TARGET_DURATION,
     "TEMPERATURE",
-    "PART_NAME",
-    "TOOLING_TYPE",
-    "CT_STATUS",
+    "PRODUCT_NAME",
+    "TYPE",
+    "STATUS",
     COL_SHOT_TIME,
     COL_VOLUME,
-    "COUNTER_ID",
-    "MOLD_ID",
-    "COMPANY_ID",
-    "PART_ID",
+    "SENSOR_ID",
+    "TOOL_ID",
+    "VENDOR_ID",
+    "PRODUCT_ID",
 ]
 
 
 def query_rca_shots(
-    equipment_code: Optional[str] = None,
-    supplier_name: Optional[str] = None,
+    machine_id: Optional[str] = None,
+    vendor_name: Optional[str] = None,
     data_dir: str = "",
 ) -> pd.DataFrame:
     """
     Return shot rows for RCA analysis from local CSV.
 
-    RCA uses minimal filtering: only requires SUPPLIER_NAME and PART_NAME to be
+    RCA uses minimal filtering: only requires VENDOR_NAME and PRODUCT_NAME to be
     non-null. No CT validity filter (keeps sentinel values for downtime detection).
 
     Args:
-        equipment_code: Filter to single equipment. Defaults to None (all).
-        supplier_name: Filter to single supplier. Defaults to None (all).
+        machine_id: Filter to single equipment. Defaults to None (all).
+        vendor_name: Filter to single supplier. Defaults to None (all).
         data_dir: Override the configured directory. Defaults to "".
 
     Returns:
-        DataFrame matching the RCA SQL shape, ordered by LOCAL_SHOT_TIME DESC,
+        DataFrame matching the RCA SQL shape, ordered by SHOT_TIME DESC,
         limited to 100000 rows (matching the Snowflake query LIMIT).
     """
-    frame = load_demo_table(data_dir)
-    frame = frame[frame[COL_SUPPLIER].notna() & frame["PART_NAME"].notna()]
+    frame = load_shot_data(data_dir)
+    frame = frame[frame[COL_SUPPLIER].notna() & frame["PRODUCT_NAME"].notna()]
 
-    if equipment_code:
-        frame = frame[frame[COL_EQUIPMENT] == equipment_code]
-    if supplier_name:
-        frame = frame[frame[COL_SUPPLIER] == supplier_name]
+    if machine_id:
+        frame = frame[frame[COL_EQUIPMENT] == machine_id]
+    if vendor_name:
+        frame = frame[frame[COL_SUPPLIER] == vendor_name]
 
-    # Add TOOLING_FAMILY alias (RCA query does TOOLING_TYPE AS TOOLING_FAMILY)
+    # Add TYPE alias (RCA query does TYPE AS TYPE)
     result = frame.sort_values(COL_SHOT_TIME, ascending=False).head(100000)
     available_cols = [c for c in RCA_COLUMNS if c in result.columns]
     result = result[available_cols].copy()
-    result["TOOLING_FAMILY"] = result["TOOLING_TYPE"]
+    result["TYPE"] = result["TYPE"]
     return result.reset_index(drop=True)
 
 
@@ -330,25 +330,25 @@ def query_rca_shots(
 TOOLING_EOL_COLUMNS = [
     COL_SUPPLIER,
     COL_EQUIPMENT,
-    "COUNTER_CODE",
-    COL_CT,
-    COL_APPROVED_CT,
+    "SENSOR_CODE",
+    COL_duration,
+    COL_TARGET_DURATION,
     COL_SHOT_TIME,
     COL_VOLUME,
-    "COUNTER_ID",
-    "MOLD_ID",
-    "COMPANY_ID",
-    "PART_ID",
-    "TOOLING_TYPE",
-    "CT_STATUS",
+    "SENSOR_ID",
+    "TOOL_ID",
+    "VENDOR_ID",
+    "PRODUCT_ID",
+    "TYPE",
+    "STATUS",
 ]
 
 
 def query_tooling_eol_shots(data_dir: str = "") -> pd.DataFrame:
     """
-    Return shot rows shaped as tooling EOL's read_demo_table returns.
+    Return shot rows shaped as tooling EOL's read_shot_data returns.
 
-    Applies only the WHERE LOCAL_SHOT_TIME IS NOT NULL filter, adds SHOT_COUNT=1,
+    Applies only the WHERE SHOT_TIME IS NOT NULL filter, adds SHOT_COUNT=1,
     and ensures numeric types match what the EOL pipeline expects.
 
     Args:
@@ -357,14 +357,14 @@ def query_tooling_eol_shots(data_dir: str = "") -> pd.DataFrame:
     Returns:
         DataFrame with EOL columns plus SHOT_COUNT.
     """
-    frame = load_demo_table(data_dir)
+    frame = load_shot_data(data_dir)
     frame = frame[frame[COL_SHOT_TIME].notna()]
 
     available_cols = [c for c in TOOLING_EOL_COLUMNS if c in frame.columns]
     result = frame[available_cols].copy()
     result["SHOT_COUNT"] = 1
 
-    for col in ["CT", "APPROVED_CT", "VOLUME", "COUNTER_ID", "MOLD_ID", "COMPANY_ID"]:
+    for col in ["DURATION", "TARGET_DURATION", "VOLUME", "SENSOR_ID", "TOOL_ID", "VENDOR_ID"]:
         if col in result.columns:
             result[col] = pd.to_numeric(result[col], errors="coerce")
 
@@ -373,10 +373,10 @@ def query_tooling_eol_shots(data_dir: str = "") -> pd.DataFrame:
 
 def query_tooling_eol_mold(data_dir: str = "") -> pd.DataFrame:
     """
-    Return mold reference data shaped as tooling EOL's read_mold_table returns.
+    Return mold reference data shaped as tooling EOL's read_tool_table returns.
 
-    Maps CSV columns to the shape expected: ID->MOLD_ID, plus EQUIPMENT_CODE,
-    DESIGNED_SHOT, DAILY_MAX_CAPACITY, PRODUCTION_DAYS, SHIFTS_PER_DAY.
+    Maps CSV columns to the shape expected: ID->TOOL_ID, plus MACHINE_ID,
+    DESIGNED_SHOT, MAX_DAILY_OUTPUT, PRODUCTION_DAYS, SHIFTS_PER_DAY.
 
     Args:
         data_dir: Override the configured directory. Defaults to "".
@@ -386,14 +386,14 @@ def query_tooling_eol_mold(data_dir: str = "") -> pd.DataFrame:
     """
     mold = load_mold_csv(data_dir)
 
-    # Map ID to MOLD_ID if needed
-    if "ID" in mold.columns and "MOLD_ID" not in mold.columns:
-        mold = mold.rename(columns={"ID": "MOLD_ID"})
+    # Map ID to TOOL_ID if needed
+    if "ID" in mold.columns and "TOOL_ID" not in mold.columns:
+        mold = mold.rename(columns={"ID": "TOOL_ID"})
 
     for col in [
-        "MOLD_ID",
+        "TOOL_ID",
         "DESIGNED_SHOT",
-        "DAILY_MAX_CAPACITY",
+        "MAX_DAILY_OUTPUT",
         "PRODUCTION_DAYS",
         "SHIFTS_PER_DAY",
     ]:
@@ -407,14 +407,14 @@ def query_tooling_eol_maintenance(data_dir: str = "") -> pd.DataFrame:
     """
     Return maintenance events shaped as tooling EOL's read_maintenance_events returns.
 
-    Reads WORK_ORDER.csv, keeps only completed rows, and returns MOLD_ID,
+    Reads WORK_ORDER.csv, keeps only completed rows, and returns TOOL_ID,
     EVENT_TS, SOURCE columns.
 
     Args:
         data_dir: Override the configured directory. Defaults to "".
 
     Returns:
-        DataFrame with columns [MOLD_ID, EVENT_TS, SOURCE].
+        DataFrame with columns [TOOL_ID, EVENT_TS, SOURCE].
     """
     wo = load_work_order_csv(data_dir)
 
@@ -423,16 +423,16 @@ def query_tooling_eol_maintenance(data_dir: str = "") -> pd.DataFrame:
         wo = wo[wo["STATUS"].str.lower() == "completed"]
 
     # Build output matching read_maintenance_events shape
-    if "MOLD_ID" not in wo.columns or "COMPLETED_AT" not in wo.columns:
-        return pd.DataFrame(columns=["MOLD_ID", "EVENT_TS", "SOURCE"])
+    if "TOOL_ID" not in wo.columns or "COMPLETED_AT" not in wo.columns:
+        return pd.DataFrame(columns=["TOOL_ID", "EVENT_TS", "SOURCE"])
 
     result = pd.DataFrame(
         {
-            "MOLD_ID": pd.to_numeric(wo["MOLD_ID"], errors="coerce"),
+            "TOOL_ID": pd.to_numeric(wo["TOOL_ID"], errors="coerce"),
             "EVENT_TS": pd.to_datetime(wo["COMPLETED_AT"], errors="coerce"),
             "SOURCE": "WORK_ORDER",
         }
-    ).dropna(subset=["MOLD_ID", "EVENT_TS"])
+    ).dropna(subset=["TOOL_ID", "EVENT_TS"])
 
-    result["MOLD_ID"] = result["MOLD_ID"].astype(int)
+    result["TOOL_ID"] = result["TOOL_ID"].astype(int)
     return result.reset_index(drop=True)

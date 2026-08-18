@@ -2,7 +2,7 @@
 Analytics tool definitions for Claude/Bedrock Converse API integration.
 
 Defines manufacturing analysis tools: master table refresh, ROI,
-RCA, CT deviation, CT efficiency, and tooling EOL.
+RCA, duration deviation, duration efficiency, and tooling EOL.
 """
 
 from typing import Any, Dict, List
@@ -10,8 +10,8 @@ from typing import Any, Dict, List
 ANALYTICS_TOOLS: List[Dict[str, Any]] = [
     {
         "toolSpec": {
-            "name": "refresh_demo_table",
-            "description": """Refresh DEMO_TABLE with latest production data from Snowflake. This is the FOUNDATION TABLE used by all 7 analysis modules (ROI, CT Deviation, CT Efficiency, RCA, Tooling EOL). Run this periodically (daily/hourly) to ensure analyses use fresh data. Supports incremental mode (fast, only new data with overlap) and full mode (complete historical reload).""",
+            "name": "refresh_shot_data",
+            "description": """Refresh SHOT_DATA with latest production data from Snowflake. This is the FOUNDATION TABLE used by all 7 analysis modules (ROI, Duration Deviation, Duration Efficiency, RCA, Tooling EOL). Run this periodically (daily/hourly) to ensure analyses use fresh data. Supports incremental mode (fast, only new data with overlap) and full mode (complete historical reload).""",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -54,17 +54,17 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
     {
         "toolSpec": {
             "name": "run_roi_analysis",
-            "description": "Calculate ROI and cycle time efficiency metrics for manufacturing operations. Supports daily, weekly, or monthly aggregation. Analyzes cost savings, production efficiency, uptime, and financial returns.",
+            "description": "Calculate ROI and duration efficiency metrics for manufacturing operations. Supports daily, weekly, or monthly aggregation. Analyzes cost savings, production efficiency, uptime, and financial returns.",
             "inputSchema": {
                 "json": {
                     "type": "object",
                     "properties": {
-                        "equipment_codes": {
+                        "machine_ids": {
                             "type": "array",
                             "items": {"type": "string"},
                             "description": "Equipment codes to analyze",
                         },
-                        "supplier_names": {
+                        "vendor_names": {
                             "type": "array",
                             "items": {"type": "string"},
                             "description": "Supplier names to analyze",
@@ -100,12 +100,12 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
                 "json": {
                     "type": "object",
                     "properties": {
-                        "equipment_codes": {
+                        "machine_ids": {
                             "type": "array",
                             "items": {"type": "string"},
                             "description": "Equipment codes (optional) - e.g., ['MX-7110']. Analyzes all if not provided.",
                         },
-                        "supplier_names": {
+                        "vendor_names": {
                             "type": "array",
                             "items": {"type": "string"},
                             "description": "Supplier names (optional)",
@@ -118,8 +118,8 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
     },
     {
         "toolSpec": {
-            "name": "run_ct_deviation_analysis",
-            "description": "Analyze cycle time (CT) deviations from approved specifications. Calculates deviation percentages, categorizes performance (Excellent to Critical), measures efficiency and stability scores.",
+            "name": "run_deviation_analysis",
+            "description": "Analyze duration deviations from approved specifications. Calculates deviation percentages, categorizes performance (Excellent to Critical), measures efficiency and stability scores.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -132,12 +132,12 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
                             "type": "string",
                             "description": "End date for analysis in YYYY-MM-DD format (optional)",
                         },
-                        "equipment_codes": {
+                        "machine_ids": {
                             "type": "array",
                             "items": {"type": "string"},
                             "description": "List of equipment codes to analyze (optional, analyzes all if not specified)",
                         },
-                        "supplier_names": {
+                        "vendor_names": {
                             "type": "array",
                             "items": {"type": "string"},
                             "description": "List of supplier names to filter by (optional)",
@@ -158,8 +158,8 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
     },
     {
         "toolSpec": {
-            "name": "run_ct_efficiency_analysis",
-            "description": "Analyze cycle time efficiency and benchmark suppliers. Calculates efficiency metrics, ranks suppliers by performance, measures tool consistency, and assigns tier classifications.",
+            "name": "run_efficiency_analysis",
+            "description": "Analyze duration efficiency and benchmark suppliers. Calculates efficiency metrics, ranks suppliers by performance, measures tool consistency, and assigns tier classifications.",
             "inputSchema": {
                 "json": {
                     "type": "object",
@@ -172,7 +172,7 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
                             "type": "string",
                             "description": "End date for analysis in YYYY-MM-DD format (optional)",
                         },
-                        "supplier_names": {
+                        "vendor_names": {
                             "type": "array",
                             "items": {"type": "string"},
                             "description": "List of supplier names to analyze (optional, analyzes all if not specified)",
@@ -204,7 +204,7 @@ ANALYTICS_TOOLS: List[Dict[str, Any]] = [
                 "json": {
                     "type": "object",
                     "properties": {
-                        "tooling_family": {
+                        "type_category": {
                             "type": "string",
                             "description": "Tooling family type: 'Injection Molding', 'Die Casting', or 'Stamping' (optional)",
                             "enum": ["Injection Molding", "Die Casting", "Stamping"],

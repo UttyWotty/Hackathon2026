@@ -1,6 +1,6 @@
 """
 Analysis functions for Pareto-based root cause analysis on manufacturing shot data.
-Provides standalone functions to analyze cycle time issues, temperature, downtime
+Provides standalone functions to analyze duration issues, temperature, downtime
 patterns, scrap patterns, equipment performance, and time series trends.
 Recommendation generation is delegated to pareto_recommendations.py.
 """
@@ -28,14 +28,14 @@ DEFAULT_TOP_N: int = 10
 # ---------------------------------------------------------------------------
 
 
-def analyze_cycle_time_issues(
+def analyze_duration_issues(
     df: pd.DataFrame,
     pareto_chart_fn: object,
 ) -> None:
-    """Analyze cycle time deviations using pre-computed statistical flags.
+    """Analyze duration deviations using pre-computed statistical flags.
 
     Args:
-        df: DataFrame with CT_ISSUE_FLAG, CT_ISSUE_TYPE, and outlier columns.
+        df: DataFrame with CT_ISSUE_FLAG, DURATION_ISSUE_TYPE, and outlier columns.
         pareto_chart_fn: Callable that creates a pareto chart (from ParetoAnalysis).
     """
     print("\n" + "=" * 60)
@@ -44,10 +44,10 @@ def analyze_cycle_time_issues(
 
     problematic = df[df["CT_ISSUE_FLAG"]]
     if len(problematic) == 0:
-        print("  No cycle time issues found using statistical methods.")
+        print("  No duration issues found using statistical methods.")
         return
 
-    print("  Found %d shots with statistical cycle time issues" % len(problematic))
+    print("  Found %d shots with statistical duration issues" % len(problematic))
     print("  Issue rate: %.2f%%" % ((len(problematic) / len(df)) * 100))
 
     _print_outlier_method_breakdown(df)
@@ -55,28 +55,28 @@ def analyze_cycle_time_issues(
     print("\n  1. Pareto Analysis by Statistical Issue Type:")
     pareto_chart_fn(
         problematic["CT_ISSUE_TYPE"],
-        "Cycle Time Issues by Statistical Type",
+        "Duration Issues by Statistical Type",
         "Issue Type",
         "Number of Shots",
     )
 
-    if "CT_STATUS" in df.columns:
-        from .pareto_ct_deviations import compare_with_original_ct_status
+    if "STATUS" in df.columns:
+        from .pareto_deviations import compare_with_original_status_flag
 
-        compare_with_original_ct_status(df)
+        compare_with_original_status_flag(df)
 
     print("\n  2. Pareto Analysis by Equipment Code:")
     pareto_chart_fn(
-        problematic["EQUIPMENT_CODE"],
-        "Cycle Time Issues by Equipment",
+        problematic["MACHINE_ID"],
+        "Duration Issues by Equipment",
         "Equipment Code",
         "Number of Shots",
     )
 
     print("\n  3. Pareto Analysis by Part Name:")
     pareto_chart_fn(
-        problematic["PART_NAME"],
-        "Cycle Time Issues by Part",
+        problematic["PRODUCT_NAME"],
+        "Duration Issues by Part",
         "Part Name",
         "Number of Shots",
     )
@@ -84,7 +84,7 @@ def analyze_cycle_time_issues(
     print("\n  4. Pareto Analysis by Day of Week:")
     pareto_chart_fn(
         problematic["DAY_OF_WEEK"],
-        "Cycle Time Issues by Day of Week",
+        "Duration Issues by Day of Week",
         "Day of Week",
         "Number of Shots",
     )
@@ -92,7 +92,7 @@ def analyze_cycle_time_issues(
     print("\n  5. Pareto Analysis by Hour of Day:")
     pareto_chart_fn(
         problematic["HOUR"],
-        "Cycle Time Issues by Hour",
+        "Duration Issues by Hour",
         "Hour of Day",
         "Number of Shots",
     )
@@ -106,7 +106,7 @@ def analyze_temperature_issues(
     """Analyze temperature-related issues per equipment.
 
     Args:
-        df: DataFrame with TEMPERATURE and EQUIPMENT_CODE columns.
+        df: DataFrame with TEMPERATURE and MACHINE_ID columns.
         pareto_chart_fn: Callable for creating pareto charts.
         temp_cv_threshold: CV percentage above which variation is flagged.
     """
@@ -115,7 +115,7 @@ def analyze_temperature_issues(
     print("=" * 60)
 
     temp_stats = (
-        df.groupby("EQUIPMENT_CODE")["TEMPERATURE"]
+        df.groupby("MACHINE_ID")["TEMPERATURE"]
         .agg(["count", "mean", "std", "min", "max"])
         .round(2)
     )
@@ -135,9 +135,9 @@ def analyze_temperature_issues(
         print("\n  Equipment with High Temperature Variation:")
         print(high_var.head(DEFAULT_TOP_N))
 
-        high_var_shots = df[df["EQUIPMENT_CODE"].isin(high_var.index)]
+        high_var_shots = df[df["MACHINE_ID"].isin(high_var.index)]
         pareto_chart_fn(
-            high_var_shots["EQUIPMENT_CODE"],
+            high_var_shots["MACHINE_ID"],
             "Shots from Equipment with High Temperature Variation",
             "Equipment Code",
             "Number of Shots",
@@ -168,7 +168,7 @@ def analyze_downtime_patterns(
 
     print("\n  1. Pareto Analysis by Part (Downtime Events):")
     pareto_chart_fn(
-        downtime_shots["PART_NAME"],
+        downtime_shots["PRODUCT_NAME"],
         "Downtime Events by Part",
         "Part Name",
         "Number of Downtime Events",
@@ -218,7 +218,7 @@ def analyze_scrap_patterns(
 
     print("\n  1. Pareto Analysis by Part (Scrap Events):")
     pareto_chart_fn(
-        scrap_shots["PART_NAME"],
+        scrap_shots["PRODUCT_NAME"],
         "Scrap Events by Part",
         "Part Name",
         "Number of Scrap Events",
@@ -254,7 +254,7 @@ def analyze_equipment_performance(
     """Analyze equipment performance issues.
 
     Args:
-        df: DataFrame with CT_ISSUE_FLAG, CT_DEVIATION_PCT, TEMPERATURE columns.
+        df: DataFrame with CT_ISSUE_FLAG, DEVIATION_PCT, TEMPERATURE columns.
         pareto_chart_fn: Callable for creating pareto charts.
         equipment_issue_threshold: Issue-rate percentage above which equipment is flagged.
     """
@@ -263,12 +263,12 @@ def analyze_equipment_performance(
     print("=" * 60)
 
     equip_metrics = (
-        df.groupby("EQUIPMENT_CODE")
+        df.groupby("MACHINE_ID")
         .agg(
             {
                 "CT_ISSUE_FLAG": "sum",
-                "CT": "count",
-                "CT_DEVIATION_PCT": ["mean", "std"],
+                "DURATION": "count",
+                "DEVIATION_PCT": ["mean", "std"],
                 "TEMPERATURE": ["mean", "std"],
             }
         )
@@ -297,9 +297,9 @@ def analyze_equipment_performance(
             "\n  Found %d equipment with >%.0f%% issue rate"
             % (len(problematic), equipment_issue_threshold)
         )
-        problem_data = df[df["EQUIPMENT_CODE"].isin(problematic.index)]
+        problem_data = df[df["MACHINE_ID"].isin(problematic.index)]
         pareto_chart_fn(
-            problem_data["EQUIPMENT_CODE"],
+            problem_data["MACHINE_ID"],
             "Shots from Equipment with High Issue Rates",
             "Equipment Code",
             "Number of Shots",
@@ -313,15 +313,15 @@ def time_series_analysis(
     """Analyze daily issue-rate trends and plot them.
 
     Args:
-        df: DataFrame with DATE, CT_ISSUE_FLAG, and CT columns.
+        df: DataFrame with DATE, DURATION_ISSUE_FLAG, and DURATION columns.
         time_multiplier_threshold: Multiplier above daily average to flag a day.
     """
     print("\n" + "=" * 60)
     print("  TIME SERIES ANALYSIS")
     print("=" * 60)
 
-    daily = df.groupby("DATE").agg({"CT_ISSUE_FLAG": "sum", "CT": "count"})
-    daily["Issue_Rate"] = (daily["CT_ISSUE_FLAG"] / daily["CT"] * 100).round(2)
+    daily = df.groupby("DATE").agg({"CT_ISSUE_FLAG": "sum", "DURATION": "count"})
+    daily["Issue_Rate"] = (daily["CT_ISSUE_FLAG"] / daily["DURATION"] * 100).round(2)
 
     avg_rate = daily["Issue_Rate"].mean()
     problematic_days = daily[daily["Issue_Rate"] > avg_rate * time_multiplier_threshold]
@@ -400,9 +400,9 @@ def _print_longest_downtimes(df: pd.DataFrame) -> None:
             print(
                 "   %s: %s - %s - %.1f min gap"
                 % (
-                    row["LOCAL_SHOT_TIME"],
-                    row["EQUIPMENT_CODE"],
-                    row["PART_NAME"],
+                    row["SHOT_TIME"],
+                    row["MACHINE_ID"],
+                    row["PRODUCT_NAME"],
                     row["TIME_GAP_MINUTES"],
                 )
             )
@@ -454,9 +454,9 @@ def _print_highest_scrap_shots(df: pd.DataFrame) -> None:
             print(
                 "   %s: %s - Score %s - CT: %.1fs"
                 % (
-                    row["LOCAL_SHOT_TIME"],
-                    row["PART_NAME"],
+                    row["SHOT_TIME"],
+                    row["PRODUCT_NAME"],
                     row["SCRAP_SCORE"],
-                    row["CT"],
+                    row["DURATION"],
                 )
             )

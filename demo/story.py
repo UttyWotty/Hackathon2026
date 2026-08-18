@@ -1,7 +1,7 @@
 """
 Pure aggregation of shot data into the week-by-week drift story.
 
-Computes per-equipment cycle time deviation against approved CT, bucketed by
+Computes per-equipment duration deviation against approved duration, bucketed by
 week, which is the view that makes the headline defect visible: one machine
 climbing while the fleet stays flat. Takes a DataFrame and returns a DataFrame,
 so all file access stays in analysis.shared.local_source.
@@ -12,8 +12,8 @@ from typing import List
 import pandas as pd
 
 from analysis.shared.shot_filters import (
-    COL_APPROVED_CT,
-    COL_CT,
+    COL_TARGET_DURATION,
+    COL_duration,
     COL_EQUIPMENT,
     COL_SHOT_TIME,
     apply_validity_filter,
@@ -43,7 +43,7 @@ class StoryError(Exception):
 
 def _require_columns(df: pd.DataFrame) -> None:
     """Fail loudly when the frame is missing a column the story needs."""
-    required = (COL_EQUIPMENT, COL_SHOT_TIME, COL_CT, COL_APPROVED_CT)
+    required = (COL_EQUIPMENT, COL_SHOT_TIME, COL_duration, COL_TARGET_DURATION)
     missing = [column for column in required if column not in df.columns]
     if missing:
         raise StoryError(f"Shot data is missing columns: {', '.join(missing)}")
@@ -51,13 +51,13 @@ def _require_columns(df: pd.DataFrame) -> None:
 
 def weekly_deviation(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Compute mean CT deviation against approved CT, per equipment per week.
+    Compute mean duration deviation against approved duration, per equipment per week.
 
-    Applies the same validity predicate as the CT deviation analysis, so the
+    Applies the same validity predicate as the duration deviation analysis, so the
     chart and the agent's own sense tools agree on which shots count.
 
     Args:
-        df: Raw DEMO_TABLE rows.
+        df: Raw SHOT_DATA rows.
 
     Returns:
         A long frame with equipment, week_start and deviation_pct, sorted by
@@ -78,7 +78,7 @@ def weekly_deviation(df: pd.DataFrame) -> pd.DataFrame:
 
     valid[COL_SHOT_TIME] = pd.to_datetime(valid[COL_SHOT_TIME])
     valid[COL_DEVIATION] = (
-        (valid[COL_CT] - valid[COL_APPROVED_CT]) / valid[COL_APPROVED_CT] * PERCENT
+        (valid[COL_CT] - valid[COL_TARGET_DURATION]) / valid[COL_TARGET_DURATION] * PERCENT
     )
     valid[COL_WEEK] = valid[COL_SHOT_TIME].dt.to_period(WEEK_FREQUENCY).dt.start_time
 
@@ -107,20 +107,20 @@ def to_chart_frame(weekly: pd.DataFrame) -> pd.DataFrame:
     ).sort_index()
 
 
-def drift_magnitude(weekly: pd.DataFrame, equipment_code: str) -> List[float]:
+def drift_magnitude(weekly: pd.DataFrame, machine_id: str) -> List[float]:
     """
     Return one machine's weekly deviation series, oldest week first.
 
     Args:
         weekly: The output of weekly_deviation.
-        equipment_code: The machine to extract.
+        machine_id: The machine to extract.
 
     Returns:
         Deviation percentages in week order; empty if the machine is absent.
     """
     if weekly.empty:
         return []
-    rows = weekly[weekly[COL_EQUIPMENT] == equipment_code].sort_values(COL_WEEK)
+    rows = weekly[weekly[COL_EQUIPMENT] == machine_id].sort_values(COL_WEEK)
     return [float(value) for value in rows[COL_DEVIATION]]
 
 

@@ -43,7 +43,7 @@ def _build_roi_kpis(metrics: Dict[str, Any]) -> str:
         label="Efficiency",
         value=f"{avg_efficiency:.1f}",
         unit="%",
-        change="Target CT Performance",
+        change="Target Duration Performance",
         change_type=(
             "positive"
             if avg_efficiency >= EFFICIENCY_EXCELLENT_THRESHOLD
@@ -71,14 +71,14 @@ def _build_roi_kpis(metrics: Dict[str, Any]) -> str:
         change_type="positive" if uptime_pct >= UPTIME_TARGET_THRESHOLD else "warning",
     )
 
-    within_ct_pct = metrics.get("within_ct_percentage", 0)
+    within_target_pct = metrics.get("within_ct_percentage", 0)
     kpis_html += create_kpi_card(
-        label="Within Target CT",
-        value=f"{within_ct_pct:.1f}",
+        label="Within Target Duration",
+        value=f"{within_target_pct:.1f}",
         unit="%",
         change="Shot Quality",
         change_type=(
-            "positive" if within_ct_pct >= WITHIN_CT_TARGET_THRESHOLD else "neutral"
+            "positive" if within_target_pct >= WITHIN_CT_TARGET_THRESHOLD else "neutral"
         ),
     )
 
@@ -97,7 +97,7 @@ def _build_roi_insights(metrics: Dict[str, Any]) -> str:
         HTML string containing the insights list.
     """
     avg_efficiency = metrics.get("avg_efficiency", metrics.get("average_efficiency", 0))
-    within_ct_pct = metrics.get("within_ct_percentage", 0)
+    within_target_pct = metrics.get("within_ct_percentage", 0)
     uptime_pct = metrics.get(
         "avg_uptime_percentage", metrics.get("uptime_percentage", 0)
     )
@@ -108,30 +108,30 @@ def _build_roi_insights(metrics: Dict[str, Any]) -> str:
     # Efficiency insight
     if avg_efficiency >= EFFICIENCY_EXCELLENT_THRESHOLD:
         insights_html += create_insight(
-            title="Excellent Cycle Time Performance",
+            title="Excellent Duration Performance",
             description=(
                 f"Equipment maintains {avg_efficiency:.1f}% efficiency with "
-                f"{within_ct_pct:.1f}% of shots within target CT range. "
-                "This indicates strong process control and minimal cycle time variance."
+                f"{within_target_pct:.1f}% of shots within target duration range. "
+                "This indicates strong process control and minimal duration variance."
             ),
             severity="info",
         )
     elif avg_efficiency >= EFFICIENCY_GOOD_THRESHOLD:
         insights_html += create_insight(
-            title="Good CT Performance with Room for Improvement",
+            title="Good Duration Performance with Room for Improvement",
             description=(
                 f"Current efficiency of {avg_efficiency:.1f}% is solid but has "
                 f"optimization potential. Focus on reducing shots outside target "
-                f"CT range (currently {100 - within_ct_pct:.1f}%)."
+                f"CT range (currently {100 - within_target_pct:.1f}%)."
             ),
             severity="warning",
         )
     else:
         insights_html += create_insight(
-            title="CT Performance Requires Attention",
+            title="Duration Performance Requires Attention",
             description=(
                 f"Efficiency of {avg_efficiency:.1f}% is below target. Only "
-                f"{within_ct_pct:.1f}% of shots within target CT. Investigate "
+                f"{within_target_pct:.1f}% of shots within target duration. Investigate "
                 "process issues, tooling condition, or material consistency."
             ),
             severity="critical",
@@ -186,7 +186,7 @@ def _build_roi_recommendations(metrics: Dict[str, Any]) -> str:
         HTML string containing the recommendations.
     """
     avg_efficiency = metrics.get("avg_efficiency", metrics.get("average_efficiency", 0))
-    within_ct_pct = metrics.get("within_ct_percentage", 0)
+    within_target_pct = metrics.get("within_ct_percentage", 0)
     uptime_pct = metrics.get(
         "avg_uptime_percentage", metrics.get("uptime_percentage", 0)
     )
@@ -207,17 +207,17 @@ def _build_roi_recommendations(metrics: Dict[str, Any]) -> str:
             priority="high",
         )
 
-    if within_ct_pct < WITHIN_CT_TARGET_THRESHOLD:
+    if within_target_pct < WITHIN_CT_TARGET_THRESHOLD:
         recommendations_html += create_recommendation(
-            title="2. Improve Cycle Time Consistency",
+            title="2. Improve Duration Consistency",
             description=(
-                f"Only {within_ct_pct:.1f}% of shots within target CT. Investigate "
+                f"Only {within_target_pct:.1f}% of shots within target duration. Investigate "
                 "root causes: tooling wear, material variability, process parameter "
                 "drift. Target 90%+ within-spec rate."
             ),
             impact="+5-10% efficiency",
             priority=(
-                "high" if within_ct_pct < WITHIN_CT_CRITICAL_THRESHOLD else "medium"
+                "high" if within_target_pct < WITHIN_CT_CRITICAL_THRESHOLD else "medium"
             ),
         )
 
@@ -250,7 +250,7 @@ def generate_roi_summary(
 
     Args:
         analysis_result: ROI analysis result dictionary containing metrics,
-            equipment_codes, supplier_names, date_range, and aggregation_level.
+            machine_ids, vendor_names, date_range, and aggregation_level.
         output_path: Output HTML file path.
         llm_insights: Optional insights text from LLM analysis.
 
@@ -262,18 +262,18 @@ def generate_roi_summary(
         metrics = analysis_result.get("metrics", {})
 
         # Extract metadata
-        equipment_codes = analysis_result.get("equipment_codes", ["N/A"])
+        machine_ids = analysis_result.get("machine_ids", ["N/A"])
         equipment_str = (
-            ", ".join(equipment_codes)
-            if isinstance(equipment_codes, list)
-            else str(equipment_codes)
+            ", ".join(machine_ids)
+            if isinstance(machine_ids, list)
+            else str(machine_ids)
         )
 
-        supplier_names = analysis_result.get("supplier_names", ["N/A"])
+        vendor_names = analysis_result.get("vendor_names", ["N/A"])
         supplier_str = (
-            ", ".join(supplier_names)
-            if isinstance(supplier_names, list)
-            else str(supplier_names)
+            ", ".join(vendor_names)
+            if isinstance(vendor_names, list)
+            else str(vendor_names)
         )
 
         metadata = {

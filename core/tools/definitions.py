@@ -36,7 +36,7 @@ COMMUNICATION_TOOLS: List[Dict[str, Any]] = [
                         },
                         "analysis_type": {
                             "type": "string",
-                            "description": "Type of analysis being sent (e.g., 'ROI', 'CT Deviation', 'RCA') for context",
+                            "description": "Type of analysis being sent (e.g., 'ROI', 'Duration Deviation', 'RCA') for context",
                         },
                         "custom_body": {
                             "type": "string",
@@ -69,7 +69,7 @@ SCHEDULER_TOOLS: List[Dict[str, Any]] = [
                         },
                         "tool_name": {
                             "type": "string",
-                            "description": "Name of the tool to execute (e.g., 'refresh_demo_table', 'run_ct_deviation_analysis')",
+                            "description": "Name of the tool to execute (e.g., 'refresh_shot_data', 'run_deviation_analysis')",
                         },
                         "arguments": {
                             "type": "object",
@@ -171,7 +171,7 @@ DATA_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "table_name": {
                             "type": "string",
-                            "description": "Name of the table to describe (e.g., 'DEMO_TABLE', 'MOLD', 'PART')",
+                            "description": "Name of the table to describe (e.g., 'SHOT_DATA', 'TOOL', 'PRODUCT')",
                         },
                     },
                     "required": ["table_name"],
@@ -257,7 +257,7 @@ VISUALIZATION_TOOLS: List[Dict[str, Any]] = [
                 "json": {
                     "type": "object",
                     "properties": {
-                        "equipment_code": {
+                        "machine_id": {
                             "type": "string",
                             "description": "Equipment code to analyze (e.g., 'MX-7102')",
                         },
@@ -279,7 +279,7 @@ VISUALIZATION_TOOLS: List[Dict[str, Any]] = [
                             "description": "Optional: file path to save dashboard HTML",
                         },
                     },
-                    "required": ["equipment_code", "start_date", "end_date"],
+                    "required": ["machine_id", "start_date", "end_date"],
                 }
             },
         }

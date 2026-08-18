@@ -1,7 +1,7 @@
 """
 Master Shot Table Refresh Tool - Foundation Data Pipeline.
 
-Refreshes the DEMO_TABLE that serves as the canonical data source
+Refreshes the SHOT_DATA that serves as the canonical data source
 for all analysis modules (ROI, RCA, etc.).
 
 This tool wraps the OptimizedMasterShotPipeline which provides:
@@ -23,7 +23,7 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 
-def refresh_demo_table(
+def refresh_shot_data(
     mode: str = "incremental",
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -34,14 +34,14 @@ def refresh_demo_table(
     job_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Refresh DEMO_TABLE with latest production data.
+    Refresh SHOT_DATA with latest production data.
 
     This is the foundation table used by all analysis modules:
     - ROI Analysis
     -  Analysis (MTTR/MTBF)
 
-    - CT Deviation
-    - CT Efficiency
+    - Duration Deviation
+    - Duration Efficiency
     - Root Cause Analysis
     - Tooling EOL Prediction
 
@@ -90,13 +90,13 @@ def refresh_demo_table(
 
     Usage Examples:
         # Single client
-        refresh_demo_table(mode="incremental", schemas=["NORDPLAST"])
+        refresh_shot_data(mode="incremental", schemas=["NORDPLAST"])
 
         # Multiple clients
-        refresh_demo_table(mode="incremental", schemas=["NORDPLAST", "ARCWELD"])
+        refresh_shot_data(mode="incremental", schemas=["NORDPLAST", "ARCWELD"])
 
         # Use .env default (no schema specified)
-        refresh_demo_table(mode="incremental")
+        refresh_shot_data(mode="incremental")
     """
     try:
         overall_start_time = datetime.now()
@@ -117,7 +117,7 @@ def refresh_demo_table(
             start_time = datetime.now()
 
             logger.info("=" * 70)
-            logger.info(f"🔄 Starting DEMO_TABLE refresh for: {schema_name}")
+            logger.info(f"🔄 Starting SHOT_DATA refresh for: {schema_name}")
             logger.info(f"   Mode: {mode}")
             logger.info(f"   Overlap days: {overlap_days}")
             logger.info(f"   Chunk size: {chunk_size_days} days")
@@ -183,7 +183,7 @@ def refresh_demo_table(
 
             if success:
                 logger.info("=" * 70)
-                logger.info(f"✅ DEMO_TABLE refresh completed for {schema_name}")
+                logger.info(f"✅ SHOT_DATA refresh completed for {schema_name}")
                 logger.info(f"   Rows processed: {total_rows:,}")
                 logger.info(f"   Chunks: {chunks_count}")
                 logger.info(f"   Time: {elapsed_time:.1f}s")
@@ -207,7 +207,7 @@ def refresh_demo_table(
                     },
                 }
             else:
-                logger.error(f"❌ DEMO_TABLE refresh failed for {schema_name}")
+                logger.error(f"❌ SHOT_DATA refresh failed for {schema_name}")
                 result = {
                     "status": "error",
                     "schema": schema_name,
@@ -247,7 +247,7 @@ def refresh_demo_table(
         }
 
     except Exception as e:
-        logger.error(f"❌ DEMO_TABLE refresh failed: {e}")
+        logger.error(f"❌ SHOT_DATA refresh failed: {e}")
         import traceback
 
         logger.error(traceback.format_exc())
@@ -266,7 +266,7 @@ def get_latest_log_file() -> Optional[str]:
     Returns:
         str: Path to latest log file or None
     """
-    log_files = glob.glob("logs/DEMO_TABLE_*.log")
+    log_files = glob.glob("logs/SHOT_DATA_*.log")
     if not log_files:
         return None
     return max(log_files, key=os.path.getctime)
@@ -347,15 +347,15 @@ def get_log_progress(lines: int = 50) -> Dict[str, Any]:
 # Tool definition for MCP
 MASTER_TABLE_TOOLS = [
     {
-        "name": "refresh_demo_table",
-        "description": """Refresh DEMO_TABLE with latest production data from Snowflake.
+        "name": "refresh_shot_data",
+        "description": """Refresh SHOT_DATA with latest production data from Snowflake.
 
 This is the FOUNDATION TABLE used by all 7 analysis modules:
-• ROI Analysis - Cycle time efficiency metrics
+• ROI Analysis - Duration efficiency metrics
 •  Analysis - MTTR/MTBF tracking
 
-• CT Deviation - Process stability monitoring
-• CT Efficiency - Supplier benchmarking
+• Duration Deviation - Process stability monitoring
+• Duration Efficiency - Supplier benchmarking
 • Root Cause Analysis - Pareto and Five Whys
 • Tooling EOL - End-of-life prediction
 

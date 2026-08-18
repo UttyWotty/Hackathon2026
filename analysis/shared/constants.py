@@ -18,9 +18,9 @@ from enum import Enum
 class AnalysisThresholds:
     """Common thresholds for analysis operations."""
 
-    # Cycle time thresholds
-    CT_DEVIATION_WARNING = 10.0  # %
-    CT_DEVIATION_CRITICAL = 20.0  # %
+    # Duration thresholds
+    DEVIATION_WARNING = 10.0  # %
+    DEVIATION_CRITICAL = 20.0  # %
     MAX_ACCEPTABLE_CT = 999.9  # seconds
 
     # Efficiency thresholds
@@ -51,10 +51,10 @@ class SessionDetection:
 
     SESSION_GAP_HOURS: int = 8  # Hours of inactivity to start new session
     SESSION_GAP_SECONDS: int = 28800  # SESSION_GAP_HOURS * 3600
-    STOP_DEVIATION_THRESHOLD: float = 0.05  # +/-5% from mode CT triggers stop
-    GAP_TIME_TOLERANCE_SECONDS: float = 2.0  # Gap > CT + this value = stop
-    HARD_STOP_CT: float = 999.9  # CT >= this value = hard stop / idle
-    MODE_CT_DECIMALS: int = 2  # Rounding precision for mode CT
+    STOP_DEVIATION_THRESHOLD: float = 0.05  # +/-5% from mode duration triggers stop
+    GAP_TIME_TOLERANCE_SECONDS: float = 2.0  # Gap > DURATION + this value = stop
+    HARD_STOP_DURATION: float = 999.9  # CT >= this value = hard stop / idle
+    MODE_CT_DECIMALS: int = 2  # Rounding precision for mode duration
 
 
 # ============================================================================
@@ -100,8 +100,8 @@ class FilePaths:
     # Module-specific output subdirectories (all under output/)
     ROI_OUTPUT = "output/roi"
 
-    CT_DEVIATION_OUTPUT = "output/ct_deviation"
-    CT_EFFICIENCY_OUTPUT = "output/ct_efficiency"
+    DEVIATION_OUTPUT = "output/deviation"
+    EFFICIENCY_OUTPUT = "output/efficiency"
     RCA_OUTPUT = "output/rca"
     TOOLING_EOL_OUTPUT = "output/tooling_eol"
 
@@ -121,7 +121,7 @@ class FilePaths:
 class DatabaseTables:
     """Standard Snowflake table names."""
 
-    DEMO_TABLE = "DEMO_TABLE"
+    SHOT_DATA = "SHOT_DATA"
     PRODUCT = "PRODUCT"
     ANA_SHOT_MADE = "ANA_SHOT_MADE"
     ROI_TABLE = "ROI"
@@ -145,33 +145,33 @@ class ColumnNames:
     """Standard column names across datasets."""
 
     # Equipment identifiers
-    EQUIPMENT_CODE = "EQUIPMENT_CODE"
-    MOLD_ID = "MOLD_ID"
-    COUNTER_CODE = "COUNTER_CODE"
+    MACHINE_ID = "MACHINE_ID"
+    TOOL_ID = "TOOL_ID"
+    SENSOR_CODE = "SENSOR_CODE"
 
     # Time columns
     DATE = "DATE"
     TIMESTAMP = "TIMESTAMP"
-    LOCAL_SHOT_TIME = "LOCAL_SHOT_TIME"
+    SHOT_TIME = "SHOT_TIME"
 
     # Production metrics
     SHOTS = "SHOTS"
-    CYCLE_TIME = "CT"
-    APPROVED_CT = "APPROVED_CT"
+    DURATION = "DURATION"
+    TARGET_DURATION = "TARGET_DURATION"
 
     # Status columns
-    CT_STATUS = "CT_STATUS"
+    STATUS = "STATUS"
     EQUIPMENT_STATUS = "EQUIPMENT_STATUS"
 
     # Part information
-    PART_ID = (
-        "PART_ID"  # Note: Stores part_code (STRING like "218-155"), not numeric ID
+    PRODUCT_ID = (
+        "PRODUCT_ID"  # Note: Stores product_code (STRING like "218-155"), not numeric ID
     )
-    PART_NAME = "PART_NAME"
+    PRODUCT_NAME = "PRODUCT_NAME"
 
     # Supplier information
-    SUPPLIER_NAME = "SUPPLIER_NAME"
-    COMPANY_ID = "COMPANY_ID"
+    VENDOR_NAME = "VENDOR_NAME"
+    VENDOR_ID = "VENDOR_ID"
 
 
 # ============================================================================
@@ -272,7 +272,7 @@ class SQLTemplates:
     EQUIPMENT_DATA_QUERY = """
         SELECT * 
         FROM {table}
-        WHERE EQUIPMENT_CODE = '{equipment_code}'
+        WHERE MACHINE_ID = '{machine_id}'
         AND {date_col} BETWEEN '{start_date}' AND '{end_date}'
         ORDER BY {date_col}
     """

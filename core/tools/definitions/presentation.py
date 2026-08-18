@@ -25,8 +25,8 @@ PRESENTATION_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "analysis_type": {
                             "type": "string",
-                            "description": "Type of analysis (e.g., 'ct_deviation', 'roi').",
-                            "enum": ["ct_deviation", "roi"],
+                            "description": "Type of analysis (e.g., 'deviation', 'roi').",
+                            "enum": ["deviation", "roi"],
                         },
                         "metrics": {
                             "type": "object",
@@ -37,11 +37,11 @@ PRESENTATION_TOOLS: List[Dict[str, Any]] = [
                             "items": {"type": "object"},
                             "description": "Optional: Session-level data as array of objects (from session_metrics in analysis result)",
                         },
-                        "equipment_code": {
+                        "machine_id": {
                             "type": "string",
                             "description": "Equipment code/identifier",
                         },
-                        "supplier_name": {
+                        "vendor_name": {
                             "type": "string",
                             "description": "Supplier or client name",
                         },
@@ -78,11 +78,11 @@ PRESENTATION_TOOLS: List[Dict[str, Any]] = [
                 "json": {
                     "type": "object",
                     "properties": {
-                        "equipment_code": {
+                        "machine_id": {
                             "type": "string",
                             "description": "Equipment code to analyze (REQUIRED)",
                         },
-                        "supplier_name": {
+                        "vendor_name": {
                             "type": "string",
                             "description": "Optional supplier/client name",
                         },
@@ -116,7 +116,7 @@ PRESENTATION_TOOLS: List[Dict[str, Any]] = [
                         },
                     },
                     "required": [
-                        "equipment_code",
+                        "machine_id",
                     ],
                 }
             },

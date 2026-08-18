@@ -38,7 +38,7 @@ from core.cortex_wire import (  # noqa: E402
 from core.llm_backend import LLM_BACKEND, get_llm_client  # noqa: E402
 from core.tools_config import get_tools_for_llm  # noqa: E402
 
-PROMPT = "Which machines show cycle time drift? Use the available tools."
+PROMPT = "Which machines show duration drift? Use the available tools."
 SEPARATOR = "-" * 60
 # Rough bytes-per-token ratio, good enough for a size warning.
 CHARS_PER_TOKEN = 4

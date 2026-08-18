@@ -7,7 +7,7 @@ one produced the results.
 
 Usage:
     python scripts/search_notes.py MX-7103
-    python scripts/search_notes.py MX-7103 "cycle time slower cooling"
+    python scripts/search_notes.py MX-7103 "duration slower cooling"
 """
 
 import csv
@@ -59,11 +59,11 @@ def _load_local_notes() -> List[Dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
-def _print_results(mode: str, equipment_code: str, query: str, results: List) -> None:
+def _print_results(mode: str, machine_id: str, query: str, results: List) -> None:
     """Render the search results, stating which engine produced them."""
     print(SEPARATOR, flush=True)
     print(f"source    : {mode}", flush=True)
-    print(f"equipment : {equipment_code or 'all'}", flush=True)
+    print(f"equipment : {machine_id or 'all'}", flush=True)
     print(f"query     : {query or '(none - full history in date order)'}", flush=True)
     print(SEPARATOR, flush=True)
 
@@ -95,7 +95,7 @@ def _print_results(mode: str, equipment_code: str, query: str, results: List) ->
 
 def main() -> int:
     """Search notes for one equipment code, with an optional free-text query."""
-    equipment_code = sys.argv[1] if len(sys.argv) > 1 else ""
+    machine_id = sys.argv[1] if len(sys.argv) > 1 else ""
     query = sys.argv[2] if len(sys.argv) > 2 else ""
 
     try:
@@ -104,8 +104,8 @@ def main() -> int:
         print(f"SEARCH FAILED: {exc}", flush=True)
         return EXIT_FAILED
 
-    results = rank_notes(notes, query, equipment_code or None, DEFAULT_LIMIT)
-    _print_results(MODE_LEXICAL, equipment_code, query, results)
+    results = rank_notes(notes, query, machine_id or None, DEFAULT_LIMIT)
+    _print_results(MODE_LEXICAL, machine_id, query, results)
     return EXIT_OK
 
 

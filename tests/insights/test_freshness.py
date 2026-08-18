@@ -36,9 +36,9 @@ def test_classification_boundaries():
 
 def test_build_entry_shape():
     entry = build_freshness_entry(
-        "DEMO_TABLE", NOW - timedelta(hours=30), NOW, expected_max_age_hours=24.0
+        "SHOT_DATA", NOW - timedelta(hours=30), NOW, expected_max_age_hours=24.0
     )
-    assert entry["source"] == "DEMO_TABLE"
+    assert entry["source"] == "SHOT_DATA"
     assert entry["age_hours"] == 30.0
     assert entry["status"] == STATUS_STALE
     assert entry["last_data_time"].startswith("2026-06-10")

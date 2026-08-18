@@ -46,7 +46,7 @@ class ROIMetricsCalculator:
         Calculate grouped summary metrics by supplier, equipment, and time period.
 
         Args:
-            df: Preprocessed DataFrame with CT classifications
+            df: Preprocessed DataFrame with duration classifications
             aggregation_level: Time aggregation level - "daily", "weekly", or "monthly"
 
         Returns:
@@ -60,20 +60,20 @@ class ROIMetricsCalculator:
         }
         time_col = time_col_map.get(aggregation_level, "DATE")
 
-        # Pre-calculate weighted CT to avoid slow lambda lookups
-        df["WEIGHTED_CT"] = df["CT"] * df["TOTAL_SHOT_COUNT"]
+        # Pre-calculate weighted duration to avoid slow lambda lookups
+        df["WEIGHTED_DURATION"] = df["DURATION"] * df["TOTAL_SHOT_COUNT"]
 
         # Main grouping and aggregation
         grouped = (
-            df.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col])
+            df.groupby(["VENDOR_NAME", "MACHINE_ID", time_col])
             .agg(
                 TOTAL_SHOTS=("TOTAL_SHOT_COUNT", "sum"),
                 PARTS_PRODUCED=("VOLUME", "sum"),
-                APPROVED_CT=("APPROVED_CT", "first"),
-                WEIGHTED_CT_SUM=("WEIGHTED_CT", "sum"),  # Sum of weighted CTs
-                WITHIN_SHOT_COUNT=("CT_CATEGORY", lambda x: (x == "WITHIN").sum()),
-                SLOWER_SHOT_COUNT=("CT_CATEGORY", lambda x: (x == "SLOWER").sum()),
-                FASTER_SHOT_COUNT=("CT_CATEGORY", lambda x: (x == "FASTER").sum()),
+                TARGET_DURATION=("TARGET_DURATION", "first"),
+                WEIGHTED_DURATION_SUM=("WEIGHTED_DURATION", "sum"),  # Sum of weighted durations
+                WITHIN_SHOT_COUNT=("DURATION_CATEGORY", lambda x: (x == "WITHIN").sum()),
+                SLOWER_SHOT_COUNT=("DURATION_CATEGORY", lambda x: (x == "SLOWER").sum()),
+                FASTER_SHOT_COUNT=("DURATION_CATEGORY", lambda x: (x == "FASTER").sum()),
                 # NEW: Uptime metrics
                 PRODUCTION_TIME=("PRODUCTION_SECONDS", "sum"),
                 IDLE_TIME=("IDLE_SECONDS", "sum"),
@@ -81,11 +81,11 @@ class ROIMetricsCalculator:
             .reset_index()
         )
 
-        # Calculate weighted average CT efficiently
-        grouped["AVERAGE_CT"] = (
-            grouped["WEIGHTED_CT_SUM"] / grouped["TOTAL_SHOTS"]
+        # Calculate weighted average duration efficiently
+        grouped["AVERAGE_DURATION"] = (
+            grouped["WEIGHTED_DURATION_SUM"] / grouped["TOTAL_SHOTS"]
         ).round(2)
-        grouped.drop(columns=["WEIGHTED_CT_SUM"], inplace=True)
+        grouped.drop(columns=["WEIGHTED_DURATION_SUM"], inplace=True)
 
         # Calculate TOTAL_RUNTIME and UPTIME_PERCENTAGE
         grouped["TOTAL_RUNTIME"] = grouped["PRODUCTION_TIME"] + grouped["IDLE_TIME"]
@@ -95,7 +95,7 @@ class ROIMetricsCalculator:
             0,
         )
 
-        # Calculate weighted average CTs for each category
+        # Calculate weighted average durations for each category
         grouped = self._add_weighted_category_cts(df, grouped, time_col)
 
         # Calculate time metrics
@@ -113,7 +113,7 @@ class ROIMetricsCalculator:
         self, df: pd.DataFrame, grouped: pd.DataFrame, time_col: str
     ) -> pd.DataFrame:
         """
-        Add weighted average CTs for SLOWER and FASTER categories.
+        Add weighted average durations for SLOWER and FASTER categories.
 
         Args:
             df: Original DataFrame with individual records
@@ -121,93 +121,93 @@ class ROIMetricsCalculator:
             time_col: Time aggregation column (DATE, WEEK, or MONTH)
 
         Returns:
-            DataFrame with category-specific average CTs
+            DataFrame with category-specific average durations
         """
 
-        # Calculate weighted average CT for SLOWER category using efficient aggregation
-        slow_df = df[df["CT_CATEGORY"] == "SLOWER"].copy()
+        # Calculate weighted average duration for SLOWER category using efficient aggregation
+        slow_df = df[df["DURATION_CATEGORY"] == "SLOWER"].copy()
         if not slow_df.empty:
-            slow_df["WEIGHTED_CT"] = slow_df["CT"] * slow_df["TOTAL_SHOT_COUNT"]
+            slow_df["WEIGHTED_DURATION"] = slow_df["DURATION"] * slow_df["TOTAL_SHOT_COUNT"]
             slow_agg = (
-                slow_df.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col])
+                slow_df.groupby(["VENDOR_NAME", "MACHINE_ID", time_col])
                 .agg(
-                    WEIGHTED_CT_SUM=("WEIGHTED_CT", "sum"),
+                    WEIGHTED_DURATION_SUM=("WEIGHTED_DURATION", "sum"),
                     TOTAL_SHOTS=("TOTAL_SHOT_COUNT", "sum"),
                 )
                 .reset_index()
             )
-            slow_agg["AVG_CT_SLOW"] = (
-                slow_agg["WEIGHTED_CT_SUM"] / slow_agg["TOTAL_SHOTS"]
+            slow_agg["AVG_DURATION_SLOW"] = (
+                slow_agg["WEIGHTED_DURATION_SUM"] / slow_agg["TOTAL_SHOTS"]
             )
             slow_ct = slow_agg[
-                ["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col, "AVG_CT_SLOW"]
+                ["VENDOR_NAME", "MACHINE_ID", time_col, "AVG_DURATION_SLOW"]
             ]
         else:
             slow_ct = pd.DataFrame(
-                columns=["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col, "AVG_CT_SLOW"]
+                columns=["VENDOR_NAME", "MACHINE_ID", time_col, "AVG_DURATION_SLOW"]
             )
 
-        # Calculate weighted average CT for FASTER category using efficient aggregation
-        fast_df = df[df["CT_CATEGORY"] == "FASTER"].copy()
+        # Calculate weighted average duration for FASTER category using efficient aggregation
+        fast_df = df[df["DURATION_CATEGORY"] == "FASTER"].copy()
         if not fast_df.empty:
-            fast_df["WEIGHTED_CT"] = fast_df["CT"] * fast_df["TOTAL_SHOT_COUNT"]
+            fast_df["WEIGHTED_DURATION"] = fast_df["DURATION"] * fast_df["TOTAL_SHOT_COUNT"]
             fast_agg = (
-                fast_df.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col])
+                fast_df.groupby(["VENDOR_NAME", "MACHINE_ID", time_col])
                 .agg(
-                    WEIGHTED_CT_SUM=("WEIGHTED_CT", "sum"),
+                    WEIGHTED_DURATION_SUM=("WEIGHTED_DURATION", "sum"),
                     TOTAL_SHOTS=("TOTAL_SHOT_COUNT", "sum"),
                 )
                 .reset_index()
             )
-            fast_agg["AVG_CT_FAST"] = (
-                fast_agg["WEIGHTED_CT_SUM"] / fast_agg["TOTAL_SHOTS"]
+            fast_agg["AVG_DURATION_FAST"] = (
+                fast_agg["WEIGHTED_DURATION_SUM"] / fast_agg["TOTAL_SHOTS"]
             )
             fast_ct = fast_agg[
-                ["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col, "AVG_CT_FAST"]
+                ["VENDOR_NAME", "MACHINE_ID", time_col, "AVG_DURATION_FAST"]
             ]
         else:
             fast_ct = pd.DataFrame(
-                columns=["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col, "AVG_CT_FAST"]
+                columns=["VENDOR_NAME", "MACHINE_ID", time_col, "AVG_DURATION_FAST"]
             )
 
-        # Calculate weighted average CT for WITHIN category using efficient aggregation
-        within_df = df[df["CT_CATEGORY"] == "WITHIN"].copy()
+        # Calculate weighted average duration for WITHIN category using efficient aggregation
+        within_df = df[df["DURATION_CATEGORY"] == "WITHIN"].copy()
         if not within_df.empty:
-            within_df["WEIGHTED_CT"] = within_df["CT"] * within_df["TOTAL_SHOT_COUNT"]
+            within_df["WEIGHTED_DURATION"] = within_df["DURATION"] * within_df["TOTAL_SHOT_COUNT"]
             within_agg = (
-                within_df.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col])
+                within_df.groupby(["VENDOR_NAME", "MACHINE_ID", time_col])
                 .agg(
-                    WEIGHTED_CT_SUM=("WEIGHTED_CT", "sum"),
+                    WEIGHTED_DURATION_SUM=("WEIGHTED_DURATION", "sum"),
                     TOTAL_SHOTS=("TOTAL_SHOT_COUNT", "sum"),
                 )
                 .reset_index()
             )
-            within_agg["AVG_CT_WITHIN"] = (
-                within_agg["WEIGHTED_CT_SUM"] / within_agg["TOTAL_SHOTS"]
+            within_agg["AVG_DURATION_WITHIN"] = (
+                within_agg["WEIGHTED_DURATION_SUM"] / within_agg["TOTAL_SHOTS"]
             )
             within_ct = within_agg[
-                ["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col, "AVG_CT_WITHIN"]
+                ["VENDOR_NAME", "MACHINE_ID", time_col, "AVG_DURATION_WITHIN"]
             ]
         else:
             within_ct = pd.DataFrame(
-                columns=["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col, "AVG_CT_WITHIN"]
+                columns=["VENDOR_NAME", "MACHINE_ID", time_col, "AVG_DURATION_WITHIN"]
             )
 
-        # Merge and fill nulls with approved CT
+        # Merge and fill nulls with approved duration
         grouped = grouped.merge(
-            slow_ct, on=["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col], how="left"
+            slow_ct, on=["VENDOR_NAME", "MACHINE_ID", time_col], how="left"
         )
         grouped = grouped.merge(
-            fast_ct, on=["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col], how="left"
+            fast_ct, on=["VENDOR_NAME", "MACHINE_ID", time_col], how="left"
         )
         grouped = grouped.merge(
-            within_ct, on=["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col], how="left"
+            within_ct, on=["VENDOR_NAME", "MACHINE_ID", time_col], how="left"
         )
 
-        grouped["AVG_CT_SLOW"] = grouped["AVG_CT_SLOW"].fillna(grouped["APPROVED_CT"])
-        grouped["AVG_CT_FAST"] = grouped["AVG_CT_FAST"].fillna(grouped["APPROVED_CT"])
-        grouped["AVG_CT_WITHIN"] = grouped["AVG_CT_WITHIN"].fillna(
-            grouped["APPROVED_CT"]
+        grouped["AVG_DURATION_SLOW"] = grouped["AVG_DURATION_SLOW"].fillna(grouped["TARGET_DURATION"])
+        grouped["AVG_DURATION_FAST"] = grouped["AVG_DURATION_FAST"].fillna(grouped["TARGET_DURATION"])
+        grouped["AVG_DURATION_WITHIN"] = grouped["AVG_DURATION_WITHIN"].fillna(
+            grouped["TARGET_DURATION"]
         )
 
         return grouped
@@ -224,32 +224,32 @@ class ROIMetricsCalculator:
         """
         # Used hours by category
         grouped["USED_HOURS_SLOW"] = (
-            (grouped["AVG_CT_SLOW"] * grouped["SLOWER_SHOT_COUNT"]) / 3600
+            (grouped["AVG_DURATION_SLOW"] * grouped["SLOWER_SHOT_COUNT"]) / 3600
         ).round(2)
         grouped["USED_HOURS_FAST"] = (
-            (grouped["AVG_CT_FAST"] * grouped["FASTER_SHOT_COUNT"]) / 3600
+            (grouped["AVG_DURATION_FAST"] * grouped["FASTER_SHOT_COUNT"]) / 3600
         ).round(2)
         grouped["USED_HOURS_WITHIN"] = (
-            (grouped["AVG_CT_WITHIN"] * grouped["WITHIN_SHOT_COUNT"]) / 3600
+            (grouped["AVG_DURATION_WITHIN"] * grouped["WITHIN_SHOT_COUNT"]) / 3600
         ).round(2)
 
         # Expected hours by category
         grouped["EXPECTED_HOURS_FAST"] = (
-            (grouped["APPROVED_CT"] * grouped["FASTER_SHOT_COUNT"]) / 3600
+            (grouped["TARGET_DURATION"] * grouped["FASTER_SHOT_COUNT"]) / 3600
         ).round(2)
         grouped["EXPECTED_HOURS_SLOW"] = (
-            (grouped["APPROVED_CT"] * grouped["SLOWER_SHOT_COUNT"]) / 3600
+            (grouped["TARGET_DURATION"] * grouped["SLOWER_SHOT_COUNT"]) / 3600
         ).round(2)
         grouped["EXPECTED_HOURS_WITHIN"] = (
-            (grouped["APPROVED_CT"] * grouped["WITHIN_SHOT_COUNT"]) / 3600
+            (grouped["TARGET_DURATION"] * grouped["WITHIN_SHOT_COUNT"]) / 3600
         ).round(2)
 
         # Total metrics
         grouped["EXPECTED_HOURS"] = (
-            (grouped["APPROVED_CT"] * grouped["TOTAL_SHOTS"]) / 3600
+            (grouped["TARGET_DURATION"] * grouped["TOTAL_SHOTS"]) / 3600
         ).round(2)
         grouped["USED_HOURS"] = (
-            (grouped["AVERAGE_CT"] * grouped["TOTAL_SHOTS"]) / 3600
+            (grouped["AVERAGE_DURATION"] * grouped["TOTAL_SHOTS"]) / 3600
         ).round(2)
         grouped["HOURS_DIFF"] = (
             grouped["EXPECTED_HOURS"] - grouped["USED_HOURS"]
@@ -314,7 +314,7 @@ class ROIMetricsCalculator:
         # Main efficiency calculation
         grouped["TOOLING_EFFICIENCY"] = np.where(
             grouped["USED_HOURS"] > 0,
-            (grouped["TOTAL_SHOTS"] * grouped["APPROVED_CT"])
+            (grouped["TOTAL_SHOTS"] * grouped["TARGET_DURATION"])
             / (grouped["USED_HOURS"] * 3600)
             * 100,
             0,
@@ -322,19 +322,19 @@ class ROIMetricsCalculator:
 
         # Category-specific efficiencies
         grouped["FASTER_EFFICIENCY"] = (
-            (grouped["FASTER_SHOT_COUNT"] * grouped["APPROVED_CT"])
+            (grouped["FASTER_SHOT_COUNT"] * grouped["TARGET_DURATION"])
             / (grouped["USED_HOURS"] * 3600)
             * 100
         ).round(2)
 
         grouped["SLOWER_EFFICIENCY"] = (
-            (grouped["SLOWER_SHOT_COUNT"] * grouped["APPROVED_CT"])
+            (grouped["SLOWER_SHOT_COUNT"] * grouped["TARGET_DURATION"])
             / (grouped["USED_HOURS"] * 3600)
             * 100
         ).round(2)
 
         grouped["WITHIN_EFFICIENCY"] = (
-            (grouped["WITHIN_SHOT_COUNT"] * grouped["APPROVED_CT"])
+            (grouped["WITHIN_SHOT_COUNT"] * grouped["TARGET_DURATION"])
             / (grouped["USED_HOURS"] * 3600)
             * 100
         ).round(2)
@@ -362,7 +362,7 @@ class ROIMetricsCalculator:
         )
 
         # Additional metrics
-        grouped["DIFFERENCE"] = (grouped["APPROVED_CT"] - grouped["AVERAGE_CT"]).round(
+        grouped["DIFFERENCE"] = (grouped["TARGET_DURATION"] - grouped["AVERAGE_DURATION"]).round(
             2
         )
 
@@ -372,7 +372,7 @@ class ROIMetricsCalculator:
         self, df: pd.DataFrame, grouped: pd.DataFrame, time_col: str
     ) -> pd.DataFrame:
         """
-        Add process stability metrics based on deviation from average CT.
+        Add process stability metrics based on deviation from average duration.
 
         Args:
             df: Original DataFrame with individual records
@@ -382,23 +382,23 @@ class ROIMetricsCalculator:
         Returns:
             DataFrame with stability metrics added
         """
-        # Merge average CT back to original data for stability calculation
+        # Merge average duration back to original data for stability calculation
         df_with_avg = df.merge(
-            grouped[["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col, "AVERAGE_CT"]],
-            on=["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col],
+            grouped[["VENDOR_NAME", "MACHINE_ID", time_col, "AVERAGE_DURATION"]],
+            on=["VENDOR_NAME", "MACHINE_ID", time_col],
             how="left",
         )
 
-        # Calculate stability based on deviation from average CT
+        # Calculate stability based on deviation from average duration
         delta = self.config.delta_tolerance
         df_with_avg["CT_WITHIN_FROM_AVG"] = (
-            np.abs(df_with_avg["CT"] - df_with_avg["AVERAGE_CT"])
-            <= df_with_avg["AVERAGE_CT"] * delta
+            np.abs(df_with_avg["DURATION"] - df_with_avg["AVERAGE_DURATION"])
+            <= df_with_avg["AVERAGE_DURATION"] * delta
         )
 
         # Aggregate stability metrics
         within_from_avg = (
-            df_with_avg.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col])
+            df_with_avg.groupby(["VENDOR_NAME", "MACHINE_ID", time_col])
             .agg(WITHIN_FROM_AVG_SHOT_COUNT=("CT_WITHIN_FROM_AVG", "sum"))
             .reset_index()
         )
@@ -406,7 +406,7 @@ class ROIMetricsCalculator:
         # Merge back to grouped data
         grouped = grouped.merge(
             within_from_avg,
-            on=["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col],
+            on=["VENDOR_NAME", "MACHINE_ID", time_col],
             how="left",
         )
 

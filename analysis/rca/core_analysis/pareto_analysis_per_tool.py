@@ -1,6 +1,6 @@
 """
 Pareto analysis orchestrator for single-equipment root cause analysis.
-Provides the ParetoAnalysis class that coordinates CT deviation detection, downtime
+Provides the ParetoAnalysis class that coordinates duration deviation detection, downtime
 calculation, scrap detection, and issue analysis by delegating to specialised modules.
 Imported by root_cause_analysis_pipeline.py as the main entry point for Pareto RCA.
 """
@@ -12,12 +12,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# Import the data fetching function from demo_table
-from .demo_table import fetch_data_from_snowflake, session
-from .pareto_ct_deviations import calculate_statistical_ct_deviations
+# Import the data fetching function from shot_data
+from .shot_data import fetch_data_from_snowflake, session
+from .pareto_deviations import calculate_statistical_deviations
 from .pareto_downtime import calculate_real_downtime, detect_downtime_events
 from .pareto_issue_analyzer import (
-    analyze_cycle_time_issues,
+    analyze_duration_issues,
     analyze_downtime_patterns,
     analyze_equipment_performance,
     analyze_scrap_patterns,
@@ -34,12 +34,12 @@ class ParetoAnalysis:
     """Comprehensive Pareto analysis for single equipment with downtime detection.
 
     Threshold Configuration:
-    - CT_SEVERITY_BINS: Cycle time deviation severity categories
+    - CT_SEVERITY_BINS: Duration deviation severity categories
     - TEMP_CV_THRESHOLD: Temperature coefficient of variation threshold (>10%)
     - EQUIPMENT_ISSUE_THRESHOLD: Equipment issue rate threshold (>10%)
     - TIME_MULTIPLIER_THRESHOLD: Time-based issue multiplier (1.5x average)
     - DOWNTIME_GAP_THRESHOLD: Minimum gap to consider as downtime (minutes)
-    - DOWNTIME_CT_MULTIPLIER: CT multiplier to detect downtime spikes
+    - DOWNTIME_DURATION_MULTIPLIER: CT multiplier to detect downtime spikes
     """
 
     # Configurable thresholds
@@ -56,7 +56,7 @@ class ParetoAnalysis:
 
     # Downtime detection thresholds
     DOWNTIME_GAP_THRESHOLD: float = 5.0
-    DOWNTIME_CT_MULTIPLIER: float = 2.0
+    DOWNTIME_DURATION_MULTIPLIER: float = 2.0
 
     # Scrap detection thresholds
     WARMUP_SHOTS_AFTER_IDLE: int = 3
@@ -88,12 +88,12 @@ class ParetoAnalysis:
         """Prepare data for analysis by running all detection pipelines."""
         self.df = self.df.reset_index(drop=True)
 
-        self.df["LOCAL_SHOT_TIME"] = pd.to_datetime(self.df["LOCAL_SHOT_TIME"])
-        self.df["DATE"] = self.df["LOCAL_SHOT_TIME"].dt.date
-        self.df["HOUR"] = self.df["LOCAL_SHOT_TIME"].dt.hour
-        self.df["DAY_OF_WEEK"] = self.df["LOCAL_SHOT_TIME"].dt.day_name()
+        self.df["SHOT_TIME"] = pd.to_datetime(self.df["SHOT_TIME"])
+        self.df["DATE"] = self.df["SHOT_TIME"].dt.date
+        self.df["HOUR"] = self.df["SHOT_TIME"].dt.hour
+        self.df["DAY_OF_WEEK"] = self.df["SHOT_TIME"].dt.day_name()
 
-        self.df = calculate_statistical_ct_deviations(
+        self.df = calculate_statistical_deviations(
             self.df,
             std_threshold=self.STD_DEVIATION_THRESHOLD,
             iqr_multiplier=self.IQR_MULTIPLIER,
@@ -105,7 +105,7 @@ class ParetoAnalysis:
         self.df = detect_downtime_events(
             self.df,
             gap_threshold=self.DOWNTIME_GAP_THRESHOLD,
-            ct_multiplier=self.DOWNTIME_CT_MULTIPLIER,
+            ct_multiplier=self.DOWNTIME_DURATION_MULTIPLIER,
         )
 
         self.df = detect_scrap_indicators(
@@ -119,7 +119,7 @@ class ParetoAnalysis:
         print("  Data prepared: %d records loaded" % len(self.df))
         print(
             "  Date range: %s to %s"
-            % (self.df["LOCAL_SHOT_TIME"].min(), self.df["LOCAL_SHOT_TIME"].max())
+            % (self.df["SHOT_TIME"].min(), self.df["SHOT_TIME"].max())
         )
 
     def display_thresholds(self) -> None:
@@ -140,7 +140,7 @@ class ParetoAnalysis:
 
         print("\n  Downtime Detection Thresholds:")
         print("   Minimum Gap Threshold: %.1f minutes" % self.DOWNTIME_GAP_THRESHOLD)
-        print("   CT Spike Multiplier: %.1fx typical CT" % self.DOWNTIME_CT_MULTIPLIER)
+        print("   CT Spike Multiplier: %.1fx typical duration" % self.DOWNTIME_DURATION_MULTIPLIER)
 
         print("\n  Scrap Detection Thresholds:")
         print("   Warm-up Shots After Idle: %d shots" % self.WARMUP_SHOTS_AFTER_IDLE)
@@ -154,7 +154,7 @@ class ParetoAnalysis:
         )
         print("   Sensor Anomaly Threshold: %.1f sigma" % self.SENSOR_ANOMALY_THRESHOLD)
 
-        print("\n  Cycle Time Severity Categories:")
+        print("\n  Duration Severity Categories:")
         for i, (bin_val, label) in enumerate(
             zip(self.CT_SEVERITY_BINS[:-1], self.CT_SEVERITY_LABELS)
         ):
@@ -245,9 +245,9 @@ class ParetoAnalysis:
     # Delegating analysis methods
     # ------------------------------------------------------------------
 
-    def analyze_cycle_time_issues(self) -> None:
-        """Analyze cycle time deviations using statistical methods."""
-        analyze_cycle_time_issues(self.df, self.pareto_chart)
+    def analyze_duration_issues(self) -> None:
+        """Analyze duration deviations using statistical methods."""
+        analyze_duration_issues(self.df, self.pareto_chart)
 
     def analyze_temperature_issues(self) -> None:
         """Analyze temperature-related issues."""
@@ -289,7 +289,7 @@ class ParetoAnalysis:
         print("  Starting Comprehensive Pareto Analysis with Downtime Detection")
         print("=" * 80)
 
-        self.analyze_cycle_time_issues()
+        self.analyze_duration_issues()
         self.analyze_downtime_patterns()
         self.analyze_scrap_patterns()
         self.analyze_temperature_issues()
@@ -313,7 +313,7 @@ def main() -> None:
             return
 
         print("  Filtering for single equipment MX-7108...")
-        df_filtered = df[df["EQUIPMENT_CODE"] == "MX-7108"].copy()
+        df_filtered = df[df["MACHINE_ID"] == "MX-7108"].copy()
 
         if df_filtered.empty:
             print("  ERROR: No data found for equipment MX-7108")
@@ -323,12 +323,12 @@ def main() -> None:
         print(
             "  Date range: %s to %s"
             % (
-                df_filtered["LOCAL_SHOT_TIME"].min(),
-                df_filtered["LOCAL_SHOT_TIME"].max(),
+                df_filtered["SHOT_TIME"].min(),
+                df_filtered["SHOT_TIME"].max(),
             )
         )
         print(
-            "  Parts produced: %d different parts" % df_filtered["PART_NAME"].nunique()
+            "  Parts produced: %d different parts" % df_filtered["PRODUCT_NAME"].nunique()
         )
 
         print("\n" + "=" * 80)

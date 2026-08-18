@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # Environment defaults. Every read is declared here as a module-level constant.
-SYNTHETIC_DATABASE: Final[str] = os.getenv("SYNTHETIC_DATABASE", "MMS_DEMO")
+SYNTHETIC_DATABASE: Final[str] = os.getenv("SYNTHETIC_DATABASE", "DEMO")
 SYNTHETIC_SCHEMA: Final[str] = os.getenv("SYNTHETIC_SCHEMA", "PUBLIC")
 SYNTHETIC_OUTPUT_DIR: Final[str] = os.getenv("SYNTHETIC_OUTPUT_DIR", "./synthetic_out")
 SNOWFLAKE_ACCOUNT: Final[str] = os.getenv("SNOWFLAKE_ACCOUNT", "")

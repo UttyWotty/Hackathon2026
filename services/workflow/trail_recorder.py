@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from models.database import get_session
 from models.decision_trail import (
-    PHASE_ACT,
+    PHASE_Aduration,
     STATUS_COMPLETED,
     STATUS_FAILED,
     STATUS_RUNNING,

@@ -19,56 +19,56 @@ logger = logging.getLogger(__name__)
 
 
 def generate_why1_equipment(
-    equipment_code: str,
+    machine_id: str,
     metrics: Dict[str, Any],
 ) -> str:
     """Generate Why 1: immediate performance difference for the equipment."""
     if metrics.get("equipment_ct_mean", 0) > metrics.get("other_equipment_ct_mean", 0):
         ct_diff = metrics["equipment_ct_mean"] - metrics["other_equipment_ct_mean"]
-        return "Equipment %s has %.1fs higher cycle time than other equipment" % (
-            equipment_code,
+        return "Equipment %s has %.1fs higher duration than other equipment" % (
+            machine_id,
             ct_diff,
         )
     return (
         "Equipment %s shows performance variations compared to other equipment"
-        % equipment_code
+        % machine_id
     )
 
 
 def generate_why2_equipment(
-    equipment_code: str,
+    machine_id: str,
     metrics: Dict[str, Any],
     equipment_data: pd.DataFrame,
 ) -> str:
     """Generate Why 2: specific operational challenges for the equipment."""
-    return "Equipment %s has specific operational challenges" % equipment_code
+    return "Equipment %s has specific operational challenges" % machine_id
 
 
 def generate_why3_equipment(
-    equipment_code: str,
+    machine_id: str,
     metrics: Dict[str, Any],
     equipment_data: pd.DataFrame,
 ) -> str:
     """Generate Why 3: process optimization needs."""
-    return "Equipment %s requires process optimization" % equipment_code
+    return "Equipment %s requires process optimization" % machine_id
 
 
 def generate_why4_equipment(
-    equipment_code: str,
+    machine_id: str,
     metrics: Dict[str, Any],
     equipment_data: pd.DataFrame,
 ) -> str:
     """Generate Why 4: maintenance and procedure improvement needs."""
-    return "Equipment %s needs maintenance and procedure improvements" % equipment_code
+    return "Equipment %s needs maintenance and procedure improvements" % machine_id
 
 
 def generate_why5_equipment(
-    equipment_code: str,
+    machine_id: str,
     metrics: Dict[str, Any],
     equipment_data: pd.DataFrame,
 ) -> str:
     """Generate Why 5: systematic management improvement needs."""
-    return "Equipment %s requires systematic management improvements" % equipment_code
+    return "Equipment %s requires systematic management improvements" % machine_id
 
 
 # ---------------------------------------------------------------------------
@@ -132,28 +132,28 @@ def five_whys_equipment(
         "recommendations": [],
     }
 
-    equipment_code = target_data["code"]
+    machine_id = target_data["code"]
 
-    equipment_data = target_df[target_df["EQUIPMENT_CODE"] == equipment_code]
-    other_equipment_data = target_df[target_df["EQUIPMENT_CODE"] != equipment_code]
+    equipment_data = target_df[target_df["MACHINE_ID"] == machine_id]
+    other_equipment_data = target_df[target_df["MACHINE_ID"] != machine_id]
 
     if len(equipment_data) == 0:
         return generic_fallback_fn(target_name)
 
     metrics = equipment_metrics_fn(equipment_data, other_equipment_data)
 
-    analysis["whys"].append(generate_why1_equipment(equipment_code, metrics))
+    analysis["whys"].append(generate_why1_equipment(machine_id, metrics))
     analysis["whys"].append(
-        generate_why2_equipment(equipment_code, metrics, equipment_data)
+        generate_why2_equipment(machine_id, metrics, equipment_data)
     )
     analysis["whys"].append(
-        generate_why3_equipment(equipment_code, metrics, equipment_data)
+        generate_why3_equipment(machine_id, metrics, equipment_data)
     )
     analysis["whys"].append(
-        generate_why4_equipment(equipment_code, metrics, equipment_data)
+        generate_why4_equipment(machine_id, metrics, equipment_data)
     )
     analysis["whys"].append(
-        generate_why5_equipment(equipment_code, metrics, equipment_data)
+        generate_why5_equipment(machine_id, metrics, equipment_data)
     )
 
     analysis["root_cause"] = determine_root_cause_equipment(metrics, equipment_data)

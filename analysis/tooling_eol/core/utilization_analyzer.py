@@ -31,12 +31,12 @@ def compute_capacity_and_utilization(
 ) -> Tuple[float, float]:
     """Compute ideal weekly capacity (shots) and utilization percent.
 
-    Ideal weekly capacity is derived from APPROVED_CT as 604800 / approved_ct
-    (seconds per week divided by seconds per shot). If APPROVED_CT is missing,
+    Ideal weekly capacity is derived from TARGET_DURATION as 604800 / target_duration
+    (seconds per week divided by seconds per shot). If TARGET_DURATION is missing,
     capacity defaults to NaN and utilization cannot be computed.
 
     Args:
-        mold_df: Subset for single mold including 'APPROVED_CT'.
+        mold_df: Subset for single mold including 'TARGET_DURATION'.
         weekly_shots: Average weekly shots.
 
     Returns:
@@ -45,10 +45,10 @@ def compute_capacity_and_utilization(
     if mold_df.empty:
         return np.nan, np.nan
 
-    # Prefer MOLD table capacity when present: weekly capacity = daily_max_capacity * production_days
+    # Prefer TOOL table capacity when present: weekly capacity = max_daily_output * production_days
     ideal_capacity = np.nan
-    if "DAILY_MAX_CAPACITY" in mold_df.columns and "PRODUCTION_DAYS" in mold_df.columns:
-        daily_cap = mold_df["DAILY_MAX_CAPACITY"].dropna().median()
+    if "MAX_DAILY_OUTPUT" in mold_df.columns and "PRODUCTION_DAYS" in mold_df.columns:
+        daily_cap = mold_df["MAX_DAILY_OUTPUT"].dropna().median()
         prod_days = mold_df["PRODUCTION_DAYS"].dropna().median()
         if (
             np.isfinite(daily_cap)
@@ -58,22 +58,22 @@ def compute_capacity_and_utilization(
         ):
             ideal_capacity = float(daily_cap * prod_days)
 
-    # Fallback to APPROVED_CT-derived capacity if not available
+    # Fallback to TARGET_DURATION-derived capacity if not available
     if not np.isfinite(ideal_capacity):
-        if "APPROVED_CT" not in mold_df.columns:
+        if "TARGET_DURATION" not in mold_df.columns:
             return np.nan, np.nan
-        approved_ct = mold_df["APPROVED_CT"].dropna().median()
-        if not np.isfinite(approved_ct) or approved_ct <= 0:
+        target_duration = mold_df["TARGET_DURATION"].dropna().median()
+        if not np.isfinite(target_duration) or target_duration <= 0:
             return np.nan, np.nan
         # seconds in a week / seconds per shot
-        ideal_capacity = float(SECONDS_PER_WEEK / approved_ct)
+        ideal_capacity = float(SECONDS_PER_WEEK / target_duration)
 
-    # Apply OEE factor depending on tooling type. TOOLING_TYPE may be null/empty,
-    # in which case tooling_family stays None and get_oee falls back to a default.
-    tooling_family = None
-    if "TOOLING_TYPE" in mold_df.columns and mold_df["TOOLING_TYPE"].notna().any():
-        tooling_family = str(mold_df["TOOLING_TYPE"].dropna().mode().iloc[0])
-    oee = get_oee(tooling_family)
+    # Apply OEE factor depending on tooling type. TYPE may be null/empty,
+    # in which case type_category stays None and get_oee falls back to a default.
+    type_category = None
+    if "TYPE" in mold_df.columns and mold_df["TYPE"].notna().any():
+        type_category = str(mold_df["TYPE"].dropna().mode().iloc[0])
+    oee = get_oee(type_category)
     ideal_capacity = ideal_capacity * oee
 
     utilization_pct = (

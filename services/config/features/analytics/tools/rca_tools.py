@@ -19,8 +19,8 @@ if str(analysis_path) not in sys.path:
 
 
 async def run_rca_analysis(
-    equipment_codes: Optional[list] = None,
-    supplier_names: Optional[list] = None,
+    machine_ids: Optional[list] = None,
+    vendor_names: Optional[list] = None,
     snowflake_schema: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
@@ -34,8 +34,8 @@ async def run_rca_analysis(
     - Actionable recommendations with priority levels
 
     Args:
-        equipment_codes: Equipment identifier(s) - list (optional - analyzes all if not provided)
-        supplier_names: Supplier name(s) - list (optional)
+        machine_ids: Equipment identifier(s) - list (optional - analyzes all if not provided)
+        vendor_names: Supplier name(s) - list (optional)
         snowflake_schema: Snowflake schema (e.g., "NORDPLAST", "KESTREL") - overrides .env
 
     Returns:
@@ -43,7 +43,7 @@ async def run_rca_analysis(
         {
             "status": "success"|"error",
             "job_id": str,
-            "equipment_code": str,
+            "machine_id": str,
             "analysis_summary": {
                 "total_shots": int,
                 "issue_rate": float (percentage),
@@ -87,17 +87,17 @@ async def run_rca_analysis(
         from analysis.rca import run_analysis_api
 
         # Extract parameters
-        equipment_code = (
-            equipment_codes[0] if equipment_codes and len(equipment_codes) > 0 else None
+        machine_id = (
+            machine_ids[0] if machine_ids and len(machine_ids) > 0 else None
         )
-        supplier_name = (
-            supplier_names[0] if supplier_names and len(supplier_names) > 0 else None
+        vendor_name = (
+            vendor_names[0] if vendor_names and len(vendor_names) > 0 else None
         )
 
         # Run analysis
         results = run_analysis_api(
-            equipment_code=equipment_code,
-            supplier_name=supplier_name,
+            machine_id=machine_id,
+            vendor_name=vendor_name,
         )
 
         if results.get("status") == "error":
@@ -111,8 +111,8 @@ async def run_rca_analysis(
         return {
             "status": "success",
             "job_id": job_id,
-            "equipment_code": equipment_code or "All Equipment",
-            "supplier_name": supplier_name,
+            "machine_id": machine_id or "All Equipment",
+            "vendor_name": vendor_name,
             "analysis_summary": results.get("analysis_summary", {}),
             "top_issues": results.get("top_issues", []),
             "root_causes": results.get("root_causes", []),
@@ -143,12 +143,12 @@ RCA_TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "equipment_codes": {
+                "machine_ids": {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "Equipment code(s) - optional - e.g., ['MX-7110']. Analyzes all equipment if not provided.",
                 },
-                "supplier_names": {
+                "vendor_names": {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "Supplier name(s) - optional",

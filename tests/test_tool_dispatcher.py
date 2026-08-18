@@ -25,10 +25,10 @@ def test_tool_registry_contains_all_tools():
     expected_tools = [
         "run_roi_analysis",
         "run_rca_analysis",
-        "run_ct_efficiency_analysis",
-        "run_ct_deviation_analysis",
+        "run_efficiency_analysis",
+        "run_deviation_analysis",
         "run_tooling_eol_analysis",
-        "refresh_demo_table",
+        "refresh_shot_data",
     ]
 
     for tool_name in expected_tools:

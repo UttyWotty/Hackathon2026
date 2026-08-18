@@ -2,10 +2,10 @@
 name: sense-equipment-anomalies
 description: >
   Sweep injection-moulding equipment for production anomalies and rank what is abnormal.
-  Detects cycle time drift against approved CT and declining week-over-week stability,
-  reading shot-level data from DEMO_TABLE.
+  Detects duration drift against approved duration and declining week-over-week stability,
+  reading shot-level data from SHOT_DATA.
   Triggers: which machines are underperforming, check the fleet for anomalies, is anything
-  drifting, equipment health check, what looks abnormal, run the anomaly sweep, cycle time
+  drifting, equipment health check, what looks abnormal, run the anomaly sweep, duration
   deviation, stability decline.
   Use when: starting an investigation and you do not yet know which equipment is at fault.
   Not for: explaining WHY a machine is degrading - use investigate-shift-notes for that.
@@ -24,7 +24,7 @@ skill only observes. Judging severity and deciding what to do are your job, not 
 
 ## Prerequisites
 
-Either a Snowflake connection with `DEMO_TABLE`, or `LOCAL_DATA_DIR` pointing at a
+Either a Snowflake connection with `SHOT_DATA`, or `LOCAL_DATA_DIR` pointing at a
 generated dataset for offline work. The script reads whichever is configured.
 
 ## Workflow
@@ -37,7 +37,7 @@ python skills/sense-equipment-anomalies/scripts/sweep.py
 
 Pass an equipment code as the first argument to narrow it to one machine.
 
-The script runs cycle-time deviation across the fleet.
+The script runs process-duration deviation across the fleet.
 
 ### Step 2: Read across metrics
 
@@ -56,7 +56,7 @@ working line.
 
 ## Common Mistakes
 
-- **Flagging on a single metric.** A machine can be drifting badly on cycle time while
+- **Flagging on a single metric.** A machine can be drifting badly on duration while
   stability says it is fine. That combination is the interesting case, not a
   contradiction to resolve.
 - **Treating a failed detector as an all-clear.** The script prints a warning when a detector

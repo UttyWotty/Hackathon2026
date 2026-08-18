@@ -41,7 +41,7 @@ VISUALIZATION_TOOLS: List[Dict[str, Any]] = [
                         },
                         "x_column": {
                             "type": "string",
-                            "description": "Column name for X-axis (e.g., 'date', 'equipment_code')",
+                            "description": "Column name for X-axis (e.g., 'date', 'machine_id')",
                         },
                         "y_column": {
                             "type": "string",
@@ -76,7 +76,7 @@ VISUALIZATION_TOOLS: List[Dict[str, Any]] = [
                 "json": {
                     "type": "object",
                     "properties": {
-                        "equipment_code": {
+                        "machine_id": {
                             "type": "string",
                             "description": "Equipment code to analyze (e.g., 'MX-7102', 'MX-7101')",
                         },
@@ -98,7 +98,7 @@ VISUALIZATION_TOOLS: List[Dict[str, Any]] = [
                             "description": "Optional: file path to save dashboard HTML (e.g., 'output/dashboards/equipment_report.html')",
                         },
                     },
-                    "required": ["equipment_code", "start_date", "end_date"],
+                    "required": ["machine_id", "start_date", "end_date"],
                 }
             },
         }

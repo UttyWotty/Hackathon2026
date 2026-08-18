@@ -27,7 +27,7 @@ DIE_CASTING_STANDARDS = {
         "good": 0.85,  # 85% good efficiency
         "world_class": 0.92,  # 92% world-class efficiency
     },
-    "cycle_time": {
+    "duration": {
         "variance_threshold": 0.15,  # 15% acceptable variance
         "optimization_target": 0.10,  # 10% optimization target
     },
@@ -55,7 +55,7 @@ INJECTION_MOLDING_STANDARDS = {
         "good": 0.88,  # 88% good efficiency
         "world_class": 0.94,  # 94% world-class efficiency
     },
-    "cycle_time": {
+    "duration": {
         "variance_threshold": 0.12,  # 12% acceptable variance
         "optimization_target": 0.08,  # 8% optimization target
     },
@@ -82,7 +82,7 @@ STAMPING_STANDARDS = {
         "good": 0.90,  # 90% good efficiency
         "world_class": 0.95,  # 95% world-class efficiency
     },
-    "cycle_time": {
+    "duration": {
         "variance_threshold": 0.10,  # 10% acceptable variance
         "optimization_target": 0.06,  # 6% optimization target
     },
@@ -109,7 +109,7 @@ COMPRESSION_STANDARDS = {
         "good": 0.86,  # 86% good efficiency
         "world_class": 0.92,  # 92% world-class efficiency
     },
-    "cycle_time": {
+    "duration": {
         "variance_threshold": 0.18,  # 18% acceptable variance
         "optimization_target": 0.12,  # 12% optimization target
     },
@@ -135,7 +135,7 @@ ASSEMBLY_STANDARDS = {
         "good": 0.92,  # 92% good efficiency
         "world_class": 0.96,  # 96% world-class efficiency
     },
-    "cycle_time": {
+    "duration": {
         "variance_threshold": 0.08,  # 8% acceptable variance
         "optimization_target": 0.05,  # 5% optimization target
     },
@@ -156,16 +156,16 @@ class IndustryStandardsAnalyzer:
     Analyzer for comparing manufacturing performance against industry standards
     """
 
-    def __init__(self, tooling_family="Injection Molding"):
+    def __init__(self, type_category="Injection Molding"):
         """
         Initialize the analyzer with specific tooling family standards
 
         Args:
-            tooling_family (str): The manufacturing process type
+            type_category (str): The manufacturing process type
         """
-        self.tooling_family = tooling_family
+        self.type_category = type_category
         self.standards = PROCESS_STANDARDS.get(
-            tooling_family, INJECTION_MOLDING_STANDARDS
+            type_category, INJECTION_MOLDING_STANDARDS
         )
 
     def calculate_scrap_metrics(self, df):
@@ -332,9 +332,9 @@ class IndustryStandardsAnalyzer:
             if "EFFICIENCY" in df.columns:
                 average_efficiency = df["EFFICIENCY"].mean()
             else:
-                # Calculate from CT and APPROVED_CT if available
-                if "CT" in df.columns and "APPROVED_CT" in df.columns:
-                    efficiency = (df["APPROVED_CT"] / df["CT"]) * 100
+                # Calculate from CT and TARGET_DURATION if available
+                if "DURATION" in df.columns and "TARGET_DURATION" in df.columns:
+                    efficiency = (df["TARGET_DURATION"] / df["DURATION"]) * 100
                     efficiency = efficiency.clip(upper=100)  # Cap at 100%
                     average_efficiency = efficiency.mean()
                 else:
@@ -393,7 +393,7 @@ class IndustryStandardsAnalyzer:
 
         # Scrap recommendations
         if scrap_metrics.get("performance_grade") == "Poor":
-            if self.tooling_family == "Die Casting":
+            if self.type_category == "Die Casting":
                 recommendations["high_priority"].extend(
                     [
                         "Optimize die temperature and pressure settings",
@@ -401,7 +401,7 @@ class IndustryStandardsAnalyzer:
                         "Improve die lubrication and maintenance",
                     ]
                 )
-            elif self.tooling_family == "Injection Molding":
+            elif self.type_category == "Injection Molding":
                 recommendations["high_priority"].extend(
                     [
                         "Optimize injection pressure and speed",
@@ -424,14 +424,14 @@ class IndustryStandardsAnalyzer:
         if efficiency_metrics.get("performance_grade") == "Poor":
             recommendations["high_priority"].extend(
                 [
-                    "Optimize cycle time parameters",
+                    "Optimize duration parameters",
                     "Implement operator training programs",
                     "Improve process monitoring and control",
                 ]
             )
 
         # Process-specific recommendations
-        if self.tooling_family == "Die Casting":
+        if self.type_category == "Die Casting":
             recommendations["process_specific"].extend(
                 [
                     "Implement die temperature monitoring",
@@ -439,7 +439,7 @@ class IndustryStandardsAnalyzer:
                     "Improve die cooling system efficiency",
                 ]
             )
-        elif self.tooling_family == "Injection Molding":
+        elif self.type_category == "Injection Molding":
             recommendations["process_specific"].extend(
                 [
                     "Implement mold temperature control",
@@ -451,19 +451,19 @@ class IndustryStandardsAnalyzer:
         return recommendations
 
 
-def get_industry_comparison_chart_data(df, tooling_family):
+def get_industry_comparison_chart_data(df, type_category):
     """
     Generate chart data for industry comparison visualization
 
     Args:
         df (pd.DataFrame): Manufacturing data
-        tooling_family (str): Manufacturing process type
+        type_category (str): Manufacturing process type
 
     Returns:
         dict: Chart data for visualization
     """
     try:
-        analyzer = IndustryStandardsAnalyzer(tooling_family)
+        analyzer = IndustryStandardsAnalyzer(type_category)
 
         # Calculate metrics
         scrap_metrics = analyzer.calculate_scrap_metrics(df)
@@ -489,8 +489,8 @@ def get_industry_comparison_chart_data(df, tooling_family):
             },
         }
 
-        return {"chart_data": chart_data, "tooling_family": tooling_family}
+        return {"chart_data": chart_data, "type_category": type_category}
 
     except Exception as e:
         print(f"⚠️ Error generating chart data: {str(e)}")
-        return {"chart_data": {}, "tooling_family": tooling_family}
+        return {"chart_data": {}, "type_category": type_category}

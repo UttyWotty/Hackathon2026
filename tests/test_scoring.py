@@ -23,10 +23,10 @@ from services.workflow.scoring import (
 GROUND_TRUTH = {
     "headline_equipment": "MX-7103",
     "expected_findings": [
-        {"equipment_code": "MX-7101", "expected_direction": "no_finding"},
-        {"equipment_code": "MX-7102", "expected_direction": "no_finding"},
-        {"equipment_code": "MX-7103", "expected_direction": "above"},
-        {"equipment_code": "MX-7104", "expected_direction": "below"},
+        {"machine_id": "MX-7101", "expected_direction": "no_finding"},
+        {"machine_id": "MX-7102", "expected_direction": "no_finding"},
+        {"machine_id": "MX-7103", "expected_direction": "above"},
+        {"machine_id": "MX-7104", "expected_direction": "below"},
     ],
 }
 
@@ -73,8 +73,8 @@ class TestExtraction:
 
     def test_investigated_reads_singular_and_plural_arguments(self):
         steps = [
-            _act({"equipment_code": "MX-7103"}),
-            _act({"equipment_codes": ["MX-7104", "MX-7105"]}),
+            _act({"machine_id": "MX-7103"}),
+            _act({"machine_ids": ["MX-7104", "MX-7105"]}),
         ]
         assert extract_investigated_equipment(steps) == {
             "MX-7103",
@@ -84,7 +84,7 @@ class TestExtraction:
 
     def test_non_act_steps_are_ignored(self):
         # Sense steps run automatically; they are not the agent's own choices.
-        steps = [{"phase": "sense", "payload": {"equipment_code": "MX-7103"}}]
+        steps = [{"phase": "sense", "payload": {"machine_id": "MX-7103"}}]
         assert extract_investigated_equipment(steps) == set()
 
     def test_missing_payload_is_safe(self):
@@ -97,8 +97,8 @@ class TestScoreRun:
             GROUND_TRUTH,
             "Flagged MX-7103 and MX-7104.",
             [
-                _act({"equipment_code": "MX-7103"}),
-                _act({"equipment_code": "MX-7104"}),
+                _act({"machine_id": "MX-7103"}),
+                _act({"machine_id": "MX-7104"}),
             ],
         )
         assert report.recall == 1.0
@@ -124,7 +124,7 @@ class TestScoreRun:
 
     def test_action_backed_claim_is_not_flagged_as_claim_only(self):
         report = score_run(
-            GROUND_TRUTH, "MX-7103", [_act({"equipment_code": "MX-7103"})]
+            GROUND_TRUTH, "MX-7103", [_act({"machine_id": "MX-7103"})]
         )
         assert report.claimed_only == []
         assert report.investigated == ["MX-7103"]

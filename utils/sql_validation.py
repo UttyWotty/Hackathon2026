@@ -109,7 +109,7 @@ def validate_sql_query(query: str, max_length: int = 10000) -> Tuple[str, bool]:
 
     if not is_read_only:
         raise SQLValidationError(
-            "Query must start with SELECT, WITH, SHOW, or DESCRIBE. Only read-only queries are allowed."
+            "Query must start with SELEduration, WITH, SHOW, or DESCRIBE. Only read-only queries are allowed."
         )
 
     # Additional safety: Check for semicolons (potential query chaining)

@@ -22,7 +22,7 @@ MAX_INSIGHTS_LIMIT: int = 100
 NOTE_FETCH_MULTIPLIER: int = 5
 
 PROJECT_ROOT: Path = Path(__file__).resolve().parents[5]
-SPEC_FILE: Path = PROJECT_ROOT / "analysis" / "ct_deviation" / "README.md"
+SPEC_FILE: Path = PROJECT_ROOT / "analysis" / "deviation" / "README.md"
 
 
 def get_metric_definitions(

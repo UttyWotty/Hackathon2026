@@ -58,11 +58,11 @@ class ROIReportGenerator:
             "Time & Volume": [
                 "TOTAL_SHOTS",
                 "PARTS_PRODUCED",
-                "APPROVED_CT",
-                "AVERAGE_CT",
-                "AVG_CT_SLOW",
-                "AVG_CT_FAST",
-                "AVG_CT_WITHIN",
+                "TARGET_DURATION",
+                "AVERAGE_DURATION",
+                "AVG_DURATION_SLOW",
+                "AVG_DURATION_FAST",
+                "AVG_DURATION_WITHIN",
             ],
             "Uptime Metrics": [
                 "PRODUCTION_TIME",
@@ -116,7 +116,7 @@ class ROIReportGenerator:
         else:
             time_col = "DATE"  # fallback
 
-        static_cols = ["SUPPLIER_NAME", "EQUIPMENT_CODE", time_col]
+        static_cols = ["VENDOR_NAME", "MACHINE_ID", time_col]
         all_columns = static_cols[:]
         for cols in sections.values():
             all_columns.extend(cols)
@@ -136,8 +136,8 @@ class ROIReportGenerator:
             used_sheet_names = set()
 
             if not valid_df.empty:
-                for supplier_name, group_df in valid_df.groupby("SUPPLIER_NAME"):
-                    base_name = ROIReportGenerator._clean_sheet_name(supplier_name)
+                for vendor_name, group_df in valid_df.groupby("VENDOR_NAME"):
+                    base_name = ROIReportGenerator._clean_sheet_name(vendor_name)
                     safe_name = ROIReportGenerator._make_unique_sheet_name(
                         base_name, used_sheet_names
                     )
@@ -154,7 +154,7 @@ class ROIReportGenerator:
                         header_format,
                         number_format,
                         text_format,
-                        supplier_name,
+                        vendor_name,
                     )
 
             # 2. Suspicious data sheet
@@ -221,7 +221,7 @@ class ROIReportGenerator:
         header_format,
         number_format,
         text_format,
-        supplier_name,
+        vendor_name,
     ):
         """Write formatted data sheet."""
         df_to_write = group_df[all_columns].copy()
@@ -258,7 +258,7 @@ class ROIReportGenerator:
 
         # Add supplier reference
         worksheet.write(
-            0, len(static_cols) + 12, f"Supplier: {supplier_name}", text_format
+            0, len(static_cols) + 12, f"Supplier: {vendor_name}", text_format
         )
 
     @staticmethod
@@ -286,30 +286,30 @@ class ROIReportGenerator:
         """Create formulas documentation sheet."""
         formulas_data = [
             ["Metric", "Description", "Python Logic", "Excel Formula (Example)"],
-            ["APPROVED_CT", "Contracted cycle time", "From system data", ""],
+            ["TARGET_DURATION", "Contracted duration", "From system data", ""],
             [
-                "AVERAGE_CT",
-                "Weighted average CT",
-                "∑(CT × COUNT) / ∑COUNT",
-                "=SUMPRODUCT(CT, COUNT)/SUM(COUNT)",
+                "AVERAGE_DURATION",
+                "Weighted average duration",
+                "∑(DURATION × COUNT) / ∑COUNT",
+                "=SUMPRODUCT(duration, COUNT)/SUM(COUNT)",
             ],
             [
-                "AVG_CT_SLOW",
-                "Weighted SLOW CT",
-                "CT where CT > 105% APPROVED",
+                "AVG_DURATION_SLOW",
+                "Weighted SLOW DURATION",
+                "DURATION where DURATION > 105% APPROVED",
                 "=SUMPRODUCT(CT_SLOW, COUNT_SLOW)/SUM(COUNT_SLOW)",
             ],
             [
-                "AVG_CT_FAST",
-                "Weighted FAST CT",
-                "CT where CT < 95% APPROVED",
+                "AVG_DURATION_FAST",
+                "Weighted FAST DURATION",
+                "DURATION where DURATION < 95% APPROVED",
                 "=SUMPRODUCT(CT_FAST, COUNT_FAST)/SUM(COUNT_FAST)",
             ],
             [
                 "WITHIN_SHOT_COUNT",
                 "Shots within ±5%",
-                "|CT - APPROVED_CT| ≤ 5%",
-                '=COUNTIFS(CT_RANGE,">="&0.95*APPROVED_CT,CT_RANGE,"<="&1.05*APPROVED_CT)',
+                "|DURATION - TARGET_DURATION| ≤ 5%",
+                '=COUNTIFS(CT_RANGE,">="&0.95*TARGET_DURATION,CT_RANGE,"<="&1.05*TARGET_DURATION)',
             ],
             [
                 "WITHIN_SHOT_PCT",
@@ -320,14 +320,14 @@ class ROIReportGenerator:
             [
                 "USED_HOURS",
                 "Total production time",
-                "∑CT × COUNT / 3600",
-                "=SUMPRODUCT(CT, COUNT)/3600",
+                "∑DURATION × COUNT / 3600",
+                "=SUMPRODUCT(duration, COUNT)/3600",
             ],
             [
                 "EXPECTED_HOURS",
                 "Expected time",
-                "APPROVED_CT × TOTAL / 3600",
-                "=APPROVED_CT × TOTAL_SHOTS / 3600",
+                "TARGET_DURATION × TOTAL / 3600",
+                "=TARGET_DURATION × TOTAL_SHOTS / 3600",
             ],
             [
                 "GAIN_HOURS",
@@ -344,8 +344,8 @@ class ROIReportGenerator:
             [
                 "TOOLING_EFFICIENCY",
                 "Total efficiency %",
-                "Approved_CT × Total / (Used × 3600)",
-                "=(APPROVED_CT * TOTAL_SHOTS) / (USED_HOURS * 3600) × 100",
+                "Target_Duration × Total / (Used × 3600)",
+                "=(TARGET_DURATION * TOTAL_SHOTS) / (USED_HOURS * 3600) × 100",
             ],
             [
                 "EFF_GAIN",
@@ -367,8 +367,8 @@ class ROIReportGenerator:
             ],
             [
                 "PROCESS_STABILITY",
-                "CT consistency %",
-                "Shots within ±5% of average CT",
+                "duration consistency %",
+                "Shots within ±5% of average duration",
                 "=(WITHIN_FROM_AVG_COUNT / TOTAL_SHOTS) × 100",
             ],
         ]
@@ -402,8 +402,8 @@ class ROIReportGenerator:
         # Calculate summary statistics
         summary_stats = {
             "Total Records": len(valid_df),
-            "Unique Suppliers": valid_df["SUPPLIER_NAME"].nunique(),
-            "Unique Equipment": valid_df["EQUIPMENT_CODE"].nunique(),
+            "Unique Suppliers": valid_df["VENDOR_NAME"].nunique(),
+            "Unique Equipment": valid_df["MACHINE_ID"].nunique(),
             f"{time_label} Covered": valid_df[time_col].nunique(),
             "Time Range": f"{valid_df[time_col].min()} to {valid_df[time_col].max()}",
             "Total Shots": valid_df["TOTAL_SHOTS"].sum(),

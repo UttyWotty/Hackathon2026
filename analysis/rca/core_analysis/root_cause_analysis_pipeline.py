@@ -29,13 +29,13 @@ from .rca_report_formatter import (  # noqa: E402
 )
 
 # -- Column name constants -----------------------------------------------------
-COL_EQUIPMENT_CODE = "EQUIPMENT_CODE"
-COL_PART_NAME = "PART_NAME"
+COL_MACHINE_ID = "MACHINE_ID"
+COL_PRODUCT_NAME = "PRODUCT_NAME"
 COL_CT_ISSUE_FLAG = "CT_ISSUE_FLAG"
-COL_CT = "CT"
+COL_CT = "DURATION"
 COL_DOWNTIME_EVENT = "DOWNTIME_EVENT"
 COL_SCRAP_INDICATOR = "SCRAP_INDICATOR"
-COL_LOCAL_SHOT_TIME = "LOCAL_SHOT_TIME"
+COL_SHOT_TIME = "SHOT_TIME"
 COL_DAY_OF_WEEK = "DAY_OF_WEEK"
 
 TOP_EQUIPMENT_LIMIT = 5
@@ -89,14 +89,14 @@ class RootCauseAnalysisPipeline:
         logger.info("Data loaded: %s records", f"{len(self.df):,}")
         logger.info(
             "Date range: %s to %s",
-            self.df[COL_LOCAL_SHOT_TIME].min(),
-            self.df[COL_LOCAL_SHOT_TIME].max(),
+            self.df[COL_SHOT_TIME].min(),
+            self.df[COL_SHOT_TIME].max(),
         )
 
-        if COL_EQUIPMENT_CODE in self.df.columns:
-            logger.info("Equipment: %d unique", self.df[COL_EQUIPMENT_CODE].nunique())
-        if COL_PART_NAME in self.df.columns:
-            logger.info("Parts: %d unique", self.df[COL_PART_NAME].nunique())
+        if COL_MACHINE_ID in self.df.columns:
+            logger.info("Equipment: %d unique", self.df[COL_MACHINE_ID].nunique())
+        if COL_PRODUCT_NAME in self.df.columns:
+            logger.info("Parts: %d unique", self.df[COL_PRODUCT_NAME].nunique())
 
         return True
 
@@ -108,7 +108,7 @@ class RootCauseAnalysisPipeline:
             logger.info("Serving RCA data from local dataset")
             from analysis.shared.local_source import query_rca_shots
 
-            self.df = query_rca_shots(equipment_code=self.equipment_filter)
+            self.df = query_rca_shots(machine_id=self.equipment_filter)
             if self.df is None or self.df.empty:
                 logger.error("Local dataset returned no RCA data")
                 return False
@@ -117,7 +117,7 @@ class RootCauseAnalysisPipeline:
 
         logger.info("Fetching data from Snowflake...")
         try:
-            from .demo_table import fetch_data_from_snowflake
+            from .shot_data import fetch_data_from_snowflake
 
             self.df = fetch_data_from_snowflake(session=None)
 
@@ -145,7 +145,7 @@ class RootCauseAnalysisPipeline:
         logger.info("Filtering for equipment: %s", self.equipment_filter)
         original_count = len(self.df)
 
-        available_equipment = self.df[COL_EQUIPMENT_CODE].unique().tolist()
+        available_equipment = self.df[COL_MACHINE_ID].unique().tolist()
         logger.info("Available equipment codes: %s", available_equipment[:20])
         logger.info("Looking for: %s", self.equipment_filter)
         logger.info(
@@ -153,7 +153,7 @@ class RootCauseAnalysisPipeline:
             self.equipment_filter in available_equipment,
         )
 
-        self.df = self.df[self.df[COL_EQUIPMENT_CODE] == self.equipment_filter].copy()
+        self.df = self.df[self.df[COL_MACHINE_ID] == self.equipment_filter].copy()
         filtered_count = len(self.df)
         logger.info(
             "Filtered from %s to %s records",
@@ -217,11 +217,11 @@ class RootCauseAnalysisPipeline:
 
     def _get_top_equipment(self) -> List[Dict[str, Any]]:
         """Get top equipment by issue rate."""
-        if COL_EQUIPMENT_CODE not in self.df.columns:
+        if COL_MACHINE_ID not in self.df.columns:
             return []
 
         equipment_issues = (
-            self.df.groupby(COL_EQUIPMENT_CODE)
+            self.df.groupby(COL_MACHINE_ID)
             .agg({COL_CT_ISSUE_FLAG: "sum", COL_CT: "count"})
             .reset_index()
         )
@@ -239,11 +239,11 @@ class RootCauseAnalysisPipeline:
 
     def _get_top_parts(self) -> List[Dict[str, Any]]:
         """Get top parts by issue rate."""
-        if COL_PART_NAME not in self.df.columns:
+        if COL_PRODUCT_NAME not in self.df.columns:
             return []
 
         part_issues = (
-            self.df.groupby(COL_PART_NAME)
+            self.df.groupby(COL_PRODUCT_NAME)
             .agg({COL_CT_ISSUE_FLAG: "sum", COL_CT: "count"})
             .reset_index()
         )
@@ -309,17 +309,17 @@ class RootCauseAnalysisPipeline:
             "data_summary": {
                 "total_shots": len(self.df),
                 "date_range": {
-                    "start": self.df[COL_LOCAL_SHOT_TIME].min().strftime("%Y-%m-%d"),
-                    "end": self.df[COL_LOCAL_SHOT_TIME].max().strftime("%Y-%m-%d"),
+                    "start": self.df[COL_SHOT_TIME].min().strftime("%Y-%m-%d"),
+                    "end": self.df[COL_SHOT_TIME].max().strftime("%Y-%m-%d"),
                 },
                 "equipment_count": (
-                    self.df[COL_EQUIPMENT_CODE].nunique()
-                    if COL_EQUIPMENT_CODE in self.df.columns
+                    self.df[COL_MACHINE_ID].nunique()
+                    if COL_MACHINE_ID in self.df.columns
                     else 0
                 ),
                 "part_count": (
-                    self.df[COL_PART_NAME].nunique()
-                    if COL_PART_NAME in self.df.columns
+                    self.df[COL_PRODUCT_NAME].nunique()
+                    if COL_PRODUCT_NAME in self.df.columns
                     else 0
                 ),
             },

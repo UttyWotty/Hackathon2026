@@ -7,10 +7,10 @@ Every action recorded here is one the agent asserts it performed.
 Usage:
     python scripts/record_decision.py \\
         --equipment MX-7103 --severity high \\
-        --finding "Cycle time drifting, 12.6 percent above approved and rising" \\
+        --finding "Duration drifting, 12.6 percent above approved and rising" \\
         --evidence "risk tower: mttr_vs_peers 0.43, no stop-based signal" \\
         --evidence "shift note 2026-06-15: parts releasing slower from the cavity" \\
-        --action "generated CT deviation report" \\
+        --action "generated duration deviation report" \\
         --action "scheduled tool cooling inspection"
 """
 
@@ -25,7 +25,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from models.database import init_database  # noqa: E402
 from models.decision_trail import (  # noqa: E402
-    PHASE_ACT,
+    PHASE_Aduration,
     PHASE_REASON,
     STATUS_COMPLETED,
     TRIGGER_MANUAL,
@@ -125,10 +125,10 @@ def _record(args: argparse.Namespace, summary: str) -> str:
 
     for action in args.action:
         recorder.record_step(
-            phase=PHASE_ACT,
+            phase=PHASE_Aduration,
             status=STATUS_COMPLETED,
             tool_name=action,
-            payload={"equipment_codes": args.equipment},
+            payload={"machine_ids": args.equipment},
             result_summary=action,
         )
 

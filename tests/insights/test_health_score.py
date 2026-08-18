@@ -71,7 +71,7 @@ def test_grade_boundaries():
 
 def test_build_equipment_health_shape():
     record = build_equipment_health("6377", {"run_efficiency": 90.0})
-    assert record["equipment_code"] == "6377"
+    assert record["machine_id"] == "6377"
     assert record["score"] == 90.0
     assert record["grade"] == GRADE_HEALTHY
     assert "ct_performance" in record["components"]
@@ -79,10 +79,10 @@ def test_build_equipment_health_shape():
 
 def test_rank_by_health_worst_first_unscored_last():
     records = [
-        {"equipment_code": "a", "score": 90.0},
-        {"equipment_code": "b", "score": 20.0},
-        {"equipment_code": "c", "score": None},
-        {"equipment_code": "d", "score": 55.0},
+        {"machine_id": "a", "score": 90.0},
+        {"machine_id": "b", "score": 20.0},
+        {"machine_id": "c", "score": None},
+        {"machine_id": "d", "score": 55.0},
     ]
     ranked = rank_by_health(records)
-    assert [r["equipment_code"] for r in ranked] == ["b", "d", "a", "c"]
+    assert [r["machine_id"] for r in ranked] == ["b", "d", "a", "c"]

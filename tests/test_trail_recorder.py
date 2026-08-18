@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 
 from models.database import Base
 from models.decision_trail import (
-    PHASE_ACT,
+    PHASE_Aduration,
     PHASE_REASON,
     PHASE_SENSE,
     STATUS_COMPLETED,
@@ -99,7 +99,7 @@ class TestSteps:
     def test_sequence_numbers_start_at_one_and_increment(self, recorder):
         assert recorder.record_step(PHASE_SENSE, STATUS_COMPLETED) == 1
         assert recorder.record_step(PHASE_REASON, STATUS_COMPLETED) == 2
-        assert recorder.record_step(PHASE_ACT, STATUS_COMPLETED) == 3
+        assert recorder.record_step(PHASE_Aduration, STATUS_COMPLETED) == 3
 
     def test_steps_load_back_in_sequence_order(self, recorder, session_factory):
         for phase in (PHASE_SENSE, PHASE_REASON, PHASE_ACT):
@@ -110,13 +110,13 @@ class TestSteps:
 
     def test_payload_round_trips_as_json(self, recorder, session_factory):
         recorder.record_step(
-            PHASE_ACT,
+            PHASE_Aduration,
             STATUS_COMPLETED,
             tool_name="run_rca_analysis",
-            payload={"equipment_code": "MX-7103", "depth": 2},
+            payload={"machine_id": "MX-7103", "depth": 2},
         )
         step = load_trail("run-test-1", session_factory)["steps"][0]
-        assert step["payload"] == {"equipment_code": "MX-7103", "depth": 2}
+        assert step["payload"] == {"machine_id": "MX-7103", "depth": 2}
         assert step["tool_name"] == "run_rca_analysis"
 
     def test_long_summaries_are_truncated(self, recorder, session_factory):
@@ -134,8 +134,8 @@ class TestSteps:
 
     def test_action_count_counts_only_act_steps(self, recorder, session_factory):
         recorder.record_step(PHASE_SENSE, STATUS_COMPLETED)
-        recorder.record_step(PHASE_ACT, STATUS_COMPLETED)
-        recorder.record_step(PHASE_ACT, STATUS_FAILED)
+        recorder.record_step(PHASE_Aduration, STATUS_COMPLETED)
+        recorder.record_step(PHASE_Aduration, STATUS_FAILED)
         assert load_trail("run-test-1", session_factory)["action_count"] == 2
 
 

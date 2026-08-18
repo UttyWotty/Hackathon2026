@@ -1,6 +1,6 @@
 """Plant-wide equipment health snapshot tool adapter.
 
-Aggregates shot activity, CT performance, run efficiency, and capacity utilization per
+Aggregates shot activity, DURATION performance, run efficiency, and capacity utilization per
 equipment from Snowflake and blends them into ranked health scores (worst first).
 Computation is delegated to analysis.insights.health_score.
 """
@@ -15,45 +15,45 @@ logger = logging.getLogger(__name__)
 
 MAX_WINDOW_DAYS: int = 365
 DEFAULT_WINDOW_DAYS: int = 14
-HARD_STOP_CT: float = 999.0
+HARD_STOP_DURATION: float = 999.0
 CT_WITHIN_TOLERANCE: float = 1.10
 RECENCY_FULL_SCORE_HOURS: float = 24.0
 RECENCY_ZERO_SCORE_HOURS: float = 168.0
 
 
 def _master_metrics(days: int) -> Dict[str, Dict[str, Any]]:
-    """Per-equipment shot metrics from DEMO_TABLE over the window."""
+    """Per-equipment shot metrics from SHOT_DATA over the window."""
     rows = query_records(f"""
         SELECT
-            EQUIPMENT_CODE,
+            MACHINE_ID,
             COUNT(*) AS SHOTS,
-            AVG(CASE WHEN CT < {HARD_STOP_CT} THEN CT END) AS AVG_CT,
-            MAX(APPROVED_CT) AS APPROVED_CT,
-            AVG(CASE WHEN CT < {HARD_STOP_CT} AND APPROVED_CT > 0
-                     AND CT <= APPROVED_CT * {CT_WITHIN_TOLERANCE}
-                     THEN 100.0 WHEN CT < {HARD_STOP_CT} AND APPROVED_CT > 0
+            AVG(CASE WHEN CT < {HARD_STOP_DURATION} THEN CT END) AS AVG_DURATION,
+            MAX(TARGET_DURATION) AS TARGET_DURATION,
+            AVG(CASE WHEN CT < {HARD_STOP_DURATION} AND TARGET_DURATION > 0
+                     AND DURATION <= TARGET_DURATION * {CT_WITHIN_TOLERANCE}
+                     THEN 100.0 WHEN CT < {HARD_STOP_DURATION} AND TARGET_DURATION > 0
                      THEN 0.0 END) AS CT_PERFORMANCE,
-            DATEDIFF('hour', MAX(LOCAL_SHOT_TIME), CURRENT_TIMESTAMP()) AS HOURS_SINCE_LAST_SHOT
-        FROM DEMO_TABLE
-        WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
-          AND EQUIPMENT_CODE IS NOT NULL
-        GROUP BY EQUIPMENT_CODE
+            DATEDIFF('hour', MAX(SHOT_TIME), CURRENT_TIMESTAMP()) AS HOURS_SINCE_LAST_SHOT
+        FROM SHOT_DATA
+        WHERE SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
+          AND MACHINE_ID IS NOT NULL
+        GROUP BY MACHINE_ID
         """)
-    return {r["EQUIPMENT_CODE"]: r for r in rows}
+    return {r["MACHINE_ID"]: r for r in rows}
 
 
 def _production_efficiency(days: int) -> Dict[str, float]:
     """Per-equipment run efficiency percentage. Returns empty if table unavailable."""
     try:
         rows = query_records(f"""
-            SELECT EQUIPMENT_CODE,
+            SELECT MACHINE_ID,
                    SUM(PRODUCTION_TIME_SEC) / NULLIF(SUM(RUN_TIME_SEC), 0) * 100 AS RUN_EFFICIENCY
             FROM PRODUCTION_METRICS
             WHERE START_DATE >= DATEADD(day, -{days}, CURRENT_DATE())
-            GROUP BY EQUIPMENT_CODE
+            GROUP BY MACHINE_ID
             """)
         return {
-            r["EQUIPMENT_CODE"]: r["RUN_EFFICIENCY"]
+            r["MACHINE_ID"]: r["RUN_EFFICIENCY"]
             for r in rows
             if r.get("RUN_EFFICIENCY") is not None
         }
@@ -65,14 +65,14 @@ def _capacity_utilization(days: int) -> Dict[str, float]:
     """Per-equipment utilization percentage. Returns empty if table unavailable."""
     try:
         rows = query_records(f"""
-            SELECT EQUIPMENT_CODE,
+            SELECT MACHINE_ID,
                    SUM(ACTUAL_OUTPUT) / NULLIF(SUM(OPTIMAL_OUTPUT), 0) * 100 AS UTILIZATION
             FROM CAPACITY_DAILY
             WHERE START_DATE >= DATEADD(day, -{days}, CURRENT_DATE())
-            GROUP BY EQUIPMENT_CODE
+            GROUP BY MACHINE_ID
             """)
         return {
-            r["EQUIPMENT_CODE"]: r["UTILIZATION"]
+            r["MACHINE_ID"]: r["UTILIZATION"]
             for r in rows
             if r.get("UTILIZATION") is not None
         }
@@ -122,8 +122,8 @@ def get_plant_health_snapshot(days: int = DEFAULT_WINDOW_DAYS) -> Dict[str, Any]
                 },
             )
             health["shots_in_window"] = m.get("SHOTS")
-            health["avg_ct"] = round(m["AVG_CT"], 2) if m.get("AVG_CT") else None
-            health["approved_ct"] = m.get("APPROVED_CT")
+            health["avg_duration"] = round(m["AVG_DURATION"], 2) if m.get("AVG_DURATION") else None
+            health["target_duration"] = m.get("TARGET_DURATION")
             health["hours_since_last_shot"] = m.get("HOURS_SINCE_LAST_SHOT")
             records.append(health)
 

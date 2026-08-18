@@ -53,7 +53,7 @@ class Location:
 
     id: int
     name: str
-    time_zone_id: str
+    tz_code: str
     utc_offset_hours: int
 
 
@@ -61,68 +61,68 @@ class Location:
 class Part:
     """A produced part row for the PART dimension table.
 
-    Note that DEMO_TABLE.PART_ID carries part_code (a string), not this numeric id.
+    Note that SHOT_DATA.PRODUCT_ID carries product_code (a string), not this numeric id.
     """
 
     id: int
-    part_code: str
+    product_code: str
     name: str
 
 
 @dataclass(frozen=True)
 class Mold:
-    """A tool/mold row for the MOLD dimension table and the grain of shot generation.
+    """A tool/mold row for the TOOL dimension table and the grain of shot generation.
 
-    contracted_cycle_time is stored in deci-seconds exactly as the production table does;
-    approved_ct in DEMO_TABLE is this value divided by ten.
+    target_duration is stored in deci-seconds exactly as the production table does;
+    target_duration in SHOT_DATA is this value divided by ten.
     """
 
     id: int
-    equipment_code: str
-    counter_code: str
-    counter_id: int
-    supplier_company_id: int
+    machine_id: str
+    sensor_code: str
+    sensor_id: int
+    vendor_vendor_id: int
     location_id: int
-    part_id: int
-    tooling_type: str
-    contracted_cycle_time: int
+    product_id: int
+    process_type: str
+    target_duration: int
     total_cavities: int
     designed_shot: int
-    daily_max_capacity: int
+    max_daily_output: int
     production_days: int
     shifts_per_day: int
 
     @property
-    def approved_ct(self) -> float:
-        """Approved cycle time in seconds, matching the pipeline's /10.0 derivation."""
-        return self.contracted_cycle_time / 10.0
+    def target_duration(self) -> float:
+        """Approved duration in seconds, matching the pipeline's /10.0 derivation."""
+        return self.target_duration / 10.0
 
 
 @dataclass(frozen=True)
 class Shot:
-    """One DEMO_TABLE row plus the generator's ground-truth stop tag.
+    """One SHOT_DATA row plus the generator's ground-truth stop tag.
 
-    Column names and types match the authoritative DDL in the demo_table pipeline.
+    Column names and types match the authoritative DDL in the shot_data pipeline.
     intended_stop_kind is generator metadata and is never written to the shot table.
     """
 
-    supplier_name: str
-    equipment_code: str
-    counter_code: str
+    vendor_name: str
+    machine_id: str
+    sensor_code: str
     ct: float
-    approved_ct: float
+    target_duration: float
     temperature: float
-    part_name: str
-    tooling_type: str
-    tooling_family: str
-    ct_status: str
-    local_shot_time: datetime
-    utc_time_zone: datetime
+    product_name: str
+    process_type: str
+    type_category: str
+    status_flag: str
+    shot_time: datetime
+    shot_time_utc: datetime
     volume: int
-    counter_id: int
-    mold_id: int
-    company_id: int
-    part_id: str
+    sensor_id: int
+    tool_id: int
+    vendor_id: int
+    product_id: str
     upload_time: datetime
     processing_date: str
     intended_stop_kind: StopKind
@@ -133,7 +133,7 @@ class WorkOrder:
     """A completed maintenance work order, used by tooling_eol maintenance-interval logic."""
 
     id: int
-    mold_id: int
+    tool_id: int
     status: str
     completed_at: datetime
     order_type: str
@@ -149,7 +149,7 @@ class ShiftNote:
     """
 
     id: int
-    equipment_code: str
+    machine_id: str
     shift_date: datetime
     author_role: str
     note_text: str
@@ -178,7 +178,7 @@ class RunBehaviour:
 class EquipmentProfile:
     """Binds a mold to a behavioural archetype and its planted-defect parameters.
 
-    drift_end_factor is the CT-to-approved-CT ratio reached at the end of the window for
+    drift_end_factor is the CT-to-approved-duration ratio reached at the end of the window for
     CT_DRIFT equipment; decline_end_stop_rate is the terminal hard-stop rate for DECLINING.
     """
 
@@ -217,14 +217,14 @@ class GenerationConfig:
 class ShotContext:
     """Dimension lookups needed to denormalise a shot row.
 
-    DEMO_TABLE is fully denormalised, so every shot must carry supplier, plant,
+    SHOT_DATA is fully denormalised, so every shot must carry supplier, plant,
     and part attributes resolved from the dimension tables at generation time.
     """
 
-    supplier_name_by_company_id: Dict[int, str]
+    vendor_name_by_vendor_id: Dict[int, str]
     location_by_id: Dict[int, Location]
-    part_code_by_id: Dict[int, str]
-    part_name_by_code: Dict[str, str]
+    product_code_by_id: Dict[int, str]
+    product_name_by_code: Dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -235,7 +235,7 @@ class ExpectedFinding:
     against these rows rather than against a human's recollection of the seed.
     """
 
-    equipment_code: str
+    machine_id: str
     profile_kind: ProfileKind
     detector: str
     claim: str

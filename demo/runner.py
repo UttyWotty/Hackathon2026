@@ -18,7 +18,7 @@ from analysis.shared.local_source import (
     LOCAL_DATA_DIR,
     LocalDataError,
     is_local_data_enabled,
-    load_demo_table,
+    load_shot_data,
     load_ground_truth,
 )
 from core.llm_backend import LLM_BACKEND
@@ -171,7 +171,7 @@ def read_shots() -> pd.DataFrame:
     Load the shot table backing the drift chart.
 
     Returns:
-        Raw DEMO_TABLE rows.
+        Raw SHOT_DATA rows.
 
     Raises:
         DemoRunnerError: If no local dataset is configured or it cannot be read.
@@ -182,7 +182,7 @@ def read_shots() -> pd.DataFrame:
             "to the generator's output directory."
         )
     try:
-        return load_demo_table()
+        return load_shot_data()
     except LocalDataError as exc:
         raise DemoRunnerError(str(exc)) from exc
 

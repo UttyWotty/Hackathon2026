@@ -4,7 +4,7 @@ ROI Analysis Module
 
 Comprehensive ROI (Return on Investment) analysis for manufacturing operations.
 
-This module provides cycle time efficiency analysis, cost impact calculation,
+This module provides duration efficiency analysis, cost impact calculation,
 and professional Excel report generation.
 
 Author: Utku Gulbardak

@@ -32,10 +32,10 @@ purpose.
 ```bash
 python skills/report-and-act/scripts/record_decision.py \
   --equipment MX-7103 --severity high \
-  --finding "Cycle time drifting, 12.6 percent above approved and still rising" \
+  --finding "Duration drifting, 12.6 percent above approved and still rising" \
   --evidence "risk tower: no stop-based signal, mttr_vs_peers 0.43" \
   --evidence "shift note 2026-06-15: parts releasing slower from the cavity" \
-  --action "generated CT deviation report"
+  --action "generated duration deviation report"
 ```
 
 Pass `--equipment` once per machine and `--evidence` once per supporting fact.

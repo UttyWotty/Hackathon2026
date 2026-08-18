@@ -52,7 +52,7 @@ STOP_WORDS = frozenset(
 TOKEN_PATTERN = re.compile(r"[a-z0-9-]+")
 
 # Field names in the SHIFT_NOTE table.
-FIELD_EQUIPMENT = "EQUIPMENT_CODE"
+FIELD_EQUIPMENT = "MACHINE_ID"
 FIELD_DATE = "SHIFT_DATE"
 FIELD_ROLE = "AUTHOR_ROLE"
 FIELD_TEXT = "NOTE_TEXT"
@@ -64,7 +64,7 @@ DEFAULT_LIMIT = 10
 class ScoredNote:
     """One shift note with its lexical relevance score."""
 
-    equipment_code: str
+    machine_id: str
     shift_date: str
     author_role: str
     note_text: str
@@ -73,7 +73,7 @@ class ScoredNote:
     def to_dict(self) -> Dict[str, Any]:
         """Serialise for printing or JSON output."""
         return {
-            "equipment_code": self.equipment_code,
+            "machine_id": self.machine_id,
             "shift_date": self.shift_date,
             "author_role": self.author_role,
             "note_text": self.note_text,
@@ -122,7 +122,7 @@ def score_note(note_text: str, query_tokens: Sequence[str]) -> float:
 def rank_notes(
     notes: List[Dict[str, str]],
     query: str,
-    equipment_code: Optional[str] = None,
+    machine_id: Optional[str] = None,
     limit: int = DEFAULT_LIMIT,
 ) -> List[ScoredNote]:
     """
@@ -135,7 +135,7 @@ def rank_notes(
     Args:
         notes: Raw note rows with SHIFT_NOTE field names.
         query: Free-text query. May be empty.
-        equipment_code: Restrict to one machine. Defaults to None, meaning all.
+        machine_id: Restrict to one machine. Defaults to None, meaning all.
         limit: Maximum notes to return. Defaults to 10.
 
     Returns:
@@ -145,12 +145,12 @@ def rank_notes(
     selected = [
         note
         for note in notes
-        if not equipment_code or note.get(FIELD_EQUIPMENT) == equipment_code
+        if not machine_id or note.get(FIELD_EQUIPMENT) == machine_id
     ]
 
     scored = [
         ScoredNote(
-            equipment_code=note.get(FIELD_EQUIPMENT, ""),
+            machine_id=note.get(FIELD_EQUIPMENT, ""),
             shift_date=note.get(FIELD_DATE, ""),
             author_role=note.get(FIELD_ROLE, ""),
             note_text=note.get(FIELD_TEXT, ""),

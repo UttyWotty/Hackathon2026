@@ -53,7 +53,7 @@ class SummaryGenerator:
         self,
         roi_result: Optional[Dict[str, Any]] = None,
         output_path: str = ".",
-        equipment_code: str = "Equipment",
+        machine_id: str = "Equipment",
         client: str = "Client",
         date_range: str = "Analysis Period",
     ) -> Dict[str, Any]:
@@ -63,7 +63,7 @@ class SummaryGenerator:
         Args:
             roi_result: ROI analysis results dictionary
             output_path: Output directory or file path
-            equipment_code: Equipment code for title
+            machine_id: Equipment code for title
             client: Client name for title
             date_range: Date range string
 
@@ -89,7 +89,7 @@ class SummaryGenerator:
             content = "".join(sections_html)
 
             metadata = {
-                "Equipment": equipment_code,
+                "Equipment": machine_id,
                 "Client": client,
                 "Period": date_range,
                 "Generated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -97,7 +97,7 @@ class SummaryGenerator:
 
             html = get_base_template(
                 title=f"{client} Equipment Performance Summary",
-                subtitle=f"{equipment_code} - {date_range}",
+                subtitle=f"{machine_id} - {date_range}",
                 content=content,
                 metadata=metadata,
             )

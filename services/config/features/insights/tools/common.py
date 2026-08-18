@@ -154,7 +154,7 @@ def _register_mode_aggregate(conn: sqlite3.Connection) -> None:
 def _query_records_local(query: str) -> List[Dict[str, Any]]:
     """Run a read-only query against the local CSV via in-memory SQLite.
 
-    Loads DEMO_TABLE (and MOLD/WORK_ORDER if referenced) into SQLite,
+    Loads SHOT_DATA (and MOLD/WORK_ORDER if referenced) into SQLite,
     translates Snowflake SQL to SQLite, and returns JSON-safe row dicts.
 
     Args:
@@ -164,7 +164,7 @@ def _query_records_local(query: str) -> List[Dict[str, Any]]:
         List of row dicts (column name -> JSON-safe value).
     """
     from analysis.shared.local_source import (
-        load_demo_table,
+        load_shot_data,
         load_mold_csv,
         load_work_order_csv,
     )
@@ -175,13 +175,13 @@ def _query_records_local(query: str) -> List[Dict[str, Any]]:
 
     # Load tables referenced in the query
     query_upper = query.upper()
-    if "DEMO_TABLE" in query_upper:
-        df = load_demo_table()
-        df.to_sql("DEMO_TABLE", conn, if_exists="replace", index=False)
+    if "SHOT_DATA" in query_upper:
+        df = load_shot_data()
+        df.to_sql("SHOT_DATA", conn, if_exists="replace", index=False)
     if "MOLD_MAINTENANCE" in query_upper:
         conn.execute(
             "CREATE TABLE IF NOT EXISTS MOLD_MAINTENANCE ("
-            "ID INTEGER, MOLD_ID INTEGER, MAINTENANCE_STATUS TEXT, "
+            "ID INTEGER, TOOL_ID INTEGER, MAINTENANCE_STATUS TEXT, "
             "MAINTENANCED_AT TEXT, START_TIME TEXT, END_TIME TEXT, "
             "SHOT_COUNT INTEGER, ACCUMULATED_SHOT INTEGER, "
             "WORK_ORDER_ID INTEGER, MAINTENANCE_BY TEXT)"
@@ -189,22 +189,22 @@ def _query_records_local(query: str) -> List[Dict[str, Any]]:
     if "MOLD_LOCATION" in query_upper:
         conn.execute(
             "CREATE TABLE IF NOT EXISTS MOLD_LOCATION ("
-            "MOLD_ID INTEGER, RELOCATION_TYPE TEXT, LOCATION_ID INTEGER, "
+            "TOOL_ID INTEGER, RELOCATION_TYPE TEXT, LOCATION_ID INTEGER, "
             "PREVIOUS_LOCATION_ID INTEGER, MOLD_LOCATION_STATUS TEXT, "
             "CONFIRMED_AT TEXT, CREATED_AT TEXT, LATEST INTEGER)"
         )
     if (
-        "MOLD" in query_upper
+        "TOOL" in query_upper
         and "MOLD_MAINTENANCE" not in query_upper
         and "MOLD_LOCATION" not in query_upper
     ):
         mold = load_mold_csv()
-        mold.to_sql("MOLD", conn, if_exists="replace", index=False)
+        mold.to_sql("TOOL", conn, if_exists="replace", index=False)
     elif re.search(r"\bFROM\s+MOLD\b", query_upper) or re.search(
         r"\bJOIN\s+MOLD\b", query_upper
     ):
         mold = load_mold_csv()
-        mold.to_sql("MOLD", conn, if_exists="replace", index=False)
+        mold.to_sql("TOOL", conn, if_exists="replace", index=False)
     if "WORK_ORDER" in query_upper:
         wo = load_work_order_csv()
         wo.to_sql("WORK_ORDER", conn, if_exists="replace", index=False)

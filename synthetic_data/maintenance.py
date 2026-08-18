@@ -59,7 +59,7 @@ def build_work_orders(
             work_orders.append(
                 WorkOrder(
                     id=next_id,
-                    mold_id=profile.mold.id,
+                    tool_id=profile.mold.id,
                     status=WORK_ORDER_STATUS_COMPLETED,
                     completed_at=completed_at,
                     order_type=order_type,

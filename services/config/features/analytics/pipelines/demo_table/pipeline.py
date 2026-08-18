@@ -19,7 +19,7 @@ from utils.sql_validation import sanitize_sql_identifier, validate_date_param
 from ..shared_config import PipelineConfig, get_database_schema, setup_pipeline_logging
 from .sql_builder import build_optimized_shot_query
 
-logger = setup_pipeline_logging("DEMO_TABLE")
+logger = setup_pipeline_logging("SHOT_DATA")
 
 
 def _normalize_datetime_column(df: pd.DataFrame, target_col: str) -> pd.DataFrame:
@@ -61,7 +61,7 @@ class MasterShotPipeline:
         )
 
     def _get_global_max_shot_date(self) -> Optional[str]:
-        """Find the global MAX(LOCAL_SHOT_TIME) across the entire table.
+        """Find the global MAX(SHOT_TIME) across the entire table.
 
         Returns the most recent shot timestamp in the table so that
         incremental processing only covers the trailing window
@@ -71,16 +71,16 @@ class MasterShotPipeline:
             Date string (YYYY-MM-DD) or None if table is empty.
         """
         query = f"""
-        SELECT MAX(LOCAL_SHOT_TIME)
-        FROM {self.database}.{self.schema}.DEMO_TABLE
+        SELECT MAX(SHOT_TIME)
+        FROM {self.database}.{self.schema}.SHOT_DATA
         """
         result = self.session.sql(query).collect()
         if result and result[0][0] is not None:
             global_max = result[0][0]
             date_str = global_max.strftime("%Y-%m-%d")
-            logger.info("Global MAX(LOCAL_SHOT_TIME): %s", date_str)
+            logger.info("Global MAX(SHOT_TIME): %s", date_str)
             return date_str
-        logger.warning("DEMO_TABLE is empty - no data found")
+        logger.warning("SHOT_DATA is empty - no data found")
         return None
 
     def get_date_chunks(self) -> List[Tuple[str, str]]:
@@ -141,8 +141,8 @@ class MasterShotPipeline:
                 duration = time.time() - start_time
 
                 # Normalize datetime columns (case-insensitive match + convert)
-                df = _normalize_datetime_column(df, "LOCAL_SHOT_TIME")
-                df = _normalize_datetime_column(df, "UTC_TIME_ZONE")
+                df = _normalize_datetime_column(df, "SHOT_TIME")
+                df = _normalize_datetime_column(df, "SHOT_TIME_UTC")
 
                 logger.info(
                     f"Chunk {start_date}-{end_date}: {len(df)} rows in {duration:.2f}s"
@@ -166,31 +166,31 @@ class MasterShotPipeline:
                     raise
 
     def create_result_table(self):
-        """Create the DEMO_TABLE if it doesn't exist."""
-        table_name = "DEMO_TABLE"
+        """Create the SHOT_DATA if it doesn't exist."""
+        table_name = "SHOT_DATA"
         safe_schema = sanitize_sql_identifier(self.schema)
         exists_query = f"""SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_SCHEMA = '{safe_schema}' AND TABLE_NAME = '{table_name}'"""
         result = self.session.sql(exists_query).collect()
         if result[0][0] == 0:
             create_query = f"""CREATE TABLE {self.database}.{self.schema}.{table_name} (
-            SUPPLIER_NAME STRING,
-            EQUIPMENT_CODE STRING,
-            COUNTER_CODE STRING,
+            VENDOR_NAME STRING,
+            MACHINE_ID STRING,
+            SENSOR_CODE STRING,
             CT FLOAT,
-            APPROVED_CT FLOAT,
+            TARGET_DURATION FLOAT,
             TEMPERATURE FLOAT,
-            PART_NAME STRING,
-            TOOLING_TYPE STRING,
-            TOOLING_FAMILY STRING,
-            CT_STATUS STRING,
-            LOCAL_SHOT_TIME TIMESTAMP_NTZ(3),
-            UTC_TIME_ZONE TIMESTAMP_NTZ(3),
+            PRODUCT_NAME STRING,
+            TYPE STRING,
+            TYPE STRING,
+            STATUS STRING,
+            SHOT_TIME TIMESTAMP_NTZ(3),
+            SHOT_TIME_UTC TIMESTAMP_NTZ(3),
             VOLUME NUMBER,
-            COUNTER_ID NUMBER,
-            MOLD_ID NUMBER,
-            COMPANY_ID NUMBER,
-            PART_ID STRING,
+            SENSOR_ID NUMBER,
+            TOOL_ID NUMBER,
+            VENDOR_ID NUMBER,
+            PRODUCT_ID STRING,
             UPLOAD_TIME TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
             PROCESSING_DATE STRING
             )
@@ -201,8 +201,8 @@ class MasterShotPipeline:
             logger.info(f"Table {table_name} already exists")
 
     def truncate_table(self):
-        """Truncate the DEMO_TABLE."""
-        table_name = "DEMO_TABLE"
+        """Truncate the SHOT_DATA."""
+        table_name = "SHOT_DATA"
         try:
             truncate_query = f"""TRUNCATE TABLE IF EXISTS {self.database}.{self.schema}.{table_name}
             """
@@ -213,14 +213,14 @@ class MasterShotPipeline:
             raise
 
     def deduplicate_final_table(self):
-        """Deduplicate DEMO_TABLE based on all data columns."""
-        table_name = "DEMO_TABLE"
+        """Deduplicate SHOT_DATA based on all data columns."""
+        table_name = "SHOT_DATA"
         try:
             dup_check_query = f"""SELECT COUNT(*) as duplicate_count
             FROM (
-            SELECT COUNTER_CODE, LOCAL_SHOT_TIME, COUNT(*) as dup_count
+            SELECT SENSOR_CODE, SHOT_TIME, COUNT(*) as dup_count
             FROM {self.database}.{self.schema}.{table_name}
-            GROUP BY COUNTER_CODE, LOCAL_SHOT_TIME
+            GROUP BY SENSOR_CODE, SHOT_TIME
             HAVING COUNT(*) > 1
             )
             """
@@ -241,8 +241,8 @@ class MasterShotPipeline:
             FROM {self.database}.{self.schema}.{table_name}
             QUALIFY ROW_NUMBER() OVER (
             PARTITION BY
-            COUNTER_CODE, LOCAL_SHOT_TIME, CT, TEMPERATURE, VOLUME,
-            PART_ID, PART_NAME, SUPPLIER_NAME, EQUIPMENT_CODE
+            SENSOR_CODE, SHOT_TIME, duration, TEMPERATURE, VOLUME,
+            PRODUCT_ID, PRODUCT_NAME, VENDOR_NAME, MACHINE_ID
             ORDER BY PROCESSING_DATE DESC
             ) = 1
             """
@@ -281,22 +281,22 @@ class MasterShotPipeline:
 
         df.columns = [c.upper() for c in df.columns]
 
-        if "LOCAL_SHOT_TIME" in df.columns:
-            df["LOCAL_SHOT_TIME"] = pd.to_datetime(
-                df["LOCAL_SHOT_TIME"], errors="coerce"
+        if "SHOT_TIME" in df.columns:
+            df["SHOT_TIME"] = pd.to_datetime(
+                df["SHOT_TIME"], errors="coerce"
             )
             initial_len = len(df)
-            df = df.dropna(subset=["LOCAL_SHOT_TIME"]).copy()
+            df = df.dropna(subset=["SHOT_TIME"]).copy()
             if len(df) < initial_len:
                 logger.warning(
                     f"Dropped {initial_len - len(df)} rows with invalid timestamps"
                 )
         else:
-            raise ValueError("LOCAL_SHOT_TIME column missing")
+            raise ValueError("SHOT_TIME column missing")
 
         df["PROCESSING_DATE"] = chunk_id
-        df["PART_ID"] = df["PART_ID"].astype(str).replace("nan", None)
-        df["PART_NAME"] = df["PART_NAME"].astype(str).replace("nan", None)
+        df["PRODUCT_ID"] = df["PRODUCT_ID"].astype(str).replace("nan", None)
+        df["PRODUCT_NAME"] = df["PRODUCT_NAME"].astype(str).replace("nan", None)
 
         total_rows = len(df)
         if total_rows == 0:
@@ -310,15 +310,15 @@ class MasterShotPipeline:
             for start in range(0, total_rows, self.config.batch_upload_size):
                 end = min(start + self.config.batch_upload_size, total_rows)
                 batch = df.iloc[start:end].copy()
-                if "LOCAL_SHOT_TIME" in batch.columns:
-                    batch["LOCAL_SHOT_TIME"] = (
-                        batch["LOCAL_SHOT_TIME"]
+                if "SHOT_TIME" in batch.columns:
+                    batch["SHOT_TIME"] = (
+                        batch["SHOT_TIME"]
                         .dt.strftime("%Y-%m-%d %H:%M:%S.%f")
                         .str[:-3]
                     )
-                if "UTC_TIME_ZONE" in batch.columns:
-                    batch["UTC_TIME_ZONE"] = (
-                        batch["UTC_TIME_ZONE"]
+                if "SHOT_TIME_UTC" in batch.columns:
+                    batch["SHOT_TIME_UTC"] = (
+                        batch["SHOT_TIME_UTC"]
                         .dt.strftime("%Y-%m-%d %H:%M:%S.%f")
                         .str[:-3]
                     )
@@ -326,7 +326,7 @@ class MasterShotPipeline:
                 write_pandas(
                     conn=self.sf_conn,
                     df=batch,
-                    table_name="DEMO_TABLE",
+                    table_name="SHOT_DATA",
                     schema=self.schema,
                     database=self.database,
                     overwrite=False,
@@ -356,13 +356,13 @@ class MasterShotPipeline:
             safe_start = validate_date_param(start_date)
             safe_end = validate_date_param(end_date)
 
-            total_count_query = f"""SELECT COUNT(*) FROM {self.database}.{self.schema}.DEMO_TABLE
+            total_count_query = f"""SELECT COUNT(*) FROM {self.database}.{self.schema}.SHOT_DATA
             """
             total_rows = self.session.sql(total_count_query).collect()[0][0]
 
-            count_query = f"""SELECT COUNT(*) FROM {self.database}.{self.schema}.DEMO_TABLE
-            WHERE LOCAL_SHOT_TIME >= '{safe_start}'::TIMESTAMP
-            AND LOCAL_SHOT_TIME < '{safe_end}'::TIMESTAMP
+            count_query = f"""SELECT COUNT(*) FROM {self.database}.{self.schema}.SHOT_DATA
+            WHERE SHOT_TIME >= '{safe_start}'::TIMESTAMP
+            AND SHOT_TIME < '{safe_end}'::TIMESTAMP
             """
             rows_to_delete = self.session.sql(count_query).collect()[0][0]
 
@@ -375,9 +375,9 @@ class MasterShotPipeline:
                 f"Deleting {rows_to_delete:,} rows from {start_date} to {end_date}"
             )
 
-            delete_query = f"""DELETE FROM {self.database}.{self.schema}.DEMO_TABLE
-            WHERE LOCAL_SHOT_TIME >= '{safe_start}'::TIMESTAMP
-            AND LOCAL_SHOT_TIME < '{safe_end}'::TIMESTAMP
+            delete_query = f"""DELETE FROM {self.database}.{self.schema}.SHOT_DATA
+            WHERE SHOT_TIME >= '{safe_start}'::TIMESTAMP
+            AND SHOT_TIME < '{safe_end}'::TIMESTAMP
             """
             self.session.sql(delete_query).collect()
             logger.info(f"Deleted {rows_to_delete:,} rows")
@@ -459,11 +459,11 @@ class MasterShotPipeline:
     def process_incremental(self, overlap_days: int = 7) -> bool:
         """Process incremental data using global max-date detection.
 
-        Finds the global MAX(LOCAL_SHOT_TIME) in the table, then deletes
+        Finds the global MAX(SHOT_TIME) in the table, then deletes
         and re-fetches from (max_date - overlap_days) to today. This keeps
         the incremental window small and predictable.
 
-        Falls back to full load if DEMO_TABLE is empty.
+        Falls back to full load if SHOT_DATA is empty.
 
         Args:
             overlap_days: Extra days to subtract for safety overlap.

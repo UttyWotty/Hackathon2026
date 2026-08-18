@@ -35,7 +35,7 @@ async def get_recent_analysis_results(
 
     Args:
         limit: Maximum jobs to return (default: 10, max: 50).
-        tool_name: Optional filter to one tool (e.g., run_ct_deviation_analysis).
+        tool_name: Optional filter to one tool (e.g., run_deviation_analysis).
 
     Returns:
         dict with job records: tool, status, timings, and a truncated result

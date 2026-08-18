@@ -18,8 +18,8 @@ async def generate_presentation(
     analysis_type: str,
     metrics: Dict[str, Any],
     session_data: Optional[List[Dict]] = None,
-    equipment_code: Optional[str] = None,
-    supplier_name: Optional[str] = None,
+    machine_id: Optional[str] = None,
+    vendor_name: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     output_dir: Optional[str] = None,
@@ -30,11 +30,11 @@ async def generate_presentation(
     charts, and recommendations based on analysis type.
 
     Args:
-        analysis_type: Type of analysis (ct_deviation, roi, etc.)
+        analysis_type: Type of analysis (deviation, roi, etc.)
         metrics: Analysis metrics dictionary
         session_data: Optional session-level data as list of dicts
-        equipment_code: Equipment identifier
-        supplier_name: Supplier name
+        machine_id: Equipment identifier
+        vendor_name: Supplier name
         start_date: Analysis start date
         end_date: Analysis end date
         output_dir: Optional output directory
@@ -45,7 +45,7 @@ async def generate_presentation(
 
     try:
         logger.info(
-            f"Generating PowerPoint: {analysis_type} for {equipment_code or 'analysis'}"
+            f"Generating PowerPoint: {analysis_type} for {machine_id or 'analysis'}"
         )
 
         # Set default output directory

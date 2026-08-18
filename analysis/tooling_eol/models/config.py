@@ -24,8 +24,8 @@ class ELCPrediction:
     """Container for end-of-life prediction outputs for a mold.
 
     Attributes:
-        mold_id: Unique mold identifier
-        equipment_code: Equipment code associated with the mold
+        tool_id: Unique mold identifier
+        machine_id: Equipment code associated with the mold
         latest_shot_time: Most recent shot timestamp
         current_shots_observed: Total observed shot count
         weekly_rate: Average shots per week
@@ -52,8 +52,8 @@ class ELCPrediction:
         candidate_refurb_dates: Potential refurbishment dates
     """
 
-    mold_id: int
-    equipment_code: Optional[str]
+    tool_id: int
+    machine_id: Optional[str]
     latest_shot_time: Optional[pd.Timestamp]
     current_shots_observed: int
     weekly_rate: float
@@ -85,19 +85,19 @@ class ELCPrediction:
 # ==================== Configuration Constants ==================== #
 
 
-def get_oee(tooling_family: Optional[str] = None) -> float:
+def get_oee(type_category: Optional[str] = None) -> float:
     """Return an OEE factor (0-1) by tooling family with env overrides.
 
     Defaults are conservative and can be overridden via environment variables.
 
     Args:
-        tooling_family: Optional tooling family name
+        type_category: Optional tooling family name
 
     Returns:
         float: OEE factor between 0 and 1
     """
     default_oee = float(os.getenv("DEFAULT_OEE", "0.7"))
-    if not tooling_family:
+    if not type_category:
         return default_oee
 
     mapping: Dict[str, float] = {
@@ -105,11 +105,11 @@ def get_oee(tooling_family: Optional[str] = None) -> float:
         "Die Casting": float(os.getenv("DIE_CASTING_OEE", "0.65")),
         "Stamping": float(os.getenv("STAMPING_OEE", "0.60")),
     }
-    return mapping.get(tooling_family, default_oee)
+    return mapping.get(type_category, default_oee)
 
 
 def get_utilization_bins(
-    tooling_family: Optional[str] = None,
+    type_category: Optional[str] = None,
 ) -> Tuple[int, int, int, int]:
     """Return utilization bins tuned per tooling family.
 
@@ -117,12 +117,12 @@ def get_utilization_bins(
     Values are percentages.
 
     Args:
-        tooling_family: Optional tooling family name
+        type_category: Optional tooling family name
 
     Returns:
         Tuple of 4 integers defining utilization thresholds
     """
-    if not tooling_family:
+    if not type_category:
         return (0, 30, 80, 100)
 
     family_bins: Dict[str, Tuple[int, int, int, int]] = {
@@ -130,20 +130,20 @@ def get_utilization_bins(
         "Die Casting": (0, 40, 80, 100),
         "Stamping": (0, 30, 60, 90),
     }
-    return family_bins.get(tooling_family, (0, 30, 80, 100))
+    return family_bins.get(type_category, (0, 30, 80, 100))
 
 
-def get_derate_factor(tooling_family: Optional[str] = None) -> float:
+def get_derate_factor(type_category: Optional[str] = None) -> float:
     """Design life derate factor (0-1) by tooling family with env overrides.
 
     Args:
-        tooling_family: Optional tooling family name
+        type_category: Optional tooling family name
 
     Returns:
         float: Derate factor between 0 and 1
     """
     default_factor = float(os.getenv("DEFAULT_DESIGN_LIFE_DERATE", "0.8"))
-    if not tooling_family:
+    if not type_category:
         return default_factor
 
     mapping: Dict[str, float] = {
@@ -151,16 +151,16 @@ def get_derate_factor(tooling_family: Optional[str] = None) -> float:
         "Die Casting": float(os.getenv("DIE_CASTING_DERATE", "0.8")),
         "Stamping": float(os.getenv("STAMPING_DERATE", "0.75")),
     }
-    return mapping.get(tooling_family, default_factor)
+    return mapping.get(type_category, default_factor)
 
 
-def get_design_life(tooling_family: Optional[str] = None) -> int:
+def get_design_life(type_category: Optional[str] = None) -> int:
     """Select a design life in shots based on tooling family.
 
     Defaults are intentionally conservative and must be calibrated.
 
     Args:
-        tooling_family: Optional tooling family name
+        type_category: Optional tooling family name
 
     Returns:
         int: Design life in number of shots
@@ -169,7 +169,7 @@ def get_design_life(tooling_family: Optional[str] = None) -> int:
         NOTE: Per-mold limits can be configured in database if needed.
     """
     default_life = int(os.getenv("DEFAULT_TOOLING_DESIGN_LIFE_SHOTS", "1000000"))
-    if not tooling_family:
+    if not type_category:
         return default_life
 
     mapping: Dict[str, int] = {
@@ -180,7 +180,7 @@ def get_design_life(tooling_family: Optional[str] = None) -> int:
         "Die Casting": int(os.getenv("DIE_CASTING_DESIGN_LIFE_SHOTS", "800000")),
         "Stamping": int(os.getenv("STAMPING_DESIGN_LIFE_SHOTS", "500000")),
     }
-    return mapping.get(tooling_family, default_life)
+    return mapping.get(type_category, default_life)
 
 
 # ==================== Constants ==================== #

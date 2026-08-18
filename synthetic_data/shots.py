@@ -1,6 +1,6 @@
-"""Pure generation of DEMO_TABLE shot streams from equipment profiles.
+"""Pure generation of SHOT_DATA shot streams from equipment profiles.
 
-Produces multi-week, multi-run shot sequences whose inter-shot gaps, cycle times and hard
+Produces multi-week, multi-run shot sequences whose inter-shot gaps, durations and hard
 stops are constructed to land deterministically on each branch of the stop classification
 detection rules. Contains no I/O and no clock access; randomness comes from an injected Random.
 """
@@ -14,11 +14,11 @@ from .constants import (
     ABNORMAL_CT_LOW_FACTOR,
     CT_DECIMALS,
     CT_RESOLUTION_SEC,
-    CT_STATUS_ACTIVE,
-    CT_STATUS_IDLE,
+    STATUS_ACTIVE,
+    STATUS_IDLE,
     GAP_SAFETY_MARGIN_SEC,
     GAP_TIME_TOLERANCE_SECONDS,
-    HARD_STOP_CT,
+    HARD_STOP_duration,
     NORMAL_CT_STEP_OFFSETS,
     NORMAL_CT_STEP_WEIGHTS,
     NORMAL_GAP_JITTER_SEC,
@@ -39,7 +39,7 @@ from .models import (
     StopKind,
 )
 
-# Baseline ratio of observed mode cycle time to approved cycle time for healthy equipment.
+# Baseline ratio of observed mode duration to approved duration for healthy equipment.
 # Slightly above 1.0 because real tools rarely beat their contracted cycle.
 BASELINE_CT_FACTOR: Final[float] = 1.02
 
@@ -51,7 +51,7 @@ ABNORMAL_SHORT_SHARE: Final[float] = 0.5
 START_HOUR_STAGGER: Final[int] = 1
 START_HOUR_STAGGER_MODULUS: Final[int] = 3
 
-# One generated event: (cycle_time_seconds, wall_clock_advance_seconds, intended stop kind).
+# One generated event: (duration_seconds, wall_clock_advance_seconds, intended stop kind).
 ShotEvent = Tuple[float, float, StopKind]
 
 
@@ -67,7 +67,7 @@ def resolve_behaviour(
 ) -> RunBehaviour:
     """Resolve the generation parameters for one equipment in one ISO week of the window.
 
-    CT_DRIFT equipment ramp their mode cycle time away from approved CT week over week;
+    CT_DRIFT equipment ramp their mode duration away from approved duration week over week;
     DECLINING equipment ramp their hard-stop rate instead, which degrades stability over time.
     """
     if profile.kind is ProfileKind.CT_DRIFT:
@@ -88,7 +88,7 @@ def resolve_behaviour(
         hard_stop_rate = profile.base_hard_stop_rate
 
     return RunBehaviour(
-        mode_ct=round(profile.mold.approved_ct * drift_factor, CT_DECIMALS),
+        mode_ct=round(profile.mold.target_duration * drift_factor, DURATION_DECIMALS),
         hard_stop_rate=hard_stop_rate,
         abnormal_rate=profile.base_abnormal_rate,
         time_gap_rate=profile.base_time_gap_rate,
@@ -100,14 +100,14 @@ def resolve_behaviour(
 
 
 def _normal_ct(rng: Random, mode_ct: float) -> float:
-    """Draw a normal cycle time on the CT grid, peaked at the mode.
+    """Draw a normal duration on the CT grid, peaked at the mode.
 
     The weights concentrate a majority of draws on the zero offset, so mode_ct is strictly the
     most frequent value even in short runs; the offset range keeps every draw inside the
     +/-5% band so a normal cycle is never misread as an Abnormal Cycle stop.
     """
     steps = rng.choices(NORMAL_CT_STEP_OFFSETS, weights=NORMAL_CT_STEP_WEIGHTS, k=1)[0]
-    return round(mode_ct + steps * CT_RESOLUTION_SEC, CT_DECIMALS)
+    return round(mode_ct + steps * CT_RESOLUTION_SEC, DURATION_DECIMALS)
 
 
 def _normal_advance(rng: Random, ct: float, previous_ct: float) -> float:
@@ -126,7 +126,7 @@ def _hard_stop_burst(rng: Random, behaviour: RunBehaviour) -> List[ShotEvent]:
     count = rng.randint(1, behaviour.max_consecutive_hard_stops)
     return [
         (
-            HARD_STOP_CT,
+            HARD_STOP_duration,
             rng.uniform(behaviour.hard_stop_min_sec, behaviour.hard_stop_max_sec),
             StopKind.HARD_STOP,
         )
@@ -150,7 +150,7 @@ def _next_events(
             if rng.random() < ABNORMAL_SHORT_SHARE
             else ABNORMAL_CT_HIGH_FACTOR
         )
-        ct = round(behaviour.mode_ct * factor, CT_DECIMALS)
+        ct = round(behaviour.mode_ct * factor, DURATION_DECIMALS)
         return [(ct, ct, StopKind.ABNORMAL_CYCLE)]
     roll -= behaviour.abnormal_rate
 
@@ -166,7 +166,7 @@ def _next_events(
 
 
 def _temperature(rng: Random, behaviour: RunBehaviour, kind: StopKind) -> float:
-    """Derive melt temperature, correlated with cycle-time drift so RCA has a real signal."""
+    """Derive melt temperature, correlated with process-duration drift so RCA has a real signal."""
     drift_excess = behaviour.ct_drift_factor - BASELINE_CT_FACTOR
     value = TEMPERATURE_BASE_C + drift_excess * TEMPERATURE_DRIFT_COEFFICIENT_C
     value += rng.uniform(-TEMPERATURE_JITTER_C, TEMPERATURE_JITTER_C)
@@ -180,35 +180,35 @@ def _make_shot(
     context: ShotContext,
     behaviour: RunBehaviour,
     rng: Random,
-    local_shot_time: datetime,
+    shot_time: datetime,
     ct: float,
     kind: StopKind,
     generated_at: datetime,
 ) -> Shot:
-    """Assemble one fully denormalised DEMO_TABLE row."""
+    """Assemble one fully denormalised SHOT_DATA row."""
     mold = profile.mold
     location = context.location_by_id[mold.location_id]
-    part_code = context.part_code_by_id[mold.part_id]
+    product_code = context.product_code_by_id[mold.product_id]
     return Shot(
-        supplier_name=context.supplier_name_by_company_id[mold.supplier_company_id],
-        equipment_code=mold.equipment_code,
-        counter_code=mold.counter_code,
+        vendor_name=context.vendor_name_by_vendor_id[mold.vendor_vendor_id],
+        machine_id=mold.machine_id,
+        sensor_code=mold.sensor_code,
         ct=ct,
-        approved_ct=mold.approved_ct,
+        target_duration=mold.target_duration,
         temperature=_temperature(rng, behaviour, kind),
-        part_name=context.part_name_by_code[part_code],
-        tooling_type=mold.tooling_type,
-        tooling_family=mold.tooling_type,
-        ct_status=CT_STATUS_IDLE if ct >= HARD_STOP_CT else CT_STATUS_ACTIVE,
-        local_shot_time=local_shot_time,
-        utc_time_zone=local_shot_time - timedelta(hours=location.utc_offset_hours),
+        product_name=context.product_name_by_code[product_code],
+        process_type=mold.process_type,
+        type_category=mold.process_type,
+        status_flag=STATUS_IDLE if ct >= HARD_STOP_DURATION else STATUS_ACTIVE,
+        shot_time=shot_time,
+        shot_time_utc=shot_time - timedelta(hours=location.utc_offset_hours),
         volume=mold.total_cavities,
-        counter_id=mold.counter_id,
-        mold_id=mold.id,
-        company_id=mold.supplier_company_id,
-        part_id=part_code,
+        sensor_id=mold.sensor_id,
+        tool_id=mold.id,
+        vendor_id=mold.vendor_vendor_id,
+        product_id=product_code,
         upload_time=generated_at,
-        processing_date=local_shot_time.date().isoformat(),
+        processing_date=shot_time.date().isoformat(),
         intended_stop_kind=kind,
     )
 
@@ -315,5 +315,5 @@ def generate_all_shots(
     for index, profile in enumerate(profiles):
         rng = Random(config.seed + index)
         shots.extend(generate_equipment_shots(rng, profile, context, config, index))
-    shots.sort(key=lambda shot: (shot.equipment_code, shot.local_shot_time))
+    shots.sort(key=lambda shot: (shot.machine_id, shot.shot_time))
     return shots

@@ -30,7 +30,7 @@ class ScheduleJobRequest(BaseModel):
     name: str = Field(..., description="Descriptive job name")
     tool_name: str = Field(
         ...,
-        description="Tool to execute (e.g., 'refresh_demo_table', 'run_roi_analysis')",
+        description="Tool to execute (e.g., 'refresh_shot_data', 'run_roi_analysis')",
     )
     arguments: Optional[Dict[str, Any]] = Field(
         None, description="Arguments for the tool"

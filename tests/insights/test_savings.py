@@ -9,19 +9,19 @@ from analysis.insights.savings import compute_record_savings, simulate_savings_r
 
 
 def test_basic_savings():
-    result = compute_record_savings(shots=3600, avg_ct=11.0, target_ct=10.0)
+    result = compute_record_savings(shots=3600, avg_duration=11.0, target_duration=10.0)
     assert result["applicable"] is True
     assert result["hours_saved"] == 1.0
     assert result["extra_parts_possible"] == 360
 
 
 def test_cavities_multiply_extra_parts():
-    result = compute_record_savings(shots=3600, avg_ct=11.0, target_ct=10.0, cavities=4)
+    result = compute_record_savings(shots=3600, avg_duration=11.0, target_duration=10.0, cavities=4)
     assert result["extra_parts_possible"] == 1440
 
 
 def test_already_at_target_not_applicable():
-    result = compute_record_savings(shots=1000, avg_ct=9.5, target_ct=10.0)
+    result = compute_record_savings(shots=1000, avg_duration=9.5, target_duration=10.0)
     assert result["applicable"] is False
     assert result["hours_saved"] == 0.0
 
@@ -35,12 +35,12 @@ def test_missing_data_not_applicable():
 
 def test_batch_totals_and_ordering():
     records = [
-        {"equipment_code": "small", "shots": 3600, "avg_ct": 10.5, "target_ct": 10.0},
-        {"equipment_code": "big", "shots": 7200, "avg_ct": 12.0, "target_ct": 10.0},
-        {"equipment_code": "fine", "shots": 1000, "avg_ct": 10.0, "target_ct": 10.0},
+        {"machine_id": "small", "shots": 3600, "avg_duration": 10.5, "target_duration": 10.0},
+        {"machine_id": "big", "shots": 7200, "avg_duration": 12.0, "target_duration": 10.0},
+        {"machine_id": "fine", "shots": 1000, "avg_duration": 10.0, "target_duration": 10.0},
     ]
     result = simulate_savings_records(records)
     assert result["opportunities"] == 2
-    assert result["records"][0]["equipment_code"] == "big"
+    assert result["records"][0]["machine_id"] == "big"
     assert result["total_hours_saved"] == 4.5
     assert result["total_extra_parts"] == 180 + 1440

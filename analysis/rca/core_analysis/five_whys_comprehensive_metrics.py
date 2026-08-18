@@ -94,11 +94,11 @@ def calculate_equipment_metrics(
         "other_equipment_count": len(other_equipment_data),
     }
 
-    if "CT" in equipment_data.columns:
-        metrics["equipment_ct_mean"] = equipment_data["CT"].mean()
-        metrics["equipment_ct_std"] = equipment_data["CT"].std()
-        metrics["other_equipment_ct_mean"] = other_equipment_data["CT"].mean()
-        metrics["other_equipment_ct_std"] = other_equipment_data["CT"].std()
+    if "DURATION" in equipment_data.columns:
+        metrics["equipment_ct_mean"] = equipment_data["DURATION"].mean()
+        metrics["equipment_ct_std"] = equipment_data["DURATION"].std()
+        metrics["other_equipment_ct_mean"] = other_equipment_data["DURATION"].mean()
+        metrics["other_equipment_ct_std"] = other_equipment_data["DURATION"].std()
         if "CT_ISSUE_FLAG" in equipment_data.columns:
             metrics["equipment_ct_issues"] = equipment_data["CT_ISSUE_FLAG"].sum()
             metrics["other_equipment_ct_issues"] = other_equipment_data[

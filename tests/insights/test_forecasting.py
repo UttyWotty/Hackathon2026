@@ -18,7 +18,7 @@ from analysis.insights.forecasting import (
 )
 
 
-def test_linear_trend_exact_line():
+def test_linear_trend_exaduration_line():
     slope, intercept = linear_trend([1.0, 3.0, 5.0, 7.0, 9.0])
     assert slope == pytest.approx(2.0)
     assert intercept == pytest.approx(1.0)

@@ -1,6 +1,6 @@
 """Runs the manufacturing anomaly sweep and prints condensed findings.
 
-Executes the cycle-time deviation detector across the fleet and prints a compact text
+Executes the process-duration deviation detector across the fleet and prints a compact text
 summary for the calling agent to reason over. Deterministic and read-only: it gathers
 signal and draws no conclusions.
 
@@ -34,21 +34,21 @@ EXIT_FAILED = 1
 SEPARATOR = "-" * 68
 
 
-async def _sweep(equipment_code: str) -> int:
+async def _sweep(machine_id: str) -> int:
     """Run the opening sweep plus its derived follow-ups, and print the findings."""
     tasks = list(DEFAULT_SENSE_TASKS)
-    if equipment_code:
+    if machine_id:
         tasks = [
             SenseTask(
                 tool_name=task.tool_name,
-                arguments={"equipment_codes": [equipment_code]},
+                arguments={"machine_ids": [machine_id]},
             )
             for task in tasks
         ]
 
     findings = await run_sense_tasks(tasks, dispatch_tool_direct)
 
-    # CT deviation provides per-equipment metrics - the machines to
+    # duration deviation provides per-equipment metrics - the machines to
     # follow up on come from what the deviation pass just named.
     followups = derive_followup_tasks(findings)
     if followups:
@@ -73,9 +73,9 @@ async def _sweep(equipment_code: str) -> int:
 
 def main() -> int:
     """Entry point. Optional first argument narrows the sweep to one equipment code."""
-    equipment_code = sys.argv[1] if len(sys.argv) > 1 else ""
+    machine_id = sys.argv[1] if len(sys.argv) > 1 else ""
     try:
-        return asyncio.run(_sweep(equipment_code))
+        return asyncio.run(_sweep(machine_id))
     except Exception as exc:  # noqa: BLE001 - top level entry point
         print(f"SWEEP FAILED: {exc}", flush=True)
         return EXIT_FAILED

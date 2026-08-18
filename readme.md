@@ -9,20 +9,20 @@ Built for the Snowflake CoCo CLI Hackathon 2026 (Intelligent Workflow Automation
 ## The Problem
 
 Manufacturing lines generate millions of shots per week. Dashboards track single metrics
-(cycle time, stop count) but subtle multi-signal anomalies slip through:
+(duration, stop count) but subtle multi-signal anomalies slip through:
 
 - A machine drifting 2% per week looks healthy on any single-day view
 - High MTTR with normal MTBF means few faults but slow recovery -- invisible to stop-count alerts
 - Declining week-over-week stability is the earliest warning, but no threshold catches a trend
 
 **This agent reasons across detectors the way an experienced engineer does** -- combining
-cycle time deviation and stability trends to surface what single-metric monitors miss.
+duration deviation and stability trends to surface what single-metric monitors miss.
 
 ## Demo Headline
 
-Machine **MX-7103** drifts from 1.9% to 24.0% above approved cycle time over six weeks while
+Machine **MX-7103** drifts from 1.9% to 24.0% above approved duration over six weeks while
 its stability score stays at 90% -- statistically indistinguishable from healthy machines.
-A threshold-based monitor never fires. The agent catches it by reasoning across CT deviation
+A threshold-based monitor never fires. The agent catches it by reasoning across duration deviation
 and stability signals, then autonomously runs root cause analysis and records the finding.
 
 ## Architecture
@@ -31,7 +31,7 @@ and stability signals, then autonomously runs root cause analysis and records th
 Trigger (schedule/manual)
     |
     v
-[Sense] CT Deviation + Stability sweep across fleet
+[Sense] Duration Deviation + Stability sweep across fleet
     |
     v
 [Reason] Cortex LLM (Claude) cross-signal analysis
@@ -45,7 +45,7 @@ Trigger (schedule/manual)
 ```
 
 Single FastAPI application. Cortex REST Messages API for LLM. All data in Snowflake
-(`MMS_DEMO.PUBLIC.DEMO_TABLE`). 243,000 synthetic shots across 8 machines, 6 weeks.
+(`DEMO.PUBLIC.SHOT_DATA`). 243,000 synthetic shots across 8 machines, 6 weeks.
 
 ## CoCo CLI Skills (3)
 
@@ -64,7 +64,7 @@ Each skill works standalone in a CoCo session or chains into the autonomous work
 pip install -r requirements.txt
 
 # 1. Generate and load synthetic data (one-time)
-python -m synthetic_data.generate --database MMS_DEMO --schema PUBLIC --load
+python -m synthetic_data.generate --database DEMO --schema PUBLIC --load
 
 # 2. Run the autonomous agent (headless, end-to-end)
 LOCAL_DATA_DIR=./synthetic_out python scripts/run_agent.py
@@ -91,7 +91,7 @@ SNOWFLAKE_ACCOUNT=your-account
 SNOWFLAKE_USER=your-user
 SNOWFLAKE_PASSWORD=your-password
 SNOWFLAKE_WAREHOUSE=COMPUTE_WH
-SNOWFLAKE_DATABASE=MMS_DEMO
+SNOWFLAKE_DATABASE=DEMO
 SNOWFLAKE_SCHEMA=PUBLIC
 SNOWFLAKE_PAT=your-programmatic-access-token
 LLM_BACKEND=cortex
@@ -101,7 +101,7 @@ LLM_BACKEND=cortex
 
 1. **Autonomous multi-step orchestration** -- the agent decides what tools to call next based
    on what it found, not a hardcoded DAG
-2. **Cross-signal reasoning** -- combines 4 independent detectors (CT deviation, MTBF, MTTR,
+2. **Cross-signal reasoning** -- combines 4 independent detectors (duration deviation, MTBF, MTTR,
    stability trend) that no single threshold can replicate
 3. **Self-grading** -- every run is scored against a ground-truth contract declaring what
    defects are planted, so claims are verifiable
@@ -113,7 +113,7 @@ LLM_BACKEND=cortex
 scripts/run_agent.py          Entry point: one autonomous sense-reason-act cycle
 skills/                       3 CoCo CLI skills (sense, investigate, report)
 demo/                         Streamlit UI (trigger runs, browse trails, visualize drift)
-analysis/                     Analysis modules (ct_deviation, rca, roi, ct_efficiency, ...)
+analysis/                     Analysis modules (deviation, rca, roi, efficiency, ...)
 services/workflow/            Autonomous controller, scoring, decision trail
 core/                         LLM clients (Cortex + MLX), tool definitions, prompts
 synthetic_data/               Reproducible dataset generator with planted defects
@@ -124,7 +124,7 @@ tests/                        716 tests (684 application + 40 generator)
 
 | Criterion | How this project addresses it |
 |---|---|
-| Real-world relevance | Injection moulding CT drift detection -- a real operations problem |
+| Real-world relevance | Injection moulding duration drift detection -- a real operations problem |
 | Multi-step orchestration | Sense -> Reason -> Act loop with dynamic tool selection |
 | Error handling | Failed detectors don't halt; missing signal is reported, not hidden |
 | CoCo CLI usage | 3 modular skills, Cortex LLM API, Snowflake data |

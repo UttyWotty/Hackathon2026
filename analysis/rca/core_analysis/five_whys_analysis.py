@@ -41,9 +41,9 @@ warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 
 try:
-    from .demo_table import fetch_data_from_snowflake, session
+    from .shot_data import fetch_data_from_snowflake, session
 except ImportError:
-    from demo_table import (  # type: ignore[no-redef]
+    from shot_data import (  # type: ignore[no-redef]
         fetch_data_from_snowflake,
         session,
     )
@@ -92,10 +92,10 @@ class FiveWhysAnalysis:
         self.pareto_results: Dict[str, Any] = pareto_results or {}
         self.root_causes: Dict[str, Any] = {}
         self.action_plans: Dict[str, Any] = {}
-        self.tooling_family = self._determine_tooling_family()
+        self.type_category = self._determine_type_category()
         try:
             self.industry_analyzer: Optional[IndustryStandardsAnalyzer] = (
-                IndustryStandardsAnalyzer(self.tooling_family)
+                IndustryStandardsAnalyzer(self.type_category)
             )
         except Exception as exc:
             logger.warning("Could not initialize industry analyzer: %s", exc)
@@ -106,10 +106,10 @@ class FiveWhysAnalysis:
     # Setup
     # ------------------------------------------------------------------
 
-    def _determine_tooling_family(self) -> str:
+    def _determine_type_category(self) -> str:
         """Determine tooling family from data."""
-        if "TOOLING_FAMILY" in self.df.columns:
-            mode = self.df["TOOLING_FAMILY"].mode()
+        if "TYPE" in self.df.columns:
+            mode = self.df["TYPE"].mode()
             if not mode.empty:
                 return mode.iloc[0]
         return "Injection Molding"
@@ -117,7 +117,7 @@ class FiveWhysAnalysis:
     def setup_data(self) -> bool:
         """Prepare data for 5 Whys analysis."""
         logger.info("Data prepared for 5 Whys analysis: %d records", len(self.df))
-        logger.info("Tooling Family: %s", self.tooling_family)
+        logger.info("Tooling Family: %s", self.type_category)
         self._add_efficiency_column()
         self._add_temporal_columns()
         industry = calculate_industry_metrics(self.df, self.industry_analyzer)
@@ -128,32 +128,32 @@ class FiveWhysAnalysis:
         return True
 
     def _add_efficiency_column(self) -> None:
-        """Add EFFICIENCY column if CT and APPROVED_CT are present."""
-        if "CT" in self.df.columns and "APPROVED_CT" in self.df.columns:
+        """Add EFFICIENCY column if CT and TARGET_DURATION are present."""
+        if "DURATION" in self.df.columns and "TARGET_DURATION" in self.df.columns:
             self.df["EFFICIENCY"] = (
-                self.df["APPROVED_CT"] / self.df["CT"]
+                self.df["TARGET_DURATION"] / self.df["DURATION"]
             ) * EFFICIENCY_CAP
             self.df["EFFICIENCY"] = self.df["EFFICIENCY"].clip(upper=EFFICIENCY_CAP)
-            logger.info("Added EFFICIENCY column (Approved CT / Actual CT * 100)")
+            logger.info("Added EFFICIENCY column (Approved Duration / Actual Duration * 100)")
         else:
-            logger.warning("Cannot calculate efficiency - missing CT or APPROVED_CT")
+            logger.warning("Cannot calculate efficiency - missing DURATION or TARGET_DURATION")
 
     def _add_temporal_columns(self) -> None:
         """Add SHIFT, DATE, and DAY_OF_WEEK columns as needed."""
         if "SHIFT" not in self.df.columns and "HOUR" in self.df.columns:
             self.df["SHIFT"] = self.df["HOUR"].apply(self._determine_shift)
             logger.info("Added SHIFT column based on HOUR")
-        if "DATE" not in self.df.columns and "LOCAL_SHOT_TIME" in self.df.columns:
-            self.df["DATE"] = pd.to_datetime(self.df["LOCAL_SHOT_TIME"]).dt.date
-            logger.info("Added DATE column from LOCAL_SHOT_TIME")
+        if "DATE" not in self.df.columns and "SHOT_TIME" in self.df.columns:
+            self.df["DATE"] = pd.to_datetime(self.df["SHOT_TIME"]).dt.date
+            logger.info("Added DATE column from SHOT_TIME")
         if (
             "DAY_OF_WEEK" not in self.df.columns
-            and "LOCAL_SHOT_TIME" in self.df.columns
+            and "SHOT_TIME" in self.df.columns
         ):
             self.df["DAY_OF_WEEK"] = pd.to_datetime(
-                self.df["LOCAL_SHOT_TIME"]
+                self.df["SHOT_TIME"]
             ).dt.day_name()
-            logger.info("Added DAY_OF_WEEK column from LOCAL_SHOT_TIME")
+            logger.info("Added DAY_OF_WEEK column from SHOT_TIME")
 
     @staticmethod
     def _determine_shift(hour: int) -> str:
@@ -182,18 +182,18 @@ class FiveWhysAnalysis:
         targets: List[Dict[str, Any]] = []
         if "DAY_OF_WEEK" in self.df.columns:
             targets.extend(self._issue_targets("DAY_OF_WEEK", "Time", "Day", top_n))
-        if len(targets) < top_n and "EQUIPMENT_CODE" in self.df.columns:
+        if len(targets) < top_n and "MACHINE_ID" in self.df.columns:
             targets.extend(
                 self._issue_targets(
-                    "EQUIPMENT_CODE",
+                    "MACHINE_ID",
                     "Equipment",
                     "Equipment",
                     top_n - len(targets),
                 )
             )
-        if len(targets) < top_n and "PART_NAME" in self.df.columns:
+        if len(targets) < top_n and "PRODUCT_NAME" in self.df.columns:
             targets.extend(
-                self._issue_targets("PART_NAME", "Part", "Part", top_n - len(targets))
+                self._issue_targets("PRODUCT_NAME", "Part", "Part", top_n - len(targets))
             )
         for i, t in enumerate(targets, 1):
             logger.info(
@@ -257,8 +257,8 @@ class FiveWhysAnalysis:
     def _get_target_data(self, target_data: Dict[str, Any]) -> pd.DataFrame:
         """Get data specific to the target."""
         col_map = {
-            "equipment": "EQUIPMENT_CODE",
-            "part": "PART_NAME",
+            "equipment": "MACHINE_ID",
+            "part": "PRODUCT_NAME",
             "time": "DAY_OF_WEEK",
         }
         col = col_map.get(target_data["type"].lower())
@@ -292,11 +292,11 @@ class FiveWhysAnalysis:
         target_df: pd.DataFrame,
     ) -> Dict[str, Any]:
         """Apply 5 Whys to part issues."""
-        ct_stats = target_df["CT"].describe()
-        avg_ct, std_ct = ct_stats["mean"], ct_stats["std"]
+        ct_stats = target_df["DURATION"].describe()
+        avg_duration, std_ct = ct_stats["mean"], ct_stats["std"]
         whys = [
-            "Part has inconsistent cycle times (avg: %.1fs +/- %.1fs)"
-            % (avg_ct, std_ct)
+            "Part has inconsistent durations (avg: %.1fs +/- %.1fs)"
+            % (avg_duration, std_ct)
         ]
         worst_equipment, worst_rate = self._worst_equipment_for_part(target_df)
         if worst_rate is not None and worst_rate > EQUIPMENT_ISSUE_RATE_THRESHOLD:
@@ -321,7 +321,7 @@ class FiveWhysAnalysis:
             "whys": whys,
             "root_cause": "Design-manufacturing mismatch and insufficient process optimization",
             "supporting_data": {
-                "avg_ct": avg_ct,
+                "avg_duration": avg_duration,
                 "ct_std": std_ct,
                 "worst_equipment": worst_equipment,
                 "worst_equipment_rate": worst_rate,
@@ -336,10 +336,10 @@ class FiveWhysAnalysis:
 
     @staticmethod
     def _worst_equipment_for_part(target_df: pd.DataFrame) -> tuple:
-        """Return (worst_equipment_code, worst_rate) or (None, None)."""
-        if "EQUIPMENT_CODE" not in target_df.columns:
+        """Return (worst_machine_id, worst_rate) or (None, None)."""
+        if "MACHINE_ID" not in target_df.columns:
             return None, None
-        issues = target_df.groupby("EQUIPMENT_CODE")["CT_ISSUE_FLAG"].mean()
+        issues = target_df.groupby("MACHINE_ID")["CT_ISSUE_FLAG"].mean()
         return issues.idxmax(), issues.max() * EFFICIENCY_CAP
 
     def _five_whys_time(
@@ -478,10 +478,10 @@ class FiveWhysAnalysis:
         """Generate industry comparison report."""
         try:
             chart_data = get_industry_comparison_chart_data(
-                self.df, self.tooling_family
+                self.df, self.type_category
             )
             return {
-                "tooling_family": self.tooling_family,
+                "type_category": self.type_category,
                 "performance_summary": {
                     "scrap": _metric_summary(self.scrap_metrics, "scrap_rate"),
                     "downtime": _metric_summary(

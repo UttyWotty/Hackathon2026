@@ -18,13 +18,13 @@ Example:
     >>> from analysis.shared import (
     ...     setup_module_logger,
     ...     create_snowflake_connection,
-    ...     validate_equipment_codes,
+    ...     validate_machine_ids,
     ...     generate_filepath
     ... )
     >>>
     >>> logger = setup_module_logger("MyAnalysis")
     >>> conn = create_snowflake_connection()
-    >>> equipment = validate_equipment_codes("MX-7110")
+    >>> equipment = validate_machine_ids("MX-7110")
     >>> output_path = generate_filepath("output", "report", "xlsx")
 """
 
@@ -61,7 +61,7 @@ from .data_validation import (
     check_data_quality,
     validate_dataframe,
     validate_date_range,
-    validate_equipment_codes,
+    validate_machine_ids,
     validate_numeric_parameter,
     validate_schema,
 )
@@ -147,7 +147,7 @@ __all__ = [
     "graceful_degradation",
     # Data Validation
     "validate_dataframe",
-    "validate_equipment_codes",
+    "validate_machine_ids",
     "validate_date_range",
     "validate_numeric_parameter",
     "check_data_quality",
@@ -207,7 +207,7 @@ def list_available_utilities() -> dict:
         ],
         "data_validation": [
             "validate_dataframe",
-            "validate_equipment_codes",
+            "validate_machine_ids",
             "check_data_quality",
         ],
         "file_operations": [

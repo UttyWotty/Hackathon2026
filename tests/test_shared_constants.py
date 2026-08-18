@@ -96,19 +96,19 @@ class TestTimeConstants:
 class TestAnalysisThresholds:
     """Tests for AnalysisThresholds values and ordering."""
 
-    def test_ct_deviation_warning_value(self) -> None:
-        """CT deviation warning threshold is 10%."""
-        assert AnalysisThresholds.CT_DEVIATION_WARNING == 10.0
+    def test_deviation_warning_value(self) -> None:
+        """duration deviation warning threshold is 10%."""
+        assert AnalysisThresholds.DEVIATION_WARNING == 10.0
 
-    def test_ct_deviation_critical_value(self) -> None:
-        """CT deviation critical threshold is 20%."""
-        assert AnalysisThresholds.CT_DEVIATION_CRITICAL == 20.0
+    def test_deviation_critical_value(self) -> None:
+        """duration deviation critical threshold is 20%."""
+        assert AnalysisThresholds.DEVIATION_CRITICAL == 20.0
 
-    def test_ct_deviation_ordering(self) -> None:
+    def test_deviation_ordering(self) -> None:
         """Warning threshold must be less than critical threshold."""
         assert (
-            AnalysisThresholds.CT_DEVIATION_WARNING
-            < AnalysisThresholds.CT_DEVIATION_CRITICAL
+            AnalysisThresholds.DEVIATION_WARNING
+            < AnalysisThresholds.DEVIATION_CRITICAL
         )
 
     def test_max_acceptable_ct(self) -> None:
@@ -271,11 +271,11 @@ class TestSessionDetection:
 
     def test_hard_stop_ct(self) -> None:
         """Hard stop CT is 999.9 seconds."""
-        assert SessionDetection.HARD_STOP_CT == 999.9
+        assert SessionDetection.HARD_STOP_DURATION == 999.9
 
     def test_hard_stop_ct_matches_max_acceptable(self) -> None:
-        """Hard stop CT aligns with AnalysisThresholds MAX_ACCEPTABLE_CT."""
-        assert SessionDetection.HARD_STOP_CT == AnalysisThresholds.MAX_ACCEPTABLE_CT
+        """Hard stop CT aligns with AnalysisThresholds MAX_ACCEPTABLE_duration."""
+        assert SessionDetection.HARD_STOP_DURATION == AnalysisThresholds.MAX_ACCEPTABLE_CT
 
     def test_mode_ct_decimals(self) -> None:
         """Mode CT rounding precision is 2 decimal places."""
@@ -330,8 +330,8 @@ class TestFilePaths:
         """All module output directories are under the main output directory."""
         module_outputs = [
             FilePaths.ROI_OUTPUT,
-            FilePaths.CT_DEVIATION_OUTPUT,
-            FilePaths.CT_EFFICIENCY_OUTPUT,
+            FilePaths.DEVIATION_OUTPUT,
+            FilePaths.EFFICIENCY_OUTPUT,
             FilePaths.RCA_OUTPUT,
             FilePaths.TOOLING_EOL_OUTPUT,
         ]
@@ -361,8 +361,8 @@ class TestDatabaseConstants:
     def test_table_names_are_uppercase(self) -> None:
         """All table name constants are uppercase (Snowflake convention)."""
         tables = [
-            DatabaseTables.DEMO_TABLE,
-            DatabaseTables.PRODUCT,
+            DatabaseTables.SHOT_DATA,
+            DatabaseTables.PRODUduration,
             DatabaseTables.ANA_SHOT_MADE,
             DatabaseTables.ROI_TABLE,
             DatabaseTables.EQUIPMENT_MASTER,
@@ -387,28 +387,28 @@ class TestColumnNames:
     def test_column_names_are_uppercase(self) -> None:
         """All column name constants are uppercase (Snowflake convention)."""
         columns = [
-            ColumnNames.EQUIPMENT_CODE,
-            ColumnNames.MOLD_ID,
-            ColumnNames.COUNTER_CODE,
+            ColumnNames.MACHINE_ID,
+            ColumnNames.TOOL_ID,
+            ColumnNames.SENSOR_CODE,
             ColumnNames.DATE,
             ColumnNames.TIMESTAMP,
-            ColumnNames.LOCAL_SHOT_TIME,
+            ColumnNames.SHOT_TIME,
             ColumnNames.SHOTS,
-            ColumnNames.CYCLE_TIME,
-            ColumnNames.APPROVED_CT,
-            ColumnNames.CT_STATUS,
+            ColumnNames.DURATION,
+            ColumnNames.TARGET_DURATION,
+            ColumnNames.STATUS,
             ColumnNames.EQUIPMENT_STATUS,
-            ColumnNames.PART_ID,
-            ColumnNames.PART_NAME,
-            ColumnNames.SUPPLIER_NAME,
-            ColumnNames.COMPANY_ID,
+            ColumnNames.PRODUCT_ID,
+            ColumnNames.PRODUCT_NAME,
+            ColumnNames.VENDOR_NAME,
+            ColumnNames.VENDOR_ID,
         ]
         for col in columns:
             assert col == col.upper()
 
-    def test_cycle_time_column_is_ct(self) -> None:
-        """Cycle time column uses the abbreviated CT name."""
-        assert ColumnNames.CYCLE_TIME == "CT"
+    def test_duration_column_is_ct(self) -> None:
+        """Duration column uses the abbreviated CT name."""
+        assert ColumnNames.DURATION == "DURATION"
 
 
 class TestReportConfig:

@@ -1,8 +1,8 @@
 """
-ROI Cycle Time Classifier
+ROI Duration Classifier
 ==========================
 
-Classifies cycle times as WITHIN, FASTER, or SLOWER based on approved CT.
+Classifies durations as WITHIN, FASTER, or SLOWER based on approved duration.
 
 Author: Utku Gulbardak
 Date: 2025-10-24
@@ -16,12 +16,12 @@ from .config import ROIAnalysisConfig
 
 class CycleTimeClassifier:
     """
-    Classifies cycle times based on deviation from approved CT.
+    Classifies durations based on deviation from approved duration.
 
     Classification categories:
-    - WITHIN: Within tolerance of approved CT (±delta_tolerance)
-    - FASTER: Faster than approved CT (below tolerance)
-    - SLOWER: Slower than approved CT (above tolerance)
+    - WITHIN: Within tolerance of approved duration (±delta_tolerance)
+    - FASTER: Faster than approved duration (below tolerance)
+    - SLOWER: Slower than approved duration (above tolerance)
     """
 
     def __init__(self, config: ROIAnalysisConfig):
@@ -35,22 +35,22 @@ class CycleTimeClassifier:
 
     def classify(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Classify cycle times as WITHIN, FASTER, or SLOWER based on approved CT.
+        Classify durations as WITHIN, FASTER, or SLOWER based on approved duration.
 
         Args:
-            df: DataFrame with CT and APPROVED_CT columns
+            df: DataFrame with DURATION and TARGET_DURATION columns
 
         Returns:
-            DataFrame with CT_CATEGORY column added
+            DataFrame with DURATION_CATEGORY column added
         """
         delta = self.config.delta_tolerance
 
         conditions = [
-            np.abs(df["CT"] - df["APPROVED_CT"]) <= df["APPROVED_CT"] * delta,
-            df["CT"] > df["APPROVED_CT"] * (1 + delta),
-            df["CT"] < df["APPROVED_CT"] * (1 - delta),
+            np.abs(df["DURATION"] - df["TARGET_DURATION"]) <= df["TARGET_DURATION"] * delta,
+            df["DURATION"] > df["TARGET_DURATION"] * (1 + delta),
+            df["DURATION"] < df["TARGET_DURATION"] * (1 - delta),
         ]
         choices = ["WITHIN", "SLOWER", "FASTER"]
-        df["CT_CATEGORY"] = np.select(conditions, choices, default="OTHER")
+        df["DURATION_CATEGORY"] = np.select(conditions, choices, default="OTHER")
 
         return df

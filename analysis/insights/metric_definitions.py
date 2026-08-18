@@ -7,7 +7,7 @@ Pure data module so every LLM answer uses identical definitions across sessions.
 
 from typing import Any, Dict, List, Optional
 
-SPEC_PATH: str = "analysis/ct_deviation"
+SPEC_PATH: str = "analysis/deviation"
 
 METRIC_DEFINITIONS: Dict[str, Dict[str, str]] = {
     "production_run": {
@@ -20,7 +20,7 @@ METRIC_DEFINITIONS: Dict[str, Dict[str, str]] = {
     },
     "mode_ct": {
         "definition": (
-            "Statistical mode of actual cycle times excluding the 999.9 hard-stop "
+            "Statistical mode of actual durations excluding the 999.9 hard-stop "
             "code, with a +/-5 percent tolerance band (MODE_CT_TOLERANCE). Baseline "
             "for stop detection and efficiency."
         ),
@@ -29,7 +29,7 @@ METRIC_DEFINITIONS: Dict[str, Dict[str, str]] = {
     "stop_detection": {
         "definition": (
             "A shot is a stop (STOP=1) when its time gap exceeds the previous cycle "
-            "time plus the 2.0 second downtime gap tolerance, or when the cycle time "
+            "time plus the 2.0 second downtime gap tolerance, or when the duration "
             "is the 999.9 hard-stop code."
         ),
         "source": SPEC_PATH,
@@ -37,7 +37,7 @@ METRIC_DEFINITIONS: Dict[str, Dict[str, str]] = {
     "total_run_time": {
         "definition": (
             "Sum of shot intervals within each run (excluding each run's first-shot "
-            "interval) plus one mode CT for the last shot, in minutes."
+            "interval) plus one mode duration for the last shot, in minutes."
         ),
         "source": SPEC_PATH,
     },
@@ -67,31 +67,31 @@ METRIC_DEFINITIONS: Dict[str, Dict[str, str]] = {
         ),
         "source": SPEC_PATH,
     },
-    "approved_ct": {
+    "target_duration": {
         "definition": (
-            "Contractually approved cycle time per part/tool. Known to drift stale; "
-            "validate against observed mode CT (validate_approved_cts tool). Tool "
-            "comparisons are only meaningful within the same approved CT group."
+            "Contractually approved duration per part/tool. Known to drift stale; "
+            "validate against observed mode duration (validate_targets tool). Tool "
+            "comparisons are only meaningful within the same approved duration group."
         ),
-        "source": "DEMO_TABLE.APPROVED_CT",
+        "source": "SHOT_DATA.TARGET_DURATION",
     },
-    "ct_efficiency": {
+    "efficiency": {
         "definition": (
-            "Share of shots within/faster/slower than the approved CT band, weighted "
-            "into a single efficiency percentage (WEIGHTED_EFFICIENCY in CT_EFFICIENCY)."
+            "Share of shots within/faster/slower than the approved duration band, weighted "
+            "into a single efficiency percentage (WEIGHTED_EFFICIENCY in EFFICIENCY)."
         ),
-        "source": "analysis/ct_efficiency",
+        "source": "analysis/efficiency",
     },
     "nctd": {
         "definition": (
-            "Normalized cycle time deviation: (average CT - approved CT) relative to "
-            "approved CT, as stored in CYCLE_TIME_DEVIATION.NCTD."
+            "Normalized duration deviation: (average duration - approved duration) relative to "
+            "approved duration, as stored in DURATION_DEVIATION.NCTD."
         ),
-        "source": "analysis/ct_deviation",
+        "source": "analysis/deviation",
     },
     "health_score": {
         "definition": (
-            "Composite 0-100 equipment score: run efficiency 40 percent, CT "
+            "Composite 0-100 equipment score: run efficiency 40 percent, DURATION "
             "performance 30 percent, utilization 20 percent, data recency 10 "
             "percent; weights renormalize when a component is missing. Grades: "
             "healthy >= 80, watch >= 60, critical below."

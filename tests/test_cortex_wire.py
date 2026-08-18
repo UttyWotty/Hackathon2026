@@ -35,7 +35,7 @@ TOOL_USE_RESPONSE = {
         {
             "type": "tool_use",
             "id": "toolu_abc123",
-            "name": "run_ct_deviation_analysis",
+            "name": "run_deviation_analysis",
             "input": {"machine": "MX-7103"},
         },
     ],
@@ -108,7 +108,7 @@ class TestExtractToolUses:
 
     def test_carries_name_and_input(self):
         use = extract_tool_uses(TOOL_USE_RESPONSE)[0]
-        assert use["name"] == "run_ct_deviation_analysis"
+        assert use["name"] == "run_deviation_analysis"
         assert use["input"] == {"machine": "MX-7103"}
 
     def test_ignores_text_blocks(self):

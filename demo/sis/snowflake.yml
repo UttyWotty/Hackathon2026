@@ -3,8 +3,12 @@ entities:
   autonomous_mfg_agent_demo:
     type: streamlit
     identifier:
-      name: MMS_DEMO.PUBLIC.autonomous_mfg_agent_demo
-    stage: "MMS_DEMO.PUBLIC.STREAMLIT_STAGE"
+      name: DEMO.PUBLIC.autonomous_mfg_agent_demo
+    stage: "DEMO.PUBLIC.STREAMLIT_STAGE"
     query_warehouse: "COMPUTE_WH"
     main_file: "streamlit_app.py"
     title: "Autonomous Manufacturing Workflow Agent"
+    pages_dir: "."
+    artifacts:
+      - "interactive_controls.py"
+      - "action_loop.py"

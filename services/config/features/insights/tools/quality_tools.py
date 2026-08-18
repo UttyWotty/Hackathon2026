@@ -1,7 +1,7 @@
 """Data quality audit tool adapter for the master shot data.
 
-Runs integrity checks over a DEMO_TABLE window: null keys, invalid cycle times,
-missing approved CTs, future timestamps, and duplicate shots, with rate-based verdicts.
+Runs integrity checks over a SHOT_DATA window: null keys, invalid durations,
+missing approved durations, future timestamps, and duplicate shots, with rate-based verdicts.
 Exposes the data_quality_audit MCP tool.
 """
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 MAX_WINDOW_DAYS: int = 365
 DEFAULT_WINDOW_DAYS: int = 30
-HARD_STOP_CT: float = 999.0
+HARD_STOP_DURATION: float = 999.0
 FUTURE_GRACE_HOURS: int = 24
 WARN_RATE_PCT: float = 1.0
 FAIL_RATE_PCT: float = 5.0
@@ -43,16 +43,16 @@ def _base_counts(days: int) -> Optional[Dict[str, Any]]:
     rows = query_records(f"""
         SELECT
             COUNT(*) AS TOTAL_SHOTS,
-            COUNT(CASE WHEN EQUIPMENT_CODE IS NULL THEN 1 END) AS NULL_EQUIPMENT,
-            COUNT(CASE WHEN CT IS NULL OR CT <= 0 THEN 1 END) AS INVALID_CT,
-            COUNT(CASE WHEN CT >= {HARD_STOP_CT} THEN 1 END) AS HARD_STOP_SHOTS,
-            COUNT(CASE WHEN APPROVED_CT IS NULL OR APPROVED_CT <= 0 THEN 1 END)
-                AS MISSING_APPROVED_CT,
-            COUNT(CASE WHEN LOCAL_SHOT_TIME >
+            COUNT(CASE WHEN MACHINE_ID IS NULL THEN 1 END) AS NULL_EQUIPMENT,
+            COUNT(CASE WHEN CT IS NULL OR CT <= 0 THEN 1 END) AS INVALID_duration,
+            COUNT(CASE WHEN CT >= {HARD_STOP_DURATION} THEN 1 END) AS HARD_STOP_SHOTS,
+            COUNT(CASE WHEN TARGET_DURATION IS NULL OR TARGET_DURATION <= 0 THEN 1 END)
+                AS MISSING_TARGET_DURATION,
+            COUNT(CASE WHEN SHOT_TIME >
                   DATEADD(hour, {FUTURE_GRACE_HOURS}, CURRENT_TIMESTAMP()) THEN 1 END)
                 AS FUTURE_TIMESTAMPS
-        FROM DEMO_TABLE
-        WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
+        FROM SHOT_DATA
+        WHERE SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
         """)
     return rows[0] if rows else None
 
@@ -62,11 +62,11 @@ def _duplicate_count(days: int) -> int:
     rows = query_records(f"""
         SELECT COALESCE(SUM(DUP_COUNT - 1), 0) AS EXTRA_ROWS
         FROM (
-            SELECT EQUIPMENT_CODE, LOCAL_SHOT_TIME, COUNT(*) AS DUP_COUNT
-            FROM DEMO_TABLE
-            WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
-              AND EQUIPMENT_CODE IS NOT NULL
-            GROUP BY EQUIPMENT_CODE, LOCAL_SHOT_TIME
+            SELECT MACHINE_ID, SHOT_TIME, COUNT(*) AS DUP_COUNT
+            FROM SHOT_DATA
+            WHERE SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
+              AND MACHINE_ID IS NOT NULL
+            GROUP BY MACHINE_ID, SHOT_TIME
             HAVING COUNT(*) > 1
         )
         """)
@@ -74,7 +74,7 @@ def _duplicate_count(days: int) -> int:
 
 
 def data_quality_audit(days: int = DEFAULT_WINDOW_DAYS) -> Dict[str, Any]:
-    """Audit DEMO_TABLE integrity over a recent window.
+    """Audit SHOT_DATA integrity over a recent window.
 
     Args:
         days: Audit window in days (default: 30, max: 365).
@@ -91,13 +91,13 @@ def data_quality_audit(days: int = DEFAULT_WINDOW_DAYS) -> Dict[str, Any]:
 
         total = int(base.get("TOTAL_SHOTS") or 0)
         checks: Dict[str, Dict[str, Any]] = {
-            "null_equipment_code": _verdict(
+            "null_machine_id": _verdict(
                 int(base.get("NULL_EQUIPMENT") or 0), total
             ),
             "invalid_ct": _verdict(int(base.get("INVALID_CT") or 0), total),
             "hard_stop_shots": _verdict(int(base.get("HARD_STOP_SHOTS") or 0), total),
-            "missing_approved_ct": _verdict(
-                int(base.get("MISSING_APPROVED_CT") or 0), total
+            "missing_target_duration": _verdict(
+                int(base.get("MISSING_TARGET_DURATION") or 0), total
             ),
             "future_timestamps": _verdict(
                 int(base.get("FUTURE_TIMESTAMPS") or 0), total

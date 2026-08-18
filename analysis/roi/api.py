@@ -33,7 +33,7 @@ class ROIAnalyzer:
         config: Analysis configuration
         database: Database connection manager
         preprocessor: Data preprocessing handler
-        classifier: Cycle time classifier
+        classifier: Duration classifier
         metrics_calculator: Metrics calculation engine
     """
 
@@ -67,8 +67,8 @@ class ROIAnalyzer:
 
     def analyze(
         self,
-        supplier_names: Optional[list] = None,
-        equipment_codes: Optional[list] = None,
+        vendor_names: Optional[list] = None,
+        machine_ids: Optional[list] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         aggregation_level: str = "daily",
@@ -77,8 +77,8 @@ class ROIAnalyzer:
         Perform complete ROI analysis with configurable time aggregation.
 
         Args:
-            supplier_names: Filter by supplier name(s) - list (optional)
-            equipment_codes: Filter by equipment code(s) - list (optional)
+            vendor_names: Filter by supplier name(s) - list (optional)
+            machine_ids: Filter by equipment code(s) - list (optional)
             start_date: Start date in YYYY-MM-DD format (optional, defaults to 90 days ago)
             end_date: End date in YYYY-MM-DD format (optional, defaults to today)
             aggregation_level: Time aggregation - "daily", "weekly", or "monthly" (default: "daily")
@@ -119,7 +119,7 @@ class ROIAnalyzer:
 
         # 1. Fetch data from database
         raw_data = self.database.fetch_data(
-            supplier_names, equipment_codes, start_date, end_date
+            vendor_names, machine_ids, start_date, end_date
         )
 
         if raw_data.empty:
@@ -132,7 +132,7 @@ class ROIAnalyzer:
         # 3. Calculate uptime metrics (production time vs idle time)
         processed_data = self.preprocessor.calculate_uptime_metrics(processed_data)
 
-        # 4. Classify cycle times
+        # 4. Classify durations
         classified_data = self.classifier.classify(processed_data)
 
         # 5. Calculate metrics with specified aggregation level

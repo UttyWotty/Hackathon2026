@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 IMPROVEMENT_FACTOR = 0.5
 IMPROVEMENT_PERCENTAGE = 50
 ESTIMATED_TIME_TO_IMPROVEMENT = "3 months"
-CYCLE_TIME_VARIABILITY_TARGET = "25% reduction"
+DURATION_VARIABILITY_TARGET = "25% reduction"
 EQUIPMENT_UPTIME_TARGET = "10% improvement"
 SCRAP_RATE_TARGET = "30% reduction"
 TOP_ACTIONS_DISPLAY_LIMIT = 5
@@ -131,7 +131,7 @@ def calculate_expected_impact(
         "improvement_percentage": IMPROVEMENT_PERCENTAGE,
         "estimated_time_to_improvement": ESTIMATED_TIME_TO_IMPROVEMENT,
         "key_metrics": {
-            "cycle_time_variability": CYCLE_TIME_VARIABILITY_TARGET,
+            "duration_variability": DURATION_VARIABILITY_TARGET,
             "equipment_uptime": EQUIPMENT_UPTIME_TARGET,
             "scrap_rate": SCRAP_RATE_TARGET,
         },
@@ -190,14 +190,14 @@ def _log_top_issues(pareto: Dict[str, Any]) -> None:
     if top_equipment:
         logger.info(
             "  Top Equipment Issue: %s (%.1f%%)",
-            top_equipment[0].get("EQUIPMENT_CODE", "N/A"),
+            top_equipment[0].get("MACHINE_ID", "N/A"),
             top_equipment[0].get("Issue_Rate", 0),
         )
     top_parts = pareto.get("top_parts", [])
     if top_parts:
         logger.info(
             "  Top Part Issue: %s (%.1f%%)",
-            top_parts[0].get("PART_NAME", "N/A"),
+            top_parts[0].get("PRODUCT_NAME", "N/A"),
             top_parts[0].get("Issue_Rate", 0),
         )
     top_time = pareto.get("top_time_patterns", [])
@@ -238,8 +238,8 @@ def _log_expected_impact(impact: Dict[str, Any]) -> None:
     )
     key_metrics = impact.get("key_metrics", {})
     logger.info(
-        "  - Cycle Time Variability: %s",
-        key_metrics.get("cycle_time_variability", "N/A"),
+        "  - Duration Variability: %s",
+        key_metrics.get("duration_variability", "N/A"),
     )
     logger.info(
         "  - Equipment Uptime: %s",

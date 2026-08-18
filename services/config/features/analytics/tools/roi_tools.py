@@ -24,8 +24,8 @@ if str(analysis_path) not in sys.path:
 
 
 async def run_roi_analysis(
-    equipment_codes: Optional[list] = None,
-    supplier_names: Optional[list] = None,
+    machine_ids: Optional[list] = None,
+    vendor_names: Optional[list] = None,
     start_date: str = None,
     end_date: str = None,
     delta_tolerance: float = 0.05,
@@ -33,13 +33,13 @@ async def run_roi_analysis(
     aggregation_level: str = "daily",
 ) -> Dict[str, Any]:
     """
-    Execute ROI (Return on Investment) analysis for manufacturing cycle time efficiency.
+    Execute ROI (Return on Investment) analysis for manufacturing duration efficiency.
 
     Calculates efficiency metrics, time savings/losses, and generates Excel reports.
 
     Args:
-        equipment_codes: Equipment identifier(s) - list (optional)
-        supplier_names: Supplier name(s) - list (optional)
+        machine_ids: Equipment identifier(s) - list (optional)
+        vendor_names: Supplier name(s) - list (optional)
         start_date: Analysis start date (YYYY-MM-DD)
         end_date: Analysis end date (YYYY-MM-DD)
         delta_tolerance: CT tolerance percentage (default: 0.05 = 5%)
@@ -78,8 +78,8 @@ async def run_roi_analysis(
 
         # Run analysis with aggregation level
         valid_results, suspicious_results = analyzer.analyze(
-            supplier_names=supplier_names,
-            equipment_codes=equipment_codes,
+            vendor_names=vendor_names,
+            machine_ids=machine_ids,
             start_date=start_date,
             end_date=end_date,
             aggregation_level=aggregation_level,
@@ -147,8 +147,8 @@ async def run_roi_analysis(
 
             # Get first supplier name for filename (if provided)
             supplier_filter = (
-                supplier_names[0]
-                if supplier_names and len(supplier_names) > 0
+                vendor_names[0]
+                if vendor_names and len(vendor_names) > 0
                 else None
             )
 
@@ -162,8 +162,8 @@ async def run_roi_analysis(
 
             # Generate Executive Summary HTML
             analysis_result = {
-                "equipment_codes": equipment_codes,
-                "supplier_names": supplier_names,
+                "machine_ids": machine_ids,
+                "vendor_names": vendor_names,
                 "date_range": f"{start_date} to {end_date}",
                 "aggregation_level": aggregation_level,
                 "metrics": metrics,
@@ -220,8 +220,8 @@ async def run_roi_analysis(
             "status": "success",
             "job_id": job_id,
             "date_range": f"{start_date} to {end_date}",
-            "equipment_codes": equipment_codes,
-            "supplier_names": supplier_names,
+            "machine_ids": machine_ids,
+            "vendor_names": vendor_names,
             "aggregation_level": aggregation_level,
             "metrics": metrics,
             "output_files": output_files,
@@ -241,16 +241,16 @@ async def run_roi_analysis(
 ROI_TOOLS = [
     {
         "name": "run_roi_analysis",
-        "description": "Calculate ROI and cycle time efficiency metrics for manufacturing operations",
+        "description": "Calculate ROI and duration efficiency metrics for manufacturing operations",
         "inputSchema": {
             "type": "object",
             "properties": {
-                "equipment_codes": {
+                "machine_ids": {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "Equipment code(s) - e.g., ['MX-7104', 'MX-7110']",
                 },
-                "supplier_names": {
+                "vendor_names": {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "Supplier name(s) - e.g., ['Vantis industries SCS']",

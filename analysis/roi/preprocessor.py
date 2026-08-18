@@ -38,29 +38,29 @@ class ROIPreprocessor:
             Preprocessed DataFrame with additional columns
         """
         # Data type corrections
-        df["EQUIPMENT_CODE"] = df["EQUIPMENT_CODE"].astype(str).str.strip()
-        df["LOCAL_SHOT_TIME"] = pd.to_datetime(df["LOCAL_SHOT_TIME"])
+        df["MACHINE_ID"] = df["MACHINE_ID"].astype(str).str.strip()
+        df["SHOT_TIME"] = pd.to_datetime(df["SHOT_TIME"])
 
         # Add time dimension columns
         df["DATE"] = df[
-            "LOCAL_SHOT_TIME"
+            "SHOT_TIME"
         ].dt.date  # Human-readable date for daily aggregations
-        df["DAY"] = df["LOCAL_SHOT_TIME"].dt.strftime("%Y%m%d").astype(int)
-        df["WEEK"] = df["LOCAL_SHOT_TIME"].dt.strftime("%G%V").astype(int)
-        df["MONTH"] = df["LOCAL_SHOT_TIME"].dt.strftime("%Y%m").astype(int)
-        df["YEAR"] = df["LOCAL_SHOT_TIME"].dt.year
-        df["QUARTER"] = df["LOCAL_SHOT_TIME"].dt.quarter
+        df["DAY"] = df["SHOT_TIME"].dt.strftime("%Y%m%d").astype(int)
+        df["WEEK"] = df["SHOT_TIME"].dt.strftime("%G%V").astype(int)
+        df["MONTH"] = df["SHOT_TIME"].dt.strftime("%Y%m").astype(int)
+        df["YEAR"] = df["SHOT_TIME"].dt.year
+        df["QUARTER"] = df["SHOT_TIME"].dt.quarter
 
         return df
 
     @staticmethod
     def calculate_uptime_metrics(df: pd.DataFrame) -> pd.DataFrame:
         """
-        Calculate uptime metrics with proper sessionization from DEMO_TABLE.
+        Calculate uptime metrics with proper sessionization from SHOT_DATA.
 
         Based on ANA_SHOT_MADE logic with session detection:
         - Sessions break on gaps > 8 hours (28,800 seconds) or ISO week changes
-        - Production time = sum of CT values (excluding idle shots CT >= 999.9)
+        - Production time = sum of DURATION values (excluding idle shots DURATION >= 999.9)
         - Idle time = gaps WITHIN sessions only (not overnight/weekend gaps)
         - Uptime = (Production time / Total runtime) × 100
 
@@ -71,25 +71,25 @@ class ROIPreprocessor:
             DataFrame with uptime metrics added (PRODUCTION_SECONDS, IDLE_SECONDS)
         """
         # Sort by equipment and time for gap calculation
-        df = df.sort_values(["SUPPLIER_NAME", "EQUIPMENT_CODE", "LOCAL_SHOT_TIME"])
+        df = df.sort_values(["VENDOR_NAME", "MACHINE_ID", "SHOT_TIME"])
 
         # Calculate time to next shot within same equipment
-        df["NEXT_SHOT_TIME"] = df.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE"])[
-            "LOCAL_SHOT_TIME"
+        df["NEXT_SHOT_TIME"] = df.groupby(["VENDOR_NAME", "MACHINE_ID"])[
+            "SHOT_TIME"
         ].shift(-1)
         df["GAP_SECONDS"] = (
-            df["NEXT_SHOT_TIME"] - df["LOCAL_SHOT_TIME"]
+            df["NEXT_SHOT_TIME"] - df["SHOT_TIME"]
         ).dt.total_seconds()
 
         # Extract ISO week/year for session detection
-        df["ISO_WEEK"] = df["LOCAL_SHOT_TIME"].dt.isocalendar().week
-        df["ISO_YEAR"] = df["LOCAL_SHOT_TIME"].dt.isocalendar().year
+        df["ISO_WEEK"] = df["SHOT_TIME"].dt.isocalendar().week
+        df["ISO_YEAR"] = df["SHOT_TIME"].dt.isocalendar().year
 
         # Get previous shot's week/year for comparison
-        df["PREV_WEEK"] = df.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE"])[
+        df["PREV_WEEK"] = df.groupby(["VENDOR_NAME", "MACHINE_ID"])[
             "ISO_WEEK"
         ].shift(1)
-        df["PREV_YEAR"] = df.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE"])[
+        df["PREV_YEAR"] = df.groupby(["VENDOR_NAME", "MACHINE_ID"])[
             "ISO_YEAR"
         ].shift(1)
 
@@ -104,21 +104,21 @@ class ROIPreprocessor:
             (df["PREV_GAP"] > SessionDetection.SESSION_GAP_SECONDS)
             | (df["ISO_WEEK"] != df["PREV_WEEK"])
             | (df["ISO_YEAR"] != df["PREV_YEAR"])
-            | (df.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE"]).cumcount() == 0)
+            | (df.groupby(["VENDOR_NAME", "MACHINE_ID"]).cumcount() == 0)
         ).astype(int)
 
         # Assign session IDs
-        df["SESSION_ID"] = df.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE"])[
+        df["SESSION_ID"] = df.groupby(["VENDOR_NAME", "MACHINE_ID"])[
             "NEW_SESSION"
         ].cumsum()
 
         # Get next shot's session ID to detect session boundaries
-        df["NEXT_SESSION_ID"] = df.groupby(["SUPPLIER_NAME", "EQUIPMENT_CODE"])[
+        df["NEXT_SESSION_ID"] = df.groupby(["VENDOR_NAME", "MACHINE_ID"])[
             "SESSION_ID"
         ].shift(-1)
 
-        # Production time per shot (exclude idle shots CT >= 999.9)
-        df["PRODUCTION_SECONDS"] = np.where(df["CT"] >= 999.9, 0, df["CT"])
+        # Production time per shot (exclude idle shots DURATION >= 999.9)
+        df["PRODUCTION_SECONDS"] = np.where(df["DURATION"] >= 999.9, 0, df["DURATION"])
 
         # Idle time per shot:
         # ONLY count gaps WITHIN the same session (not across session breaks)
@@ -130,7 +130,7 @@ class ROIPreprocessor:
             (df["NEXT_SHOT_TIME"].notna())
             & (df["GAP_SECONDS"] <= SessionDetection.SESSION_GAP_SECONDS)
             & (df["SESSION_ID"] == df["NEXT_SESSION_ID"]),
-            np.maximum(df["GAP_SECONDS"] - df["CT"], 0),
+            np.maximum(df["GAP_SECONDS"] - df["DURATION"], 0),
             0,
         )
 

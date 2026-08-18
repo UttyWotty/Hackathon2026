@@ -1,6 +1,6 @@
 """Period-over-period comparison and top-mover tool adapters.
 
-Aggregates per-equipment metrics for two adjacent windows from DEMO_TABLE and
+Aggregates per-equipment metrics for two adjacent windows from SHOT_DATA and
 delegates delta math and ranking to analysis.insights.period_compare.
 Exposes the compare_periods and find_top_movers MCP tools.
 """
@@ -25,37 +25,37 @@ logger = logging.getLogger(__name__)
 MAX_PERIOD_DAYS: int = 180
 DEFAULT_PERIOD_DAYS: int = 7
 MAX_TOP_N: int = 50
-HARD_STOP_CT: float = 999.0
+HARD_STOP_DURATION: float = 999.0
 
-SUPPORTED_METRICS: tuple = ("shots", "avg_ct", "active_days")
+SUPPORTED_METRICS: tuple = ("shots", "avg_duration", "active_days")
 
 
 def _window_metrics(
-    start_offset_days: int, end_offset_days: int, equipment_code: Optional[str]
+    start_offset_days: int, end_offset_days: int, machine_id: Optional[str]
 ) -> Dict[str, Dict[str, float]]:
     """Per-equipment metrics for a window [now-start_offset, now-end_offset)."""
     equipment_filter = ""
-    if equipment_code:
-        equipment_filter = "AND EQUIPMENT_CODE = '%s'" % safe_param(
-            equipment_code, "equipment_code"
+    if machine_id:
+        equipment_filter = "AND MACHINE_ID = '%s'" % safe_param(
+            machine_id, "machine_id"
         )
     rows = query_records(f"""
         SELECT
-            EQUIPMENT_CODE,
+            MACHINE_ID,
             COUNT(*) AS SHOTS,
-            AVG(CASE WHEN CT < {HARD_STOP_CT} THEN CT END) AS AVG_CT,
-            COUNT(DISTINCT DATE(LOCAL_SHOT_TIME)) AS ACTIVE_DAYS
-        FROM DEMO_TABLE
-        WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{start_offset_days}, CURRENT_DATE())
-          AND LOCAL_SHOT_TIME < DATEADD(day, -{end_offset_days}, CURRENT_DATE())
-          AND EQUIPMENT_CODE IS NOT NULL
+            AVG(CASE WHEN CT < {HARD_STOP_DURATION} THEN CT END) AS AVG_DURATION,
+            COUNT(DISTINCT DATE(SHOT_TIME)) AS ACTIVE_DAYS
+        FROM SHOT_DATA
+        WHERE SHOT_TIME >= DATEADD(day, -{start_offset_days}, CURRENT_DATE())
+          AND SHOT_TIME < DATEADD(day, -{end_offset_days}, CURRENT_DATE())
+          AND MACHINE_ID IS NOT NULL
           {equipment_filter}
-        GROUP BY EQUIPMENT_CODE
+        GROUP BY MACHINE_ID
         """)
     return {
-        r["EQUIPMENT_CODE"]: {
+        r["MACHINE_ID"]: {
             "shots": r.get("SHOTS"),
-            "avg_ct": round(r["AVG_CT"], 2) if r.get("AVG_CT") else None,
+            "avg_duration": round(r["AVG_DURATION"], 2) if r.get("AVG_DURATION") else None,
             "active_days": r.get("ACTIVE_DAYS"),
         }
         for r in rows
@@ -63,22 +63,22 @@ def _window_metrics(
 
 
 def compare_periods(
-    period_days: int = DEFAULT_PERIOD_DAYS, equipment_code: Optional[str] = None
+    period_days: int = DEFAULT_PERIOD_DAYS, machine_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """Compare the last period against the one before it, per equipment.
 
     Args:
         period_days: Window length in days (default: 7, max: 180).
-        equipment_code: Optional single-equipment filter.
+        machine_id: Optional single-equipment filter.
 
     Returns:
-        dict with per-equipment metric deltas (shots, avg_ct, active_days) and
+        dict with per-equipment metric deltas (shots, avg_duration, active_days) and
         plant-level totals for both windows.
     """
     try:
         period_days = positive_int(period_days, "period_days", MAX_PERIOD_DAYS)
-        current = _window_metrics(period_days, 0, equipment_code)
-        previous = _window_metrics(period_days * 2, period_days, equipment_code)
+        current = _window_metrics(period_days, 0, machine_id)
+        previous = _window_metrics(period_days * 2, period_days, machine_id)
         comparison = compare_metric_maps(current, previous)
 
         totals = {
@@ -106,7 +106,7 @@ def find_top_movers(
     """Rank equipment by the largest change in one metric between periods.
 
     Args:
-        metric: One of shots, avg_ct, active_days (default: shots).
+        metric: One of shots, avg_duration, active_days (default: shots).
         period_days: Window length in days (default: 7, max: 180).
         top_n: Number of movers to return (default: 5, max: 50).
 

@@ -14,7 +14,7 @@ from services.workflow.model_text import strip_reasoning
 
 # Ground truth keys, read from the generator's ground_truth.json.
 KEY_FINDINGS = "expected_findings"
-KEY_EQUIPMENT = "equipment_code"
+KEY_EQUIPMENT = "machine_id"
 KEY_DIRECTION = "expected_direction"
 KEY_PROFILE = "profile_kind"
 KEY_HEADLINE = "headline_equipment"
@@ -34,7 +34,7 @@ EQUIPMENT_PATTERN = re.compile(r"\b[A-Z]{2,4}-\d{3,5}\b")
 
 
 # Payload keys that carry equipment codes, singular and plural.
-EQUIPMENT_ARG_KEYS = ("equipment_code", "equipment_codes")
+EQUIPMENT_ARG_KEYS = ("machine_id", "machine_ids")
 
 ZERO_DIVISION_RESULT = 0.0
 

@@ -78,7 +78,7 @@ def sanitize_sql_string(
     return value
 
 
-def validate_equipment_code(code: str) -> str:
+def validate_machine_id(code: str) -> str:
     """
     Validate and sanitize equipment code.
 
@@ -139,7 +139,7 @@ def validate_date_string(date_str: str) -> str:
     return date_str
 
 
-def validate_supplier_name(supplier: str) -> str:
+def validate_vendor_name(supplier: str) -> str:
     """
     Validate supplier name.
 
@@ -188,8 +188,8 @@ def sanitize_list(values: List[str], validator_func, max_items: int = 100) -> Li
 
 
 def validate_analytics_request(
-    equipment_codes: Optional[List[str]] = None,
-    supplier_names: Optional[List[str]] = None,
+    machine_ids: Optional[List[str]] = None,
+    vendor_names: Optional[List[str]] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
 ) -> dict:
@@ -197,8 +197,8 @@ def validate_analytics_request(
     Validate common analytics request parameters.
 
     Args:
-        equipment_codes: List of equipment codes
-        supplier_names: List of supplier names (optional)
+        machine_ids: List of equipment codes
+        vendor_names: List of supplier names (optional)
         start_date: Start date string (YYYY-MM-DD)
         end_date: End date string (YYYY-MM-DD)
 
@@ -210,14 +210,14 @@ def validate_analytics_request(
     """
     validated = {}
 
-    if equipment_codes:
-        validated["equipment_codes"] = sanitize_list(
-            equipment_codes, validate_equipment_code, max_items=50
+    if machine_ids:
+        validated["machine_ids"] = sanitize_list(
+            machine_ids, validate_machine_id, max_items=50
         )
 
-    if supplier_names:
-        validated["supplier_names"] = sanitize_list(
-            supplier_names, validate_supplier_name, max_items=50
+    if vendor_names:
+        validated["vendor_names"] = sanitize_list(
+            vendor_names, validate_vendor_name, max_items=50
         )
 
     if start_date:

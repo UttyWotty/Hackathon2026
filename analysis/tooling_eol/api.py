@@ -21,9 +21,9 @@ from dotenv import load_dotenv
 from .core import (
     create_snowpark_session,
     predict_end_of_life,
-    read_demo_table,
+    read_shot_data,
     read_maintenance_events,
-    read_mold_table,
+    read_tool_table,
 )
 from .models.config import get_utilization_bins
 from .reporting import generate_html_report
@@ -40,7 +40,7 @@ def run_analysis_api(
     save_csv: bool = True,
     save_html: bool = False,
     disable_maintenance: bool = False,
-    tooling_family: Optional[str] = None,
+    type_category: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Run EOL prediction end-to-end and return results.
 
@@ -52,7 +52,7 @@ def run_analysis_api(
         save_csv: If True, saves predictions as CSV
         save_html: If True, saves predictions as HTML
         disable_maintenance: If True, skips maintenance event integration
-        tooling_family: Optional tooling family for family-specific bins
+        type_category: Optional tooling family for family-specific bins
 
     Returns:
         Dict containing:
@@ -76,49 +76,49 @@ def run_analysis_api(
         session = create_snowpark_session()
 
         # Read shot data
-        logger.info("Reading DEMO_TABLE...")
-        df = read_demo_table(session)
+        logger.info("Reading SHOT_DATA...")
+        df = read_shot_data(session)
 
         if df.empty:
-            logger.warning("DEMO_TABLE returned no rows.")
+            logger.warning("SHOT_DATA returned no rows.")
             return {
                 "status": "error",
-                "error": "No data found in DEMO_TABLE",
+                "error": "No data found in SHOT_DATA",
                 "predictions": pd.DataFrame(),
                 "output_files": {},
                 "message": "No data available for prediction",
             }
 
-        # Enrich with MOLD reference
+        # Enrich with TOOL reference
         try:
-            logger.info("Enriching with MOLD table...")
-            mold_ref = read_mold_table(session)
-            if not mold_ref.empty and "MOLD_ID" in mold_ref.columns:
+            logger.info("Enriching with TOOL table...")
+            tool_ref = read_tool_table(session)
+            if not tool_ref.empty and "TOOL_ID" in tool_ref.columns:
                 df = df.merge(
-                    mold_ref[
+                    tool_ref[
                         [
                             c
                             for c in [
-                                "MOLD_ID",
-                                "EQUIPMENT_CODE",
+                                "TOOL_ID",
+                                "MACHINE_ID",
                                 "DESIGNED_SHOT",
-                                "DAILY_MAX_CAPACITY",
+                                "MAX_DAILY_OUTPUT",
                                 "PRODUCTION_DAYS",
                                 "SHIFTS_PER_DAY",
                             ]
-                            if c in mold_ref.columns
+                            if c in tool_ref.columns
                         ]
                     ],
-                    on="MOLD_ID",
+                    on="TOOL_ID",
                     how="left",
                     suffixes=("", "_MOLD"),
                 )
-                # Prefer EQUIPMENT_CODE from DEMO_TABLE; keep merged column only if missing
+                # Prefer MACHINE_ID from SHOT_DATA; keep merged column only if missing
                 if (
-                    "EQUIPMENT_CODE" not in df.columns
-                    and "EQUIPMENT_CODE_MOLD" in df.columns
+                    "MACHINE_ID" not in df.columns
+                    and "MACHINE_ID_MOLD" in df.columns
                 ):
-                    df = df.rename(columns={"EQUIPMENT_CODE_MOLD": "EQUIPMENT_CODE"})
+                    df = df.rename(columns={"MACHINE_ID_MOLD": "MACHINE_ID"})
         except Exception as exc:
             logger.warning(f"MOLD enrichment skipped due to error: {exc}")
 
@@ -134,7 +134,7 @@ def run_analysis_api(
                 if maintenance_events is not None and not maintenance_events.empty:
                     logger.info(
                         f"Loaded maintenance events: {len(maintenance_events)} rows, "
-                        f"{maintenance_events['MOLD_ID'].nunique()} molds"
+                        f"{maintenance_events['TOOL_ID'].nunique()} molds"
                     )
                 else:
                     logger.info(
@@ -146,10 +146,10 @@ def run_analysis_api(
             logger.info("Maintenance integration disabled")
 
         # Get utilization bins based on tooling family
-        bins = get_utilization_bins(tooling_family)
+        bins = get_utilization_bins(type_category)
 
         # Run predictions
-        num_molds = df["MOLD_ID"].nunique()
+        num_molds = df["TOOL_ID"].nunique()
         logger.info(f"Running predictions for {num_molds} molds...")
         predictions = predict_end_of_life(
             df, bins=bins, maintenance_events=maintenance_events

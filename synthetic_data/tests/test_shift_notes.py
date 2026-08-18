@@ -1,6 +1,6 @@
 """Proves the shift notes corroborate the planted defects and clear the negative controls.
 
-The demo claim is that a semantic search over operator notes surfaces the cycle-time drift
+The demo claim is that a semantic search over operator notes surfaces the process-duration drift
 weeks before the numeric deviation crosses its critical threshold. These tests assert that
 lead time exists rather than assuming it, and that healthy equipment are described in
 language a search for symptoms will not match.
@@ -12,7 +12,7 @@ from typing import Dict, List
 
 import pytest
 
-from synthetic_data.constants import CT_DEVIATION_CRITICAL_PCT, HARD_STOP_CT
+from synthetic_data.constants import DEVIATION_CRITICAL_Pduration, HARD_STOP_DURATION
 from synthetic_data.dataset import build_dataset
 from synthetic_data.models import GenerationConfig, ProfileKind, ShiftNote, Shot
 from synthetic_data.notes import (
@@ -40,7 +40,7 @@ def config_fixture() -> GenerationConfig:
         shift_start_hour=6,
         window_start=datetime(2026, 6, 8, 0, 0, 0),
         generated_at=datetime(2026, 7, 21, 12, 0, 0),
-        database="MMS_DEMO",
+        database="DEMO",
         schema="PUBLIC",
     )
 
@@ -54,7 +54,7 @@ def dataset_fixture(config: GenerationConfig):
 @pytest.fixture(name="kind_by_code", scope="module")
 def kind_by_code_fixture(dataset) -> Dict[str, ProfileKind]:
     """Archetype for each equipment code."""
-    return {profile.mold.equipment_code: profile.kind for profile in dataset.profiles}
+    return {profile.mold.machine_id: profile.kind for profile in dataset.profiles}
 
 
 @pytest.fixture(name="notes_by_code", scope="module")
@@ -62,19 +62,19 @@ def notes_by_code_fixture(dataset) -> Dict[str, List[ShiftNote]]:
     """Shift notes grouped by equipment."""
     grouped: Dict[str, List[ShiftNote]] = defaultdict(list)
     for note in dataset.shift_notes:
-        grouped[note.equipment_code].append(note)
+        grouped[note.machine_id].append(note)
     return grouped
 
 
 def _first_critical_week(shots: List[Shot]) -> int:
-    """The first ISO week whose mean CT deviation exceeds the critical threshold."""
+    """The first ISO week whose mean duration deviation exceeds the critical threshold."""
     weekly: Dict[int, List[float]] = defaultdict(list)
     for shot in shots:
-        if shot.approved_ct > 0 and shot.ct < HARD_STOP_CT:
-            deviation = (shot.ct - shot.approved_ct) / shot.approved_ct * PERCENT
-            weekly[shot.local_shot_time.isocalendar()[1]].append(deviation)
+        if shot.target_duration > 0 and shot.ct < HARD_STOP_DURATION:
+            deviation = (shot.ct - shot.target_duration) / shot.target_duration * PERCENT
+            weekly[shot.shot_time.isocalendar()[1]].append(deviation)
     for week in sorted(weekly):
-        if sum(weekly[week]) / len(weekly[week]) > CT_DEVIATION_CRITICAL_PCT:
+        if sum(weekly[week]) / len(weekly[week]) > DEVIATION_CRITICAL_PCT:
             return week
     raise AssertionError("The drift equipment never crosses the critical threshold")
 
@@ -164,7 +164,7 @@ class TestSearchBeatsTheThreshold:
         numeric detector did not already provide.
         """
         code = next(c for c, k in kind_by_code.items() if k is ProfileKind.CT_DRIFT)
-        shots = [s for s in dataset.shots if s.equipment_code == code]
+        shots = [s for s in dataset.shots if s.machine_id == code]
 
         first_symptom = min(
             n.shift_date for n in notes_by_code[code] if n.mentions_symptom
@@ -181,7 +181,7 @@ class TestSearchBeatsTheThreshold:
     ):
         """A one-week lead would be within noise and unconvincing in a demo."""
         code = next(c for c, k in kind_by_code.items() if k is ProfileKind.CT_DRIFT)
-        shots = [s for s in dataset.shots if s.equipment_code == code]
+        shots = [s for s in dataset.shots if s.machine_id == code]
         first_symptom_week = min(
             n.shift_date for n in notes_by_code[code] if n.mentions_symptom
         ).isocalendar()[1]

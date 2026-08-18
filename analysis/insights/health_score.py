@@ -1,6 +1,6 @@
 """Composite equipment health scoring from normalized component metrics.
 
-Blends run efficiency, cycle time performance, utilization, and data recency into a
+Blends run efficiency, duration performance, utilization, and data recency into a
 single 0-100 health score per equipment, renormalizing weights when components are missing.
 Pure logic: callers supply already-normalized component values in the 0-100 range.
 """
@@ -78,20 +78,20 @@ def grade_score(score: Optional[float]) -> str:
 
 
 def build_equipment_health(
-    equipment_code: str, components: Dict[str, Optional[float]]
+    machine_id: str, components: Dict[str, Optional[float]]
 ) -> Dict[str, Any]:
     """Build the full health record for one equipment.
 
     Args:
-        equipment_code: Equipment identifier.
+        machine_id: Equipment identifier.
         components: Component values in the 0-100 range (None when missing).
 
     Returns:
-        dict with equipment_code, score, grade, components, and missing_components.
+        dict with machine_id, score, grade, components, and missing_components.
     """
     score, missing = compute_health_score(components)
     return {
-        "equipment_code": equipment_code,
+        "machine_id": machine_id,
         "score": score,
         "grade": grade_score(score),
         "components": {k: components.get(k) for k in HEALTH_WEIGHTS},

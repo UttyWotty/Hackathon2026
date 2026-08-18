@@ -162,14 +162,14 @@ def create_aggregate_data(
 # Async data fetcher (I/O boundary)
 # ---------------------------------------------------------------------------
 async def fetch_dashboard_data(
-    equipment_code: str,
+    machine_id: str,
     start_date: str,
     end_date: str,
 ) -> Tuple[Any, str]:
     """Fetch dashboard data for visualization.
 
     Args:
-        equipment_code: Equipment identifier to query.
+        machine_id: Equipment identifier to query.
         start_date: ISO date string (YYYY-MM-DD).
         end_date: ISO date string (YYYY-MM-DD).
 
@@ -282,7 +282,7 @@ def _grid_position(index: int, cols: int) -> Tuple[int, int]:
 
 def configure_dashboard_layout(
     fig: Any,
-    equipment_code: str,
+    machine_id: str,
     start_date: str,
     end_date: str,
     rows: int,
@@ -293,7 +293,7 @@ def configure_dashboard_layout(
 
     Args:
         fig: Plotly figure with subplots.
-        equipment_code: Equipment identifier for the title.
+        machine_id: Equipment identifier for the title.
         start_date: Start date string for the subtitle.
         end_date: End date string for the subtitle.
         rows: Number of subplot rows.
@@ -301,7 +301,7 @@ def configure_dashboard_layout(
         num_metrics: Total number of metric subplots.
     """
     title_text = "Manufacturing Dashboard - %s<br><sub>%s to %s</sub>" % (
-        equipment_code,
+        machine_id,
         start_date,
         end_date,
     )

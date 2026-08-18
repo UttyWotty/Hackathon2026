@@ -10,13 +10,13 @@ from typing import Final, Tuple
 
 # --- Mirrored from analysis/shared/constants.py (SessionDetection) ---
 SESSION_GAP_SECONDS: Final[int] = 28800
-HARD_STOP_CT: Final[float] = 999.9
+HARD_STOP_DURATION: Final[float] = 999.9
 GAP_TIME_TOLERANCE_SECONDS: Final[float] = 2.0
 STOP_DEVIATION_THRESHOLD: Final[float] = 0.05
 
 # --- Mirrored from analysis/shared/constants.py (AnalysisThresholds) ---
-CT_DEVIATION_WARNING_PCT: Final[float] = 10.0
-CT_DEVIATION_CRITICAL_PCT: Final[float] = 20.0
+DEVIATION_WARNING_PCT: Final[float] = 10.0
+DEVIATION_CRITICAL_PCT: Final[float] = 20.0
 
 # --- Generation safety margins ---
 # A "normal" shot must not accidentally trip the Time Gap rule
@@ -25,7 +25,7 @@ CT_DEVIATION_CRITICAL_PCT: Final[float] = 20.0
 GAP_SAFETY_MARGIN_SEC: Final[float] = 0.25
 NORMAL_GAP_JITTER_SEC: Final[float] = 0.6
 
-# Machine cycle times are reported on a fixed grid, not as continuous values. Quantizing to
+# Machine durations are reported on a fixed grid, not as continuous values. Quantizing to
 # this resolution is what makes MODE_CT a well-defined statistical mode; with continuous
 # jitter almost every CT would be unique and the mode would be arbitrary.
 CT_RESOLUTION_SEC: Final[float] = 0.1
@@ -65,36 +65,36 @@ DEFAULT_SHIFT_HOURS: Final[float] = 8.0
 DEFAULT_SHIFT_START_HOUR: Final[int] = 6
 
 # --- Column value enums (must match what the pipelines write) ---
-CT_STATUS_ACTIVE: Final[str] = "active"
-CT_STATUS_IDLE: Final[str] = "idle"
+STATUS_ACTIVE: Final[str] = "active"
+STATUS_IDLE: Final[str] = "idle"
 
-TOOLING_TYPE_INJECTION: Final[str] = "Injection Molding"
-TOOLING_TYPE_DIE_CASTING: Final[str] = "Die Casting"
-TOOLING_TYPE_STAMPING: Final[str] = "Stamping"
+TYPE_INJECTION: Final[str] = "Injection Molding"
+TYPE_DIE_CASTING: Final[str] = "Die Casting"
+TYPE_STAMPING: Final[str] = "Stamping"
 
 WORK_ORDER_STATUS_COMPLETED: Final[str] = "completed"
 
 # --- Process physics used to make temperature and volume plausible ---
 TEMPERATURE_BASE_C: Final[float] = 182.0
 TEMPERATURE_JITTER_C: Final[float] = 4.5
-# Degrees of extra melt temperature per 1.0 of CT drift factor above baseline. Gives
+# Degrees of extra melt temperature per 1.0 of duration drift factor above baseline. Gives
 # RCA a real correlated signal to find rather than pure noise.
 TEMPERATURE_DRIFT_COEFFICIENT_C: Final[float] = 26.0
 TEMPERATURE_STOP_DROP_C: Final[float] = 12.0
 
 # --- Snowflake object names ---
-TABLE_MASTER_SHOT: Final[str] = "DEMO_TABLE"
-TABLE_MOLD: Final[str] = "MOLD"
-TABLE_COMPANY: Final[str] = "COMPANY"
+TABLE_MASTER_SHOT: Final[str] = "SHOT_DATA"
+TABLE_TOOL: Final[str] = "TOOL"
+TABLE_VENDOR: Final[str] = "VENDOR"
 TABLE_LOCATION: Final[str] = "LOCATION"
-TABLE_PART: Final[str] = "PART"
+TABLE_PRODUCT: Final[str] = "PRODUCT"
 TABLE_WORK_ORDER: Final[str] = "WORK_ORDER"
 TABLE_SHIFT_NOTE: Final[str] = "SHIFT_NOTE"
 
 # --- Identifier bases, so ids are stable and collision-free across dimensions ---
-MOLD_ID_BASE: Final[int] = 4100
-COMPANY_ID_BASE: Final[int] = 700
+TOOL_ID_BASE: Final[int] = 4100
+VENDOR_ID_BASE: Final[int] = 700
 LOCATION_ID_BASE: Final[int] = 310
-COUNTER_ID_BASE: Final[int] = 88200
+SENSOR_ID_BASE: Final[int] = 88200
 WORK_ORDER_ID_BASE: Final[int] = 55000
 SHIFT_NOTE_ID_BASE: Final[int] = 61000

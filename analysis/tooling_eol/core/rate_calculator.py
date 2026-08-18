@@ -30,20 +30,20 @@ def calculate_weekly_rate(mold_df: pd.DataFrame, recent_weeks: int = 12) -> floa
     - Uses the last `recent_weeks` active weeks if available; otherwise uses all
 
     Args:
-        mold_df: Subset for a single mold; requires 'LOCAL_SHOT_TIME' and 'SHOT_COUNT'.
+        mold_df: Subset for a single mold; requires 'SHOT_TIME' and 'SHOT_COUNT'.
         recent_weeks: Number of most recent active weeks to average over.
 
     Returns:
         float: Average shots per week. Returns 0.0 if insufficient data.
     """
-    if mold_df.empty or "LOCAL_SHOT_TIME" not in mold_df.columns:
+    if mold_df.empty or "SHOT_TIME" not in mold_df.columns:
         return 0.0
 
-    tmp = mold_df.dropna(subset=["LOCAL_SHOT_TIME"]).copy()
+    tmp = mold_df.dropna(subset=["SHOT_TIME"]).copy()
     if tmp.empty:
         return 0.0
 
-    tmp["WEEK_START"] = tmp["LOCAL_SHOT_TIME"].dt.to_period("W-MON").dt.start_time
+    tmp["WEEK_START"] = tmp["SHOT_TIME"].dt.to_period("W-MON").dt.start_time
     weekly = tmp.groupby("WEEK_START")["SHOT_COUNT"].sum().replace(0, np.nan).dropna()
     if weekly.empty:
         return 0.0

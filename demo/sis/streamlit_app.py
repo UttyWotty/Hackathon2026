@@ -1,18 +1,31 @@
-"""
-Autonomous Manufacturing Workflow Agent - Fleet Anomaly Detection Demo.
+"""Autonomous Manufacturing Workflow Agent - Interactive Fleet Dashboard.
 
-Visualizes cycle time drift detection across an injection moulding fleet,
-demonstrating how multi-signal reasoning catches anomalies that single-metric
-monitors miss. Reads from MMS_DEMO.PUBLIC.DEMO_SHOTS in Snowflake.
+Visualizes duration drift detection across an injection moulding fleet,
+with interactive controls for on-demand anomaly sweeps, CSV uploads,
+and per-equipment root cause investigations.
 """
 
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
 
+from interactive_controls import (
+    render_csv_upload,
+    render_rca_results,
+    render_rca_selector,
+    render_sweep_panel,
+    render_sweep_results,
+    render_upload_preview,
+)
+from action_loop import (
+    render_action_buttons,
+    render_audit_trail,
+    render_skill_log,
+)
+
 PAGE_TITLE = "Autonomous Manufacturing Workflow Agent"
-DATABASE = "MMS_DEMO"
+DATABASE = "DEMO"
 SCHEMA = "PUBLIC"
-SHOTS_TABLE = "DEMO_SHOTS"
+SHOTS_TABLE = "SHOT_DATA"
 FULL_TABLE = f"{DATABASE}.{SCHEMA}.{SHOTS_TABLE}"
 
 DRIFT_EQUIPMENT = "MX-7103"
@@ -27,21 +40,21 @@ def get_session():
 
 @st.cache_data(ttl=600)
 def load_fleet_deviation():
-    """Load weekly CT deviation per equipment."""
+    """Load weekly duration deviation per equipment."""
     session = get_session()
     query = f"""
     SELECT
-        EQUIPMENT_CODE,
-        DATE_TRUNC('WEEK', LOCAL_SHOT_TIME) AS WEEK_START,
-        AVG(CT) AS AVG_CT,
-        ANY_VALUE(APPROVED_CT) AS APPROVED_CT,
+        MACHINE_ID,
+        DATE_TRUNC('WEEK', SHOT_TIME) AS WEEK_START,
+        AVG(DURATION) AS AVG_DURATION,
+        ANY_VALUE(TARGET_DURATION) AS TARGET_DURATION,
         COUNT(*) AS SHOT_COUNT,
-        ROUND(((AVG(CT) - ANY_VALUE(APPROVED_CT)) / NULLIF(ANY_VALUE(APPROVED_CT), 0)) * 100, 2)
-            AS DEVIATION_PCT
+        ROUND(((AVG(DURATION) - ANY_VALUE(TARGET_DURATION))
+            / NULLIF(ANY_VALUE(TARGET_DURATION), 0)) * 100, 2) AS DEVIATION_PCT
     FROM {FULL_TABLE}
-    WHERE CT < 999.9 AND VOLUME > 0 AND APPROVED_CT > 0
-    GROUP BY EQUIPMENT_CODE, DATE_TRUNC('WEEK', LOCAL_SHOT_TIME)
-    ORDER BY EQUIPMENT_CODE, WEEK_START
+    WHERE DURATION < 999.9 AND VOLUME > 0 AND TARGET_DURATION > 0
+    GROUP BY MACHINE_ID, DATE_TRUNC('WEEK', SHOT_TIME)
+    ORDER BY MACHINE_ID, WEEK_START
     """
     return session.sql(query).to_pandas()
 
@@ -52,18 +65,18 @@ def load_fleet_summary():
     session = get_session()
     query = f"""
     SELECT
-        EQUIPMENT_CODE,
+        MACHINE_ID,
         COUNT(*) AS TOTAL_SHOTS,
-        ROUND(AVG(CT), 2) AS AVG_CT,
-        ANY_VALUE(APPROVED_CT) AS APPROVED_CT,
-        ROUND(((AVG(CT) - ANY_VALUE(APPROVED_CT)) / NULLIF(ANY_VALUE(APPROVED_CT), 0)) * 100, 2)
-            AS DEVIATION_PCT,
-        ROUND(STDDEV(CT) / NULLIF(AVG(CT), 0) * 100, 2) AS CV_PCT,
-        MIN(LOCAL_SHOT_TIME) AS FIRST_SHOT,
-        MAX(LOCAL_SHOT_TIME) AS LAST_SHOT
+        ROUND(AVG(DURATION), 2) AS AVG_DURATION,
+        ANY_VALUE(TARGET_DURATION) AS TARGET_DURATION,
+        ROUND(((AVG(DURATION) - ANY_VALUE(TARGET_DURATION))
+            / NULLIF(ANY_VALUE(TARGET_DURATION), 0)) * 100, 2) AS DEVIATION_PCT,
+        ROUND(STDDEV(DURATION) / NULLIF(AVG(DURATION), 0) * 100, 2) AS CV_PCT,
+        MIN(SHOT_TIME) AS FIRST_SHOT,
+        MAX(SHOT_TIME) AS LAST_SHOT
     FROM {FULL_TABLE}
-    WHERE CT < 999.9 AND VOLUME > 0 AND APPROVED_CT > 0
-    GROUP BY EQUIPMENT_CODE
+    WHERE DURATION < 999.9 AND VOLUME > 0 AND TARGET_DURATION > 0
+    GROUP BY MACHINE_ID
     ORDER BY DEVIATION_PCT DESC
     """
     return session.sql(query).to_pandas()
@@ -75,34 +88,16 @@ def load_stability_trend():
     session = get_session()
     query = f"""
     SELECT
-        EQUIPMENT_CODE,
-        DATE_TRUNC('WEEK', LOCAL_SHOT_TIME) AS WEEK_START,
-        ROUND(100.0 - (STDDEV(CT) / NULLIF(AVG(CT), 0) * 100), 1) AS STABILITY_SCORE,
+        MACHINE_ID,
+        DATE_TRUNC('WEEK', SHOT_TIME) AS WEEK_START,
+        ROUND(100.0 - (STDDEV(DURATION) / NULLIF(AVG(DURATION), 0) * 100), 1)
+            AS STABILITY_SCORE,
         COUNT(*) AS SHOT_COUNT
     FROM {FULL_TABLE}
-    WHERE CT < 999.9 AND VOLUME > 0 AND APPROVED_CT > 0
-    GROUP BY EQUIPMENT_CODE, DATE_TRUNC('WEEK', LOCAL_SHOT_TIME)
+    WHERE DURATION < 999.9 AND VOLUME > 0 AND TARGET_DURATION > 0
+    GROUP BY MACHINE_ID, DATE_TRUNC('WEEK', SHOT_TIME)
     HAVING COUNT(*) > 50
-    ORDER BY EQUIPMENT_CODE, WEEK_START
-    """
-    return session.sql(query).to_pandas()
-
-
-@st.cache_data(ttl=600)
-def load_daily_shots():
-    """Load daily shot counts per equipment."""
-    session = get_session()
-    query = f"""
-    SELECT
-        EQUIPMENT_CODE,
-        DATE_TRUNC('DAY', LOCAL_SHOT_TIME) AS DAY,
-        COUNT(*) AS SHOTS,
-        ROUND(AVG(CT), 2) AS AVG_CT,
-        ROUND(STDDEV(CT), 2) AS STD_CT
-    FROM {FULL_TABLE}
-    WHERE CT < 999.9 AND VOLUME > 0
-    GROUP BY EQUIPMENT_CODE, DATE_TRUNC('DAY', LOCAL_SHOT_TIME)
-    ORDER BY EQUIPMENT_CODE, DAY
+    ORDER BY MACHINE_ID, WEEK_START
     """
     return session.sql(query).to_pandas()
 
@@ -113,19 +108,19 @@ def load_drift_detail():
     session = get_session()
     query = f"""
     SELECT
-        DATE_TRUNC('WEEK', LOCAL_SHOT_TIME) AS WEEK_START,
+        DATE_TRUNC('WEEK', SHOT_TIME) AS WEEK_START,
         COUNT(*) AS SHOT_COUNT,
-        ROUND(AVG(CT), 2) AS AVG_CT,
-        ROUND(MIN(CT), 2) AS MIN_CT,
-        ROUND(MAX(CT), 2) AS MAX_CT,
-        ANY_VALUE(APPROVED_CT) AS APPROVED_CT,
-        ROUND(((AVG(CT) - ANY_VALUE(APPROVED_CT)) / NULLIF(ANY_VALUE(APPROVED_CT), 0)) * 100, 2)
-            AS DEVIATION_PCT,
-        ROUND(STDDEV(CT), 3) AS STD_CT
+        ROUND(AVG(DURATION), 2) AS AVG_DURATION,
+        ROUND(MIN(DURATION), 2) AS MIN_DURATION,
+        ROUND(MAX(DURATION), 2) AS MAX_DURATION,
+        ANY_VALUE(TARGET_DURATION) AS TARGET_DURATION,
+        ROUND(((AVG(DURATION) - ANY_VALUE(TARGET_DURATION))
+            / NULLIF(ANY_VALUE(TARGET_DURATION), 0)) * 100, 2) AS DEVIATION_PCT,
+        ROUND(STDDEV(DURATION), 3) AS STD_DURATION
     FROM {FULL_TABLE}
-    WHERE EQUIPMENT_CODE = '{DRIFT_EQUIPMENT}'
-        AND CT < 999.9 AND VOLUME > 0 AND APPROVED_CT > 0
-    GROUP BY DATE_TRUNC('WEEK', LOCAL_SHOT_TIME)
+    WHERE MACHINE_ID = '{DRIFT_EQUIPMENT}'
+        AND DURATION < 999.9 AND VOLUME > 0 AND TARGET_DURATION > 0
+    GROUP BY DATE_TRUNC('WEEK', SHOT_TIME)
     ORDER BY WEEK_START
     """
     return session.sql(query).to_pandas()
@@ -136,7 +131,7 @@ def render_kpi_cards(summary_df):
     total_shots = summary_df["TOTAL_SHOTS"].sum()
     num_machines = len(summary_df)
     worst_deviation = summary_df["DEVIATION_PCT"].max()
-    worst_machine = summary_df.iloc[0]["EQUIPMENT_CODE"]
+    worst_machine = summary_df.iloc[0]["MACHINE_ID"]
     avg_cv = summary_df["CV_PCT"].mean()
 
     col1, col2, col3, col4 = st.columns(4)
@@ -147,43 +142,43 @@ def render_kpi_cards(summary_df):
 
 
 def render_drift_tab(deviation_df):
-    """Render the CT drift detection tab."""
+    """Render the duration drift detection tab."""
     import altair as alt
 
-    st.subheader("Cycle Time Drift Detection")
+    st.subheader("Duration Drift Detection")
 
     col1, col2 = st.columns([2, 1])
     with col1:
         st.write(
-            f"**{DRIFT_EQUIPMENT}** drifts from ~2% to ~24% above approved CT over 6 weeks "
-            "while stability stays at 90%. No single-metric alert fires. "
+            f"**{DRIFT_EQUIPMENT}** drifts from ~2% to ~24% above approved duration "
+            "over 6 weeks while stability stays at 90%. No single-metric alert fires. "
             "The agent catches it by reasoning across deviation and stability together."
         )
     with col2:
         st.warning(
-            f"**Alert:** {DRIFT_EQUIPMENT} crossed critical threshold (>{CRITICAL_DEVIATION_PCT}%) "
-            "in week 6. Traditional monitors missed this progressive drift."
+            f"**Alert:** {DRIFT_EQUIPMENT} crossed critical threshold "
+            f"(>{CRITICAL_DEVIATION_PCT}%) in week 6."
         )
 
     chart_data = deviation_df.copy()
-    chart_data["IS_HEADLINE"] = chart_data["EQUIPMENT_CODE"] == DRIFT_EQUIPMENT
+    chart_data["IS_HEADLINE"] = chart_data["MACHINE_ID"] == DRIFT_EQUIPMENT
 
-    highlight = alt.selection_multi(fields=["EQUIPMENT_CODE"], bind="legend")
+    highlight = alt.selection_multi(fields=["MACHINE_ID"], bind="legend")
 
     chart = (
         alt.Chart(chart_data)
         .mark_line(point=True)
         .encode(
             x=alt.X("WEEK_START:T", title="Week"),
-            y=alt.Y("DEVIATION_PCT:Q", title="CT Deviation (%)"),
-            color=alt.Color("EQUIPMENT_CODE:N", title="Equipment"),
+            y=alt.Y("DEVIATION_PCT:Q", title="Duration Deviation (%)"),
+            color=alt.Color("MACHINE_ID:N", title="Equipment"),
             opacity=alt.condition(highlight, alt.value(1.0), alt.value(0.2)),
             strokeWidth=alt.condition(
                 alt.datum.IS_HEADLINE, alt.value(3), alt.value(1)
             ),
         )
         .add_selection(highlight)
-        .properties(height=400, title="Fleet-Wide CT Deviation Over Time")
+        .properties(height=400, title="Fleet-Wide Duration Deviation Over Time")
     )
 
     rule_warning = (
@@ -198,9 +193,9 @@ def render_drift_tab(deviation_df):
     )
 
     st.altair_chart(chart + rule_warning + rule_critical, use_container_width=True)
-
     st.caption(
-        "Orange dashed = Warning (10%) | Red dashed = Critical (15%) | Click legend to isolate"
+        "Orange dashed = Warning (10%) | Red dashed = Critical (15%) | "
+        "Click legend to isolate"
     )
 
     st.divider()
@@ -209,7 +204,6 @@ def render_drift_tab(deviation_df):
     drift_detail = load_drift_detail()
     if not drift_detail.empty:
         col1, col2 = st.columns(2)
-
         with col1:
             bar_chart = (
                 alt.Chart(drift_detail)
@@ -227,62 +221,78 @@ def render_drift_tab(deviation_df):
             st.altair_chart(bar_chart, use_container_width=True)
 
         with col2:
-            ct_chart = (
+            area = (
                 alt.Chart(drift_detail)
                 .mark_area(opacity=0.3, color="#ff6b6b")
                 .encode(
                     x=alt.X("WEEK_START:T", title="Week"),
-                    y=alt.Y("MIN_CT:Q", title="Cycle Time (s)"),
-                    y2="MAX_CT:Q",
+                    y=alt.Y("MIN_DURATION:Q", title="Duration (s)"),
+                    y2="MAX_DURATION:Q",
                 )
-                .properties(height=250, title="CT Range (min/max band)")
+                .properties(height=250, title="Duration Range (min/max band)")
             )
-            ct_line = (
+            line = (
                 alt.Chart(drift_detail)
                 .mark_line(color="#dc3545", point=True)
-                .encode(
-                    x="WEEK_START:T",
-                    y="AVG_CT:Q",
-                )
+                .encode(x="WEEK_START:T", y="AVG_DURATION:Q")
             )
-            approved_line = (
+            target_line = (
                 alt.Chart(drift_detail)
                 .mark_rule(strokeDash=[4, 4], color="green")
-                .encode(y="APPROVED_CT:Q")
+                .encode(y="TARGET_DURATION:Q")
             )
-            st.altair_chart(
-                ct_chart + ct_line + approved_line, use_container_width=True
-            )
+            st.altair_chart(area + line + target_line, use_container_width=True)
 
         st.dataframe(
-            drift_detail[
-                [
-                    "WEEK_START",
-                    "SHOT_COUNT",
-                    "AVG_CT",
-                    "APPROVED_CT",
-                    "DEVIATION_PCT",
-                    "STD_CT",
-                ]
-            ],
+            drift_detail[[
+                "WEEK_START", "SHOT_COUNT", "AVG_DURATION",
+                "TARGET_DURATION", "DEVIATION_PCT", "STD_DURATION",
+            ]],
             use_container_width=True,
         )
 
     st.divider()
-    st.subheader("Operator Shift Notes (What the Agent Investigates)")
-    st.write(
-        "The agent's **$investigate-shift-notes** skill searches these operator logs "
-        "to corroborate the numeric signal. Notice how operators sensed the drift "
-        "before any alert fired."
+    st.subheader("Corroborating Evidence: Telemetry + Operator Notes")
+    st.caption(
+        "Numeric drift signal alongside unstructured operator shift notes for "
+        f"{DRIFT_EQUIPMENT}. Note how operators sensed the problem before alerts fired."
     )
+
     session = get_session()
     notes = session.sql(f"""
         SELECT SHIFT_DATE, AUTHOR_ROLE, NOTE_TEXT
         FROM {DATABASE}.{SCHEMA}.SHIFT_NOTE
-        WHERE EQUIPMENT_CODE = '{DRIFT_EQUIPMENT}'
+        WHERE MACHINE_ID = '{DRIFT_EQUIPMENT}'
         ORDER BY SHIFT_DATE
     """).to_pandas()
-    st.dataframe(notes, use_container_width=True)
+
+    if not notes.empty and not drift_detail.empty:
+        col_chart, col_notes = st.columns([1, 1])
+        with col_chart:
+            st.markdown("**Deviation Trend**")
+            bar_inline = (
+                alt.Chart(drift_detail)
+                .mark_bar()
+                .encode(
+                    x=alt.X("WEEK_START:T", title="Week"),
+                    y=alt.Y("DEVIATION_PCT:Q", title="Deviation %"),
+                    color=alt.Color(
+                        "DEVIATION_PCT:Q",
+                        scale=alt.Scale(scheme="redyellowgreen", reverse=True),
+                        legend=None,
+                    ),
+                )
+                .properties(height=200)
+            )
+            st.altair_chart(bar_inline, use_container_width=True)
+
+        with col_notes:
+            st.markdown("**Operator Shift Notes**")
+            st.dataframe(
+                notes[["SHIFT_DATE", "AUTHOR_ROLE", "NOTE_TEXT"]],
+                use_container_width=True,
+                height=250,
+            )
 
 
 def render_stability_tab(stability_df, deviation_df):
@@ -292,166 +302,142 @@ def render_stability_tab(stability_df, deviation_df):
     st.subheader("Stability Score (Week-over-Week)")
     st.write(
         "Stability = 100% minus coefficient of variation. "
-        "A declining trend is the earliest warning of degradation. "
-        "Note how **MX-7103 stays stable at ~90%** despite drifting - this is why single-metric monitors fail."
+        f"Note how **{DRIFT_EQUIPMENT} stays stable at ~90%** despite drifting - "
+        "this is why single-metric monitors fail."
     )
 
-    highlight = alt.selection_multi(fields=["EQUIPMENT_CODE"], bind="legend")
-
+    highlight = alt.selection_multi(fields=["MACHINE_ID"], bind="legend")
     chart = (
         alt.Chart(stability_df)
         .mark_line(point=True)
         .encode(
             x=alt.X("WEEK_START:T", title="Week"),
-            y=alt.Y(
-                "STABILITY_SCORE:Q",
-                title="Stability Score (%)",
-                scale=alt.Scale(domain=[40, 100]),
-            ),
-            color=alt.Color("EQUIPMENT_CODE:N", title="Equipment"),
+            y=alt.Y("STABILITY_SCORE:Q", title="Stability Score (%)",
+                     scale=alt.Scale(domain=[40, 100])),
+            color=alt.Color("MACHINE_ID:N", title="Equipment"),
             opacity=alt.condition(highlight, alt.value(1.0), alt.value(0.2)),
         )
         .add_selection(highlight)
         .properties(height=350, title="Fleet Stability Trends")
     )
-
     st.altair_chart(chart, use_container_width=True)
-
-    st.divider()
-    st.subheader("Why This Matters: The Invisible Anomaly")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**What a threshold monitor sees:**")
-        st.markdown(f"- {DRIFT_EQUIPMENT} stability: **90%** (HEALTHY)")
-        st.markdown("- No threshold breached")
-        st.markdown("- No alert fired")
-        st.markdown("- Result: **Silent failure accumulates**")
-
-    with col2:
-        st.markdown("**What the autonomous agent sees:**")
-        st.markdown(f"- {DRIFT_EQUIPMENT} CT deviation: **24%** (CRITICAL)")
-        st.markdown(f"- {DRIFT_EQUIPMENT} stability: **90%** (looks fine)")
-        st.markdown("- Contradiction = interesting signal")
-        st.markdown("- Result: **Flags for investigation**")
 
     st.divider()
     st.subheader("Stability vs Deviation Scatter")
 
     merged = (
-        stability_df.groupby("EQUIPMENT_CODE")
+        stability_df.groupby("MACHINE_ID")
         .agg(AVG_STABILITY=("STABILITY_SCORE", "mean"))
         .reset_index()
     )
     dev_avg = (
-        deviation_df.groupby("EQUIPMENT_CODE")
+        deviation_df.groupby("MACHINE_ID")
         .agg(AVG_DEVIATION=("DEVIATION_PCT", "mean"))
         .reset_index()
     )
-    scatter_data = merged.merge(dev_avg, on="EQUIPMENT_CODE")
+    scatter_data = merged.merge(dev_avg, on="MACHINE_ID")
 
     scatter = (
         alt.Chart(scatter_data)
         .mark_circle(size=120)
         .encode(
-            x=alt.X(
-                "AVG_STABILITY:Q",
-                title="Avg Stability (%)",
-                scale=alt.Scale(domain=[50, 100]),
-            ),
-            y=alt.Y("AVG_DEVIATION:Q", title="Avg CT Deviation (%)"),
-            color=alt.Color("EQUIPMENT_CODE:N"),
-            tooltip=["EQUIPMENT_CODE", "AVG_STABILITY", "AVG_DEVIATION"],
+            x=alt.X("AVG_STABILITY:Q", title="Avg Stability (%)",
+                     scale=alt.Scale(domain=[50, 100])),
+            y=alt.Y("AVG_DEVIATION:Q", title="Avg Duration Deviation (%)"),
+            color=alt.Color("MACHINE_ID:N"),
+            tooltip=["MACHINE_ID", "AVG_STABILITY", "AVG_DEVIATION"],
         )
         .properties(height=300, title="Stability vs Deviation (per machine)")
     )
     st.altair_chart(scatter, use_container_width=True)
     st.caption(
-        f"Note: {DRIFT_EQUIPMENT} has HIGH deviation but HIGH stability - the 'invisible anomaly' pattern"
+        f"{DRIFT_EQUIPMENT} has HIGH deviation but HIGH stability - "
+        "the 'invisible anomaly' pattern"
     )
 
 
-def render_fleet_tab(summary_df, daily_df):
+def render_fleet_tab(summary_df):
     """Render fleet overview tab."""
     import altair as alt
 
     st.subheader("Fleet Health Summary")
-
     st.dataframe(summary_df, use_container_width=True)
 
     st.divider()
-    st.subheader("Daily Production Volume")
-
-    volume_chart = (
-        alt.Chart(daily_df)
-        .mark_bar(opacity=0.7)
-        .encode(
-            x=alt.X("DAY:T", title="Date"),
-            y=alt.Y("SHOTS:Q", title="Shots per Day"),
-            color=alt.Color("EQUIPMENT_CODE:N", title="Equipment"),
-            tooltip=["EQUIPMENT_CODE", "DAY", "SHOTS", "AVG_CT"],
-        )
-        .properties(height=300, title="Daily Shot Count by Equipment")
-    )
-    st.altair_chart(volume_chart, use_container_width=True)
-
-    st.divider()
     st.subheader("Agent Architecture")
-
-    st.code(
-        """
-    [TRIGGER] Schedule or manual command
+    st.code("""
+    [TRIGGER] Schedule, manual command, or dashboard button
          |
          v
-    [SENSE] CT Deviation + Stability (fleet sweep)
+    [SENSE] Duration Deviation + Stability (fleet sweep)
          |
          v
-    [REASON] Snowflake Cortex LLM (Claude Sonnet)
+    [REASON] Snowflake Cortex LLM
          |   - Cross-signal reasoning across detectors
          |   - Decides which machines need investigation
          v
-    [ACT] Root Cause Analysis, Save Insights
+    [ACT] Root Cause Analysis, Log Work Orders
          |
          v
     [RECORD] Decision Trail + Self-grade against ground truth
-    """,
-        language=None,
-    )
+    """, language=None)
 
     st.divider()
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("**Skill 1: $sense-equipment-anomalies**")
-        st.markdown(
-            "Sweeps fleet for CT drift and stability decline. Ranks machines by severity."
-        )
+        st.markdown("Sweeps fleet for duration drift and stability decline.")
     with col2:
         st.markdown("**Skill 2: $investigate-shift-notes**")
         st.markdown("Searches operator notes to explain WHY a machine is abnormal.")
     with col3:
         st.markdown("**Skill 3: $report-and-act**")
-        st.markdown(
-            "Records decision, evidence, and actions. Self-grades against ground truth."
-        )
+        st.markdown("Records decision, evidence, and actions to audit trail.")
 
 
 def main():
-    """Main app layout."""
+    """Main app layout with interactive sidebar."""
     st.set_page_config(page_title=PAGE_TITLE, layout="wide")
+
+    # Sidebar - interactive controls
+    st.sidebar.title("Controls")
+    st.sidebar.caption("Interact with the fleet in real-time")
+    render_sweep_panel()
+    render_rca_selector()
+    render_csv_upload()
+
+    # Main area
     st.title(PAGE_TITLE)
     st.caption(
-        "Hackathon 2026 | Team: emoldinounited | Track: Intelligent Workflow Automation Agent"
+        "Hackathon 2026 | Team: emoldinounited | "
+        "Track: Intelligent Workflow Automation Agent"
     )
+
+    # Show interactive results if triggered
+    render_sweep_results()
+    render_action_buttons()
+    render_rca_results()
+    render_upload_preview()
+
+    # Agent Activity Log (Item 3: visible skill invocations)
+    with st.expander("Agent Activity Log (CoCo Skill Invocations)", expanded=False):
+        render_skill_log()
+
+    # Audit Trail (Item 4: autonomous action records)
+    with st.expander("Audit Trail (Work Orders and Alerts)", expanded=False):
+        render_audit_trail()
 
     st.divider()
 
+    # Fleet KPIs
     summary_df = load_fleet_summary()
     render_kpi_cards(summary_df)
 
     st.divider()
 
+    # Tabbed views
     tab_drift, tab_stability, tab_fleet = st.tabs(
-        ["CT Drift Detection", "Stability Trends", "Fleet Overview"]
+        ["Duration Drift Detection", "Stability Trends", "Fleet Overview"]
     )
 
     with tab_drift:
@@ -463,15 +449,14 @@ def main():
         render_stability_tab(stability_df, deviation_df)
 
     with tab_fleet:
-        daily_df = load_daily_shots()
-        render_fleet_tab(summary_df, daily_df)
+        render_fleet_tab(summary_df)
 
     st.divider()
     st.info(
         "This demo uses synthetic data (243K shots, 8 machines, 6 weeks) with "
         "planted anomalies. The autonomous agent sweeps the fleet, reasons across "
-        "detectors, investigates anomalies, and records decisions - with zero human intervention. "
-        "GitHub: github.com/UttyWotty/Hackathon2026"
+        "detectors, investigates anomalies, and records decisions - "
+        "with zero human intervention."
     )
 
 

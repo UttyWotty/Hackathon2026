@@ -81,7 +81,7 @@ Validation functions for DataFrames and parameters.
 
 **Key Functions:**
 - `validate_dataframe()` - Check DataFrame structure
-- `validate_equipment_codes()` - Validate equipment IDs
+- `validate_machine_ids()` - Validate equipment IDs
 - `validate_date_range()` - Validate date inputs
 - `validate_numeric_parameter()` - Validate numeric values
 - `check_data_quality()` - Data quality reports
@@ -89,14 +89,14 @@ Validation functions for DataFrames and parameters.
 
 **Example:**
 ```python
-from analysis.shared import validate_dataframe, validate_equipment_codes
+from analysis.shared import validate_dataframe, validate_machine_ids
 
 # Validate DataFrame
-validate_dataframe(df, required_columns=["EQUIPMENT_CODE", "DATE"], min_rows=10)
+validate_dataframe(df, required_columns=["MACHINE_ID", "DATE"], min_rows=10)
 
 # Validate equipment codes
-codes = validate_equipment_codes("MX-7110")  # Returns ["MX-7110"]
-codes = validate_equipment_codes(["MX-7110", "MX-7109"])  # Returns list
+codes = validate_machine_ids("MX-7110")  # Returns ["MX-7110"]
+codes = validate_machine_ids(["MX-7110", "MX-7109"])  # Returns list
 ```
 
 ### 5. **file_operations.py** - File I/O
@@ -151,7 +151,7 @@ start, end = parse_date_range("2024-01-01", "2024-12-31")
 Shared constants, thresholds, and configuration values.
 
 **Available Constants:**
-- `AnalysisThresholds` - Analysis thresholds (efficiency, CT deviation, etc.)
+- `AnalysisThresholds` - Analysis thresholds (efficiency, duration deviation, etc.)
 - `EquipmentStatus` - Equipment status enum
 - `AnalysisStatus` - Analysis status enum
 - `FilePaths` - Standard file paths
@@ -172,11 +172,11 @@ if efficiency > AnalysisThresholds.EFFICIENCY_EXCELLENT:
     print("Excellent performance!")
 
 # Use standard column names
-equipment_col = ColumnNames.EQUIPMENT_CODE
-ct_col = ColumnNames.CYCLE_TIME
+equipment_col = ColumnNames.MACHINE_ID
+ct_col = ColumnNames.DURATION
 
 # Use table names
-query = f"SELECT * FROM {DatabaseTables.DEMO_TABLE}"
+query = f"SELECT * FROM {DatabaseTables.SHOT_DATA}"
 ```
 
 ## 🚀 Quick Start
@@ -186,7 +186,7 @@ query = f"SELECT * FROM {DatabaseTables.DEMO_TABLE}"
 from analysis.shared import (
     setup_module_logger,
     create_snowflake_connection,
-    validate_equipment_codes,
+    validate_machine_ids,
     generate_filepath,
     format_time_readable
 )
@@ -198,7 +198,7 @@ from analysis.shared import (
     setup_module_logger,
     create_snowflake_connection,
     validate_dataframe,
-    validate_equipment_codes,
+    validate_machine_ids,
     generate_filepath,
     handle_analysis_error,
     log_execution_time,
@@ -209,22 +209,22 @@ from analysis.shared import (
 logger = setup_module_logger("MyAnalysis")
 
 @log_execution_time(logger)
-def run_analysis(equipment_code: str):
+def run_analysis(machine_id: str):
     try:
         # Validate input
-        codes = validate_equipment_codes(equipment_code)
+        codes = validate_machine_ids(machine_id)
         
         # Connect to database
         conn = create_snowflake_connection()
         cursor = conn.cursor()
         
         # Fetch data
-        query = f"SELECT * FROM MY_TABLE WHERE EQUIPMENT_CODE = '{codes[0]}'"
+        query = f"SELECT * FROM MY_TABLE WHERE MACHINE_ID = '{codes[0]}'"
         cursor.execute(query)
         df = cursor.fetch_pandas_all()
         
         # Validate data
-        validate_dataframe(df, required_columns=["CT", "DATE"], min_rows=10)
+        validate_dataframe(df, required_columns=["DURATION", "DATE"], min_rows=10)
         
         # Process data
         # ... your analysis logic ...
@@ -237,7 +237,7 @@ def run_analysis(equipment_code: str):
         return output_path
         
     except Exception as e:
-        handle_analysis_error(e, f"analyzing equipment {equipment_code}", logger)
+        handle_analysis_error(e, f"analyzing equipment {machine_id}", logger)
 ```
 
 ## 📊 Benefits
@@ -286,21 +286,21 @@ def validate_equipment(code):
 
 **After:**
 ```python
-from analysis.shared import validate_equipment_codes
-codes = validate_equipment_codes(code)
+from analysis.shared import validate_machine_ids
+codes = validate_machine_ids(code)
 ```
 
 ### Step 3: Use Constants
 **Before:**
 ```python
-MAX_CT = 999.9
+MAX_DURATION = 999.9
 EFFICIENCY_THRESHOLD = 80.0
 ```
 
 **After:**
 ```python
 from analysis.shared import AnalysisThresholds
-max_ct = AnalysisThresholds.MAX_ACCEPTABLE_CT
+max_duration = AnalysisThresholds.MAX_ACCEPTABLE_CT
 threshold = AnalysisThresholds.EFFICIENCY_GOOD
 ```
 

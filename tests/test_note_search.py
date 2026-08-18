@@ -14,7 +14,7 @@ from services.workflow.note_search import (
 
 def _note(code, date, text, role="Operator"):
     return {
-        "EQUIPMENT_CODE": code,
+        "MACHINE_ID": code,
         "SHIFT_DATE": date,
         "AUTHOR_ROLE": role,
         "NOTE_TEXT": text,
@@ -27,7 +27,7 @@ NOTES = [
         "2026-06-15",
         "Parts releasing slower from the cavity. Added cooling.",
     ),
-    _note("MX-7103", "2026-06-22", "Cycle time creeping up again this week."),
+    _note("MX-7103", "2026-06-22", "Duration creeping up again this week."),
     _note("MX-7103", "2026-06-08", "Shift ran clean. Continuous production."),
     _note(
         "MX-7104", "2026-06-15", "Three short stoppages today. Each restarted cleanly."
@@ -37,13 +37,13 @@ NOTES = [
 
 class TestTokenize:
     def test_lowercases_and_splits(self):
-        assert "cycle" in tokenize("Cycle Time")
+        assert "cycle" in tokenize("Duration")
 
     def test_drops_stop_words(self):
         # "the", "is", "shift" carry no signal in a corpus of shift notes.
         assert tokenize("the shift is running") == ["running"]
 
-    def test_keeps_hyphenated_equipment_codes(self):
+    def test_keeps_hyphenated_machine_ids(self):
         assert "mx-7103" in tokenize("MX-7103 is drifting")
 
     def test_empty_input_is_safe(self):
@@ -72,7 +72,7 @@ class TestRankNotes:
     def test_filters_by_equipment(self):
         results = rank_notes(NOTES, "", "MX-7104")
         assert len(results) == 1
-        assert results[0].equipment_code == "MX-7104"
+        assert results[0].machine_id == "MX-7104"
 
     def test_empty_query_returns_history_in_date_order(self):
         results = rank_notes(NOTES, "", "MX-7103")

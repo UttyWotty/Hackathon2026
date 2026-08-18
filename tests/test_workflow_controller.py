@@ -13,7 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from models.database import Base
-from models.decision_trail import PHASE_ACT, PHASE_REASON, PHASE_SENSE
+from models.decision_trail import PHASE_Aduration, PHASE_REASON, PHASE_SENSE
 from services.workflow.controller import (
     WorkflowController,
     WorkflowControllerError,
@@ -33,14 +33,14 @@ CT_RESULT = {
     "status": "success",
     "metrics": [
         {
-            "equipment_code": "MX-7103",
+            "machine_id": "MX-7103",
             "deviation_percentage": 12.68,
             "deviation_category": "Acceptable (10-15% deviation)",
             "efficiency_score": 87.3,
             "stability_score": 90.1,
         },
         {
-            "equipment_code": "MX-7101",
+            "machine_id": "MX-7101",
             "deviation_percentage": 2.16,
             "deviation_category": "Excellent",
             "efficiency_score": 97.8,
@@ -127,7 +127,7 @@ def recorder(session_factory):
 
 @pytest.fixture
 def dispatcher():
-    return FakeDispatcher({"run_ct_deviation_analysis": CT_RESULT})
+    return FakeDispatcher({"run_deviation_analysis": CT_RESULT})
 
 
 def _controller(client, recorder, dispatcher, **kwargs):
@@ -138,7 +138,7 @@ def _controller(client, recorder, dispatcher, **kwargs):
 
 class TestSummarize:
     def test_list_metrics_render_per_equipment(self):
-        text = summarize_sense_result("run_ct_deviation_analysis", CT_RESULT)
+        text = summarize_sense_result("run_deviation_analysis", DURATION_RESULT)
         assert "MX-7103" in text
         assert "deviation_percentage=12.68" in text
 
@@ -149,12 +149,12 @@ class TestSummarize:
         assert "no metrics" in text
 
     def test_failures_are_surfaced_not_hidden(self):
-        text = summarize_sense_result("run_ct_deviation_analysis", ERROR_RESULT)
+        text = summarize_sense_result("run_deviation_analysis", ERROR_RESULT)
         assert "FAILED" in text
         assert "Snowflake unreachable" in text
 
     def test_category_distribution_is_included(self):
-        assert "category_distribution" in summarize_sense_result("t", CT_RESULT)
+        assert "category_distribution" in summarize_sense_result("t", DURATION_RESULT)
 
     def test_empty_metrics_say_so(self):
         text = summarize_sense_result("t", {"status": "success", "metrics": []})
@@ -171,11 +171,11 @@ class TestRunSenseTasks:
     @pytest.mark.asyncio
     async def test_dispatcher_exception_becomes_a_finding(self):
         # One broken analysis must not abort the sweep.
-        dispatcher = FakeDispatcher(raises={"run_ct_deviation_analysis"})
+        dispatcher = FakeDispatcher(raises={"run_deviation_analysis"})
         findings = await run_sense_tasks(
             [
-                SenseTask("run_ct_deviation_analysis"),
-                SenseTask("run_ct_deviation_analysis"),
+                SenseTask("run_deviation_analysis"),
+                SenseTask("run_deviation_analysis"),
             ],
             dispatcher,
         )
@@ -187,8 +187,8 @@ class TestRunSenseTasks:
     async def test_on_step_callback_fires_per_task(self):
         seen = []
         await run_sense_tasks(
-            [SenseTask("run_ct_deviation_analysis")],
-            FakeDispatcher({"run_ct_deviation_analysis": CT_RESULT}),
+            [SenseTask("run_deviation_analysis")],
+            FakeDispatcher({"run_deviation_analysis": CT_RESULT}),
             on_step=seen.append,
         )
         assert len(seen) == 1
@@ -198,12 +198,12 @@ class TestRunSenseTasks:
 class TestDeriveFollowups:
     def test_returns_empty_list(self):
         tasks = derive_followup_tasks(
-            [SenseFinding("run_ct_deviation_analysis", "success", "", CT_RESULT)]
+            [SenseFinding("run_deviation_analysis", "success", "", DURATION_RESULT)]
         )
         assert tasks == []
 
     def test_failed_sweep_yields_no_followups(self):
-        finding = SenseFinding("run_ct_deviation_analysis", "error", "", ERROR_RESULT)
+        finding = SenseFinding("run_deviation_analysis", "error", "", ERROR_RESULT)
         assert derive_followup_tasks([finding]) == []
 
 
@@ -228,13 +228,13 @@ class TestControllerLoop:
     async def test_tool_calls_are_executed_and_returned(self, recorder, dispatcher):
         client = ScriptedClient(
             [
-                _tool_response("run_rca_analysis", {"equipment_code": "MX-7103"}),
+                _tool_response("run_rca_analysis", {"machine_id": "MX-7103"}),
                 _text_response("flagged MX-7103"),
             ]
         )
         result = await _controller(client, recorder, dispatcher).run()
         assert result["actions"] == ["run_rca_analysis"]
-        assert ("run_rca_analysis", {"equipment_code": "MX-7103"}) in dispatcher.calls
+        assert ("run_rca_analysis", {"machine_id": "MX-7103"}) in dispatcher.calls
 
     @pytest.mark.asyncio
     async def test_tool_failure_is_reported_back_to_the_model(self, recorder):
@@ -278,7 +278,7 @@ class TestControllerTrail:
 
         trail = load_trail("run-ctrl", session_factory)
         phases = [s["phase"] for s in trail["steps"]]
-        # The opening sweep runs CT deviation only (no follow-ups).
+        # The opening sweep runs duration deviation only (no follow-ups).
         assert phases.count(PHASE_SENSE) == len(DEFAULT_SENSE_TASKS)
         assert PHASE_ACT in phases
         assert phases[-1] == PHASE_REASON

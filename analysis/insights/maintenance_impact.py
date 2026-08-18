@@ -1,13 +1,13 @@
 """Before/after metric comparison around maintenance events.
 
 Compares production metrics from windows before and after a maintenance event and
-classifies the impact per metric, honoring metric direction (lower CT is better,
+classifies the impact per metric, honoring metric direction (lower duration is better,
 higher output is better). Pure logic: callers supply pre-aggregated window metrics.
 """
 
 from typing import Any, Dict, Optional
 
-LOWER_IS_BETTER: frozenset = frozenset({"avg_ct", "downtime_minutes", "stop_rate"})
+LOWER_IS_BETTER: frozenset = frozenset({"avg_duration", "downtime_minutes", "stop_rate"})
 NEUTRAL_THRESHOLD_PCT: float = 2.0
 
 IMPACT_IMPROVED: str = "improved"
@@ -20,7 +20,7 @@ def classify_metric_impact(
     metric: str,
     before: Optional[float],
     after: Optional[float],
-    neutral_threshold_pct: float = NEUTRAL_THRESHOLD_PCT,
+    neutral_threshold_pct: float = NEUTRAL_THRESHOLD_Pduration,
 ) -> Dict[str, Any]:
     """Classify the impact of a maintenance event on one metric.
 
@@ -61,7 +61,7 @@ def classify_metric_impact(
 def compare_before_after(
     before_metrics: Dict[str, Optional[float]],
     after_metrics: Dict[str, Optional[float]],
-    neutral_threshold_pct: float = NEUTRAL_THRESHOLD_PCT,
+    neutral_threshold_pct: float = NEUTRAL_THRESHOLD_Pduration,
 ) -> Dict[str, Any]:
     """Compare all metrics across maintenance windows and summarize the verdict.
 

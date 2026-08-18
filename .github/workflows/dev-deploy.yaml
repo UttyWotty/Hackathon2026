@@ -60,7 +60,7 @@ jobs:
           echo "CR_TARGET_OUTPUT_PERC=90.0" >> .env
           echo "CR_DEFAULT_CAVITIES=1" >> .env
           echo "SERVER_PORT=3020" >> .env
-          echo "ENABLED_MODULES=roi,ct_efficiency,ct_deviation,rca" >> .env
+          echo "ENABLED_MODULES=roi,efficiency,deviation,rca" >> .env
           echo "LANGFUSE_ENABLED=true" >> .env
           echo "LANGFUSE_HOST=${{ secrets.LANGFUSE_HOST }}" >> .env
           echo "LANGFUSE_PUBLIC_KEY=${{ secrets.LANGFUSE_PUBLIC_KEY }}" >> .env

@@ -29,8 +29,8 @@ MODEL = "mlx-community/Qwen3-32B-4bit"
 
 ANTHROPIC_TOOLS = [
     {
-        "name": "run_ct_deviation_analysis",
-        "description": "Analyse cycle time deviation.",
+        "name": "run_deviation_analysis",
+        "description": "Analyse duration deviation.",
         "input_schema": {
             "type": "object",
             "properties": {"machine": {"type": "string"}},
@@ -50,7 +50,7 @@ OPENAI_TOOL_CALL_RESPONSE = {
                         "id": "call_1",
                         "type": "function",
                         "function": {
-                            "name": "run_ct_deviation_analysis",
+                            "name": "run_deviation_analysis",
                             "arguments": '{"machine": "MX-7103"}',
                         },
                     }
@@ -75,8 +75,8 @@ class TestToolConversion:
 
     def test_name_and_description_preserved(self):
         function = convert_tools_to_openai(ANTHROPIC_TOOLS)[0]["function"]
-        assert function["name"] == "run_ct_deviation_analysis"
-        assert function["description"] == "Analyse cycle time deviation."
+        assert function["name"] == "run_deviation_analysis"
+        assert function["description"] == "Analyse duration deviation."
 
 
 class TestMessageConversion:
@@ -185,7 +185,7 @@ class TestResponseConversion:
         assert extract_text_from_response(converted) == "Checking."
         uses = extract_tool_uses(converted)
         assert uses[0]["toolUseId"] == "call_1"
-        assert uses[0]["name"] == "run_ct_deviation_analysis"
+        assert uses[0]["name"] == "run_deviation_analysis"
         assert uses[0]["input"] == {"machine": "MX-7103"}
 
     def test_usage_is_remapped(self):

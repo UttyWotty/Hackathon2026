@@ -5,7 +5,7 @@ to match that equipment's planted defect, so a semantic search over the notes co
 what the numeric detectors find. Contains no I/O and no clock access; randomness comes from
 an injected Random.
 
-The demo hinges on timing: notes for the cycle-time-drift equipment describe symptoms from
+The demo hinges on timing: notes for the process-duration-drift equipment describe symptoms from
 the second week onward, while its measured deviation only crosses the critical threshold in
 the final week. Search therefore surfaces the problem weeks before a threshold would.
 """
@@ -69,7 +69,7 @@ SYMPTOM_NOTES: Final[Dict[ProfileKind, Tuple[Tuple[str, ...], ...]]] = {
             "Tool is holding heat more than it was. Cycle stretched slightly as a result.",
         ),
         (
-            "Cycle time creeping up again this week. Operator compensating manually.",
+            "Duration creeping up again this week. Operator compensating manually.",
             "Still climbing. We are adjusting every shift now just to hold quality.",
             "Cycle drifting further from standard. Manual compensation is not keeping up.",
         ),
@@ -203,7 +203,7 @@ def _build_note(
 
     return ShiftNote(
         id=note_id,
-        equipment_code=profile.mold.equipment_code,
+        machine_id=profile.mold.machine_id,
         shift_date=config.window_start + timedelta(days=day_offset, hours=NOTE_HOUR),
         author_role=_note_role(kind, wants_symptom),
         note_text=text,
@@ -245,5 +245,5 @@ def build_shift_notes(
                 )
                 next_id += 1
 
-    notes.sort(key=lambda note: (note.equipment_code, note.shift_date))
+    notes.sort(key=lambda note: (note.machine_id, note.shift_date))
     return notes

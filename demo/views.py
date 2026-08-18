@@ -26,7 +26,7 @@ from demo.story import to_chart_frame
 # Column proportions for the step table: sequence, tool, status, duration.
 STEP_COLUMNS = (1, 6, 2, 2)
 
-CHART_Y_LABEL = "Mean CT deviation vs approved (%)"
+CHART_Y_LABEL = "Mean duration deviation vs approved (%)"
 CHART_X_LABEL = "Production week"
 
 STATUS_FAILED = "failed"
@@ -165,7 +165,7 @@ def render_score(report: Optional[Dict[str, Any]]) -> None:
 
 def render_drift_chart(weekly: pd.DataFrame, headline: Optional[str]) -> None:
     """
-    Draw fleet-wide weekly CT deviation, which is where the defect shows.
+    Draw fleet-wide weekly duration deviation, which is where the defect shows.
 
     Args:
         weekly: The long frame from story.weekly_deviation.

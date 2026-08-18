@@ -6,8 +6,8 @@ from utils.input_validation import (
     sanitize_sql_string,
     validate_analytics_request,
     validate_date_string,
-    validate_equipment_code,
-    validate_supplier_name,
+    validate_machine_id,
+    validate_vendor_name,
 )
 from utils.sql_validation import (
     SQLValidationError,
@@ -18,9 +18,9 @@ from utils.sql_validation import (
 __all__ = [
     # Input validation
     "sanitize_sql_string",
-    "validate_equipment_code",
+    "validate_machine_id",
     "validate_date_string",
-    "validate_supplier_name",
+    "validate_vendor_name",
     "validate_analytics_request",
     "InputValidationError",
     # SQL validation

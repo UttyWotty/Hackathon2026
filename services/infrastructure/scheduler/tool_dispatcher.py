@@ -29,21 +29,21 @@ _ANALYTICS_TOOL_IMPORTS: Dict[str, tuple] = {
         "services.config.features.analytics.tools.rca_tools",
         "run_rca_analysis",
     ),
-    "run_ct_efficiency_analysis": (
-        "services.config.features.analytics.tools.ct_efficiency_tools",
-        "run_ct_efficiency_analysis",
+    "run_efficiency_analysis": (
+        "services.config.features.analytics.tools.efficiency_tools",
+        "run_efficiency_analysis",
     ),
-    "run_ct_deviation_analysis": (
-        "services.config.features.analytics.tools.ct_deviation_tools",
-        "run_ct_deviation_analysis",
+    "run_deviation_analysis": (
+        "services.config.features.analytics.tools.deviation_tools",
+        "run_deviation_analysis",
     ),
     "run_tooling_eol_analysis": (
         "services.config.features.analytics.tools.tooling_eol_tools",
         "run_tooling_eol_analysis",
     ),
-    "refresh_demo_table": (
+    "refresh_shot_data": (
         "services.config.features.analytics.tools.master_table_tools",
-        "refresh_demo_table",
+        "refresh_shot_data",
     ),
     "generate_presentation": (
         "services.config.features.analytics.tools.ppt_tools",
@@ -95,9 +95,9 @@ _INSIGHTS_TOOL_IMPORTS: Dict[str, tuple] = {
         "services.config.features.insights.tools.period_tools",
         "find_top_movers",
     ),
-    "validate_approved_cts": (
-        "services.config.features.insights.tools.ct_validation_tools",
-        "validate_approved_cts",
+    "validate_targets": (
+        "services.config.features.insights.tools.target_validation_tools",
+        "validate_targets",
     ),
     "data_freshness_report": (
         "services.config.features.insights.tools.freshness_tools",

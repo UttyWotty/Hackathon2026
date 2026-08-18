@@ -1,7 +1,7 @@
 """
 Recommendation generation for Pareto-based root cause analysis.
 Provides a function to generate prioritised actionable recommendations from
-pre-computed cycle-time, downtime, and scrap analysis results.
+pre-computed process-duration, downtime, and scrap analysis results.
 Separated from the analysis module to keep each file under the 500-line limit.
 """
 
@@ -59,30 +59,30 @@ def _add_ct_recommendations(
     ct_issues: pd.DataFrame,
     recommendations: List[Dict[str, str]],
 ) -> None:
-    """Append cycle-time recommendations to the list."""
+    """Append process-duration recommendations to the list."""
     if len(ct_issues) == 0:
         return
 
-    top_equip = ct_issues["EQUIPMENT_CODE"].value_counts().head(3)
+    top_equip = ct_issues["MACHINE_ID"].value_counts().head(3)
     for equipment, count in top_equip.items():
         recommendations.append(
             {
                 "Priority": "High",
                 "Category": "Equipment",
-                "Issue": "Equipment %s has %d cycle time issues" % (equipment, count),
+                "Issue": "Equipment %s has %d duration issues" % (equipment, count),
                 "Action": "Perform preventive maintenance on %s" % equipment,
                 "Impact": "Addresses %.1f%% of all CT issues"
                 % (count / len(ct_issues) * 100),
             }
         )
 
-    top_parts = ct_issues["PART_NAME"].value_counts().head(3)
+    top_parts = ct_issues["PRODUCT_NAME"].value_counts().head(3)
     for part, count in top_parts.items():
         recommendations.append(
             {
                 "Priority": "Medium",
                 "Category": "Part",
-                "Issue": "Part %s has %d cycle time issues" % (part, count),
+                "Issue": "Part %s has %d duration issues" % (part, count),
                 "Action": "Review process parameters for %s" % part,
                 "Impact": "Addresses %.1f%% of all CT issues"
                 % (count / len(ct_issues) * 100),
@@ -99,7 +99,7 @@ def _add_downtime_recommendations(
     if len(downtime_issues) == 0:
         return
 
-    top_parts = downtime_issues["PART_NAME"].value_counts().head(3)
+    top_parts = downtime_issues["PRODUCT_NAME"].value_counts().head(3)
     for part, count in top_parts.items():
         recommendations.append(
             {
@@ -121,7 +121,7 @@ def _add_downtime_recommendations(
                 "Category": "Downtime",
                 "Issue": "Longest downtime: %.1f minutes" % longest["TIME_GAP_MINUTES"],
                 "Action": "Review what happened on %s with part %s"
-                % (longest["LOCAL_SHOT_TIME"], longest["PART_NAME"]),
+                % (longest["SHOT_TIME"], longest["PRODUCT_NAME"]),
                 "Impact": "Addresses longest single downtime event",
             }
         )
@@ -136,7 +136,7 @@ def _add_scrap_recommendations(
     if len(scrap_issues) == 0:
         return
 
-    top_parts = scrap_issues["PART_NAME"].value_counts().head(3)
+    top_parts = scrap_issues["PRODUCT_NAME"].value_counts().head(3)
     for part, count in top_parts.items():
         recommendations.append(
             {
@@ -158,7 +158,7 @@ def _add_scrap_recommendations(
                 "Category": "Scrap",
                 "Issue": "Shot with highest scrap score (%d)" % worst["SCRAP_SCORE"],
                 "Action": "Investigate %s - %s (CT: %.1fs)"
-                % (worst["LOCAL_SHOT_TIME"], worst["PART_NAME"], worst["CT"]),
+                % (worst["SHOT_TIME"], worst["PRODUCT_NAME"], worst["DURATION"]),
                 "Impact": "Addresses most problematic production shot",
             }
         )

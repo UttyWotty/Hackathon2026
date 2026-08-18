@@ -1,7 +1,7 @@
 """Tool definitions for the cross-analysis insights suite.
 
 Declares Bedrock Converse API specs for synthesis (health, periods), data trust
-(approved CTs, freshness, quality), mold/work-order tracing, forecasting, savings,
+(approved durations, freshness, quality), mold/work-order tracing, forecasting, savings,
 and knowledge tools. Implementations live in services/config/features/insights/tools.
 """
 
@@ -13,7 +13,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
             "name": "get_plant_health_snapshot",
             "description": (
                 "Get a ranked health snapshot of ALL equipment in one call (worst first). "
-                "Blends run efficiency, cycle time performance, capacity utilization, and "
+                "Blends run efficiency, duration performance, capacity utilization, and "
                 "data recency into a 0-100 score with healthy/watch/critical grades. Use "
                 "this FIRST for questions like 'which equipment needs attention' or 'how is "
                 "the plant doing'."
@@ -36,7 +36,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
             "name": "compare_periods",
             "description": (
                 "Compare the last N days against the N days before, per equipment: shots, "
-                "average cycle time, and active days with absolute and percentage deltas. "
+                "average duration, and active days with absolute and percentage deltas. "
                 "Use for week-over-week or month-over-month questions."
             ),
             "inputSchema": {
@@ -47,7 +47,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
                             "type": "integer",
                             "description": "Window length in days (default: 7, max: 180)",
                         },
-                        "equipment_code": {
+                        "machine_id": {
                             "type": "string",
                             "description": "Optional single-equipment filter",
                         },
@@ -69,7 +69,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "metric": {
                             "type": "string",
-                            "enum": ["shots", "avg_ct", "active_days"],
+                            "enum": ["shots", "avg_duration", "active_days"],
                             "description": "Metric to rank change by (default: shots)",
                         },
                         "period_days": {
@@ -87,12 +87,12 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
     },
     {
         "toolSpec": {
-            "name": "validate_approved_cts",
+            "name": "validate_targets",
             "description": (
-                "Flag approved cycle times that have drifted from reality. Compares "
-                "APPROVED_CT to the observed mode CT per equipment/part and proposes "
-                "updated values for stale entries. Approved CTs are known to go stale; run "
-                "this before trusting any approved-CT-based efficiency number."
+                "Flag approved durations that have drifted from reality. Compares "
+                "TARGET_DURATION to the observed mode duration per equipment/part and proposes "
+                "updated values for stale entries. Approved Durations are known to go stale; run "
+                "this before trusting any approved-duration-based efficiency number."
             ),
             "inputSchema": {
                 "json": {
@@ -110,7 +110,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
                             "type": "integer",
                             "description": "Minimum shots to judge a record (default: 100)",
                         },
-                        "equipment_code": {
+                        "machine_id": {
                             "type": "string",
                             "description": "Optional single-equipment filter",
                         },
@@ -135,7 +135,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
             "name": "data_quality_audit",
             "description": (
                 "Audit master shot data integrity over a recent window: null equipment "
-                "codes, invalid cycle times, missing approved CTs, future timestamps, and "
+                "codes, invalid durations, missing approved durations, future timestamps, and "
                 "duplicate shots, each with pass/warn/fail verdicts."
             ),
             "inputSchema": {
@@ -157,19 +157,19 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
             "description": (
                 "Full lifecycle view of a mold/tool: status, designed vs actual shots, "
                 "maintenance events, location moves, and shots since last maintenance. "
-                "Identify the mold by equipment_code or mold_id."
+                "Identify the mold by machine_id or tool_id."
             ),
             "inputSchema": {
                 "json": {
                     "type": "object",
                     "properties": {
-                        "equipment_code": {
+                        "machine_id": {
                             "type": "string",
                             "description": "Equipment code of the mold",
                         },
-                        "mold_id": {
+                        "tool_id": {
                             "type": "integer",
-                            "description": "MOLD.ID primary key (alternative to equipment_code)",
+                            "description": "MOLD.ID primary key (alternative to machine_id)",
                         },
                     },
                 }
@@ -180,7 +180,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
         "toolSpec": {
             "name": "maintenance_impact_analysis",
             "description": (
-                "Measure whether maintenance actually helped: compares average CT and "
+                "Measure whether maintenance actually helped: compares average duration and "
                 "shots/day in equal windows before and after each maintenance event of a "
                 "mold, with improved/degraded/neutral verdicts."
             ),
@@ -188,13 +188,13 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
                 "json": {
                     "type": "object",
                     "properties": {
-                        "equipment_code": {
+                        "machine_id": {
                             "type": "string",
                             "description": "Equipment code of the mold",
                         },
-                        "mold_id": {
+                        "tool_id": {
                             "type": "integer",
-                            "description": "MOLD.ID primary key (alternative to equipment_code)",
+                            "description": "MOLD.ID primary key (alternative to machine_id)",
                         },
                         "window_days": {
                             "type": "integer",
@@ -230,7 +230,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
         "toolSpec": {
             "name": "forecast_metric",
             "description": (
-                "Forecast daily shot volume or daily average cycle time from recent "
+                "Forecast daily shot volume or daily average duration from recent "
                 "history using a linear trend (moving average fallback for short "
                 "histories). Plant-wide or per equipment."
             ),
@@ -240,10 +240,10 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
                     "properties": {
                         "metric": {
                             "type": "string",
-                            "enum": ["daily_shots", "daily_avg_ct"],
+                            "enum": ["daily_shots", "daily_avg_duration"],
                             "description": "Metric to forecast (default: daily_shots)",
                         },
-                        "equipment_code": {
+                        "machine_id": {
                             "type": "string",
                             "description": "Optional single-equipment filter",
                         },
@@ -264,10 +264,10 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
         "toolSpec": {
             "name": "simulate_savings",
             "description": (
-                "Size the opportunity if equipment ran at a target cycle time: hours saved "
-                "and extra parts possible. target='approved' compares to the approved CT; "
+                "Size the opportunity if equipment ran at a target duration: hours saved "
+                "and extra parts possible. target='approved' compares to the approved duration; "
                 "target='group_best' compares each tool to the fastest tool in its "
-                "approved CT group (the fair comparison baseline)."
+                "approved duration group (the fair comparison baseline)."
             ),
             "inputSchema": {
                 "json": {
@@ -282,7 +282,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
                             "enum": ["approved", "group_best"],
                             "description": "Comparison baseline (default: approved)",
                         },
-                        "equipment_code": {
+                        "machine_id": {
                             "type": "string",
                             "description": "Optional single-equipment filter",
                         },
@@ -300,7 +300,7 @@ INSIGHTS_TOOLS: List[Dict[str, Any]] = [
             "name": "get_metric_definitions",
             "description": (
                 "Canonical definitions of every metric (run efficiency, MTTR, MTBF, mode "
-                "CT, stop detection, NCTD, health score, ...). Use these definitions in "
+                "duration, stop detection, NCTD, health score, ...). Use these definitions in "
                 "answers so terminology stays consistent. Optionally includes the full "
                 " calculation spec."
             ),

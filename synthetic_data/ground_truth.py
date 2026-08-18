@@ -7,10 +7,10 @@ is pure: it describes expectations and never inspects generated rows or touches 
 
 from typing import Dict, Final, List
 
-from .constants import CT_DEVIATION_CRITICAL_PCT
+from .constants import DEVIATION_CRITICAL_PCT
 from .models import EquipmentProfile, ExpectedFinding, ProfileKind
 
-DETECTOR_CT_DEVIATION: Final[str] = "run_ct_deviation_analysis"
+DETECTOR_DEVIATION: Final[str] = "run_deviation_analysis"
 DETECTOR_CONTROL: Final[str] = "negative_control"
 
 DIRECTION_ABOVE: Final[str] = "above"
@@ -27,8 +27,8 @@ MTBF_FLEET_MULTIPLE: Final[float] = 0.8
 
 _CLAIMS: Final[Dict[ProfileKind, str]] = {
     ProfileKind.CT_DRIFT: (
-        "Observed cycle time drifts week over week from approximately 2 percent above "
-        "approved CT to critical deviation in the final week, while stop behaviour stays normal."
+        "Observed duration drifts week over week from approximately 2 percent above "
+        "approved duration to critical deviation in the final week, while stop behaviour stays normal."
     ),
     ProfileKind.FREQUENT_STOPS: (
         "Many short hard stops produce a low mean time between failures without inflating "
@@ -51,24 +51,24 @@ _CLAIMS: Final[Dict[ProfileKind, str]] = {
 
 def _finding_for(profile: EquipmentProfile) -> ExpectedFinding:
     """Map one equipment profile to the single finding its planted defect should produce."""
-    equipment_code = profile.mold.equipment_code
+    machine_id = profile.mold.machine_id
     claim = _CLAIMS[profile.kind]
 
     if profile.kind is ProfileKind.CT_DRIFT:
         return ExpectedFinding(
-            equipment_code=equipment_code,
+            machine_id=machine_id,
             profile_kind=profile.kind,
-            detector=DETECTOR_CT_DEVIATION,
+            detector=DETECTOR_DEVIATION,
             claim=claim,
-            metric="ct_deviation_pct",
+            metric="deviation_pct",
             expected_direction=DIRECTION_ABOVE,
-            expected_value=CT_DEVIATION_CRITICAL_PCT,
+            expected_value=DEVIATION_CRITICAL_Pduration,
         )
     if profile.kind is ProfileKind.FREQUENT_STOPS:
         return ExpectedFinding(
-            equipment_code=equipment_code,
+            machine_id=machine_id,
             profile_kind=profile.kind,
-            detector=DETECTOR_CT_DEVIATION,
+            detector=DETECTOR_DEVIATION,
             claim=claim,
             metric="mtbf_minutes",
             expected_direction=DIRECTION_BELOW,
@@ -76,9 +76,9 @@ def _finding_for(profile: EquipmentProfile) -> ExpectedFinding:
         )
     if profile.kind is ProfileKind.LONG_REPAIRS:
         return ExpectedFinding(
-            equipment_code=equipment_code,
+            machine_id=machine_id,
             profile_kind=profile.kind,
-            detector=DETECTOR_CT_DEVIATION,
+            detector=DETECTOR_DEVIATION,
             claim=claim,
             metric="mttr_minutes",
             expected_direction=DIRECTION_ABOVE,
@@ -86,16 +86,16 @@ def _finding_for(profile: EquipmentProfile) -> ExpectedFinding:
         )
     if profile.kind is ProfileKind.DECLINING:
         return ExpectedFinding(
-            equipment_code=equipment_code,
+            machine_id=machine_id,
             profile_kind=profile.kind,
-            detector=DETECTOR_CT_DEVIATION,
+            detector=DETECTOR_DEVIATION,
             claim=claim,
             metric="stability_decline_pct",
             expected_direction=DIRECTION_ABOVE,
-            expected_value=RISK_TOWER_DECLINE_THRESHOLD_PCT,
+            expected_value=RISK_TOWER_DECLINE_THRESHOLD_Pduration,
         )
     return ExpectedFinding(
-        equipment_code=equipment_code,
+        machine_id=machine_id,
         profile_kind=profile.kind,
         detector=DETECTOR_CONTROL,
         claim=claim,
@@ -118,7 +118,7 @@ def demo_headline_equipment(profiles: List[EquipmentProfile]) -> str:
     """
     for profile in profiles:
         if profile.kind is ProfileKind.CT_DRIFT:
-            return profile.mold.equipment_code
+            return profile.mold.machine_id
     raise ValueError(
         "roster contains no CT_DRIFT equipment; the demo narrative has no subject"
     )

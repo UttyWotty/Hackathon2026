@@ -44,7 +44,7 @@ def get_output_dir(module_name: str, create: bool = True) -> Path:
     All modules save to: manufacturing-api/output/{module_name}/
 
     Args:
-        module_name: Name of the analysis module (e.g., "roi", "ct_deviation")
+        module_name: Name of the analysis module (e.g., "roi", "deviation")
         create: Whether to create the directory if it doesn't exist
 
     Returns:

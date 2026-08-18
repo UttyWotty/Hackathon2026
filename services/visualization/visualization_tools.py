@@ -100,7 +100,7 @@ def create_chart(
 
 
 async def create_manufacturing_dashboard(
-    equipment_code: str,
+    machine_id: str,
     start_date: str,
     end_date: str,
     metrics: Optional[List[str]] = None,
@@ -109,7 +109,7 @@ async def create_manufacturing_dashboard(
     """Create a pre-built multi-chart manufacturing dashboard for one equipment.
 
     Args:
-        equipment_code: Equipment code to analyze.
+        machine_id: Equipment code to analyze.
         start_date: Start date (YYYY-MM-DD).
         end_date: End date (YYYY-MM-DD).
         metrics: Subset of efficiency, downtime, quality, production. Defaults to all.
@@ -126,13 +126,13 @@ async def create_manufacturing_dashboard(
 
         metrics_to_include = metrics or DEFAULT_DASHBOARD_METRICS
         dashboard_data, data_source = await fetch_dashboard_data(
-            equipment_code, start_date, end_date
+            machine_id, start_date, end_date
         )
         if dashboard_data is None or dashboard_data.empty:
             return {
                 "status": "error",
                 "error": "No data available for dashboard",
-                "equipment_code": equipment_code,
+                "machine_id": machine_id,
             }
 
         num_metrics = len(metrics_to_include)
@@ -148,14 +148,14 @@ async def create_manufacturing_dashboard(
         )
         add_metric_traces(fig, dashboard_data, metrics_to_include, cols)
         configure_dashboard_layout(
-            fig, equipment_code, start_date, end_date, rows, cols, num_metrics
+            fig, machine_id, start_date, end_date, rows, cols, num_metrics
         )
 
         output_file = save_chart_if_needed(fig, output_path)
         return {
             "status": "success",
             "dashboard_type": "manufacturing",
-            "equipment_code": equipment_code,
+            "machine_id": machine_id,
             "date_range": "%s to %s" % (start_date, end_date),
             "metrics_included": metrics_to_include,
             "data_points": len(dashboard_data),

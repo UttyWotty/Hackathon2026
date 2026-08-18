@@ -13,8 +13,8 @@ from utils.input_validation import (
     sanitize_sql_string,
     validate_analytics_request,
     validate_date_string,
-    validate_equipment_code,
-    validate_supplier_name,
+    validate_machine_id,
+    validate_vendor_name,
 )
 
 # ===================================================================
@@ -170,28 +170,28 @@ class TestSanitizeSqlString:
 
 
 # ===================================================================
-# validate_equipment_code
+# validate_machine_id
 # ===================================================================
 
 
 class TestValidateEquipmentCode:
-    """Tests for validate_equipment_code."""
+    """Tests for validate_machine_id."""
 
     # --- Happy path ---
 
     def test_simple_code(self) -> None:
         """Simple alphanumeric equipment code passes."""
-        result = validate_equipment_code("EQ001")
+        result = validate_machine_id("EQ001")
         assert result == "EQ001"
 
     def test_code_with_hyphen(self) -> None:
         """Equipment code with hyphen passes."""
-        result = validate_equipment_code("MX-7101")
+        result = validate_machine_id("MX-7101")
         assert result == "MX-7101"
 
     def test_code_with_underscore(self) -> None:
         """Equipment code with underscore passes."""
-        result = validate_equipment_code("EQ_001")
+        result = validate_machine_id("EQ_001")
         assert result == "EQ_001"
 
     # --- Boundary cases ---
@@ -199,26 +199,26 @@ class TestValidateEquipmentCode:
     def test_max_length_50(self) -> None:
         """Equipment code at exactly 50 chars passes."""
         code = "A" * 50
-        result = validate_equipment_code(code)
+        result = validate_machine_id(code)
         assert result == code
 
     def test_exceeds_max_length_50(self) -> None:
         """Equipment code over 50 chars raises error."""
         code = "A" * 51
         with pytest.raises(InputValidationError, match="too long"):
-            validate_equipment_code(code)
+            validate_machine_id(code)
 
     # --- Error cases ---
 
     def test_injection_attempt(self) -> None:
         """SQL injection in equipment code is blocked."""
         with pytest.raises(InputValidationError, match="dangerous characters"):
-            validate_equipment_code("EQ001'; DROP TABLE--")
+            validate_machine_id("EQ001'; DROP TABLE--")
 
     def test_empty_code(self) -> None:
         """Empty equipment code raises error."""
         with pytest.raises(InputValidationError, match="cannot be empty"):
-            validate_equipment_code("")
+            validate_machine_id("")
 
 
 # ===================================================================
@@ -307,28 +307,28 @@ class TestValidateDateString:
 
 
 # ===================================================================
-# validate_supplier_name
+# validate_vendor_name
 # ===================================================================
 
 
 class TestValidateSupplierName:
-    """Tests for validate_supplier_name."""
+    """Tests for validate_vendor_name."""
 
     # --- Happy path ---
 
     def test_simple_name(self) -> None:
         """Simple supplier name passes."""
-        result = validate_supplier_name("Acme Corp")
+        result = validate_vendor_name("Acme Corp")
         assert result == "Acme Corp"
 
     def test_all_keyword(self) -> None:
         """Special value 'All' passes without sanitization."""
-        result = validate_supplier_name("All")
+        result = validate_vendor_name("All")
         assert result == "All"
 
     def test_name_with_special_chars(self) -> None:
         """Supplier name with special characters passes via allow_special."""
-        result = validate_supplier_name("Acme Co. (USA)")
+        result = validate_vendor_name("Acme Co. (USA)")
         assert result == "Acme Co. (USA)"
 
     # --- Boundary cases ---
@@ -336,26 +336,26 @@ class TestValidateSupplierName:
     def test_max_length_100(self) -> None:
         """Supplier name at 100 chars passes."""
         name = "A" * 100
-        result = validate_supplier_name(name)
+        result = validate_vendor_name(name)
         assert result == name
 
     def test_exceeds_max_length_100(self) -> None:
         """Supplier name over 100 chars raises error."""
         name = "A" * 101
         with pytest.raises(InputValidationError, match="too long"):
-            validate_supplier_name(name)
+            validate_vendor_name(name)
 
     # --- Error cases ---
 
     def test_injection_attempt(self) -> None:
         """SQL injection in supplier name is blocked."""
         with pytest.raises(InputValidationError, match="dangerous characters"):
-            validate_supplier_name("Acme'; DROP TABLE--")
+            validate_vendor_name("Acme'; DROP TABLE--")
 
     def test_empty_supplier(self) -> None:
         """Empty supplier name raises error."""
         with pytest.raises(InputValidationError, match="cannot be empty"):
-            validate_supplier_name("")
+            validate_vendor_name("")
 
 
 # ===================================================================
@@ -370,12 +370,12 @@ class TestSanitizeList:
 
     def test_valid_list(self) -> None:
         """Valid list of equipment codes passes."""
-        result = sanitize_list(["EQ001", "EQ002"], validate_equipment_code)
+        result = sanitize_list(["EQ001", "EQ002"], validate_machine_id)
         assert result == ["EQ001", "EQ002"]
 
     def test_single_item_list(self) -> None:
         """Single item list passes."""
-        result = sanitize_list(["EQ001"], validate_equipment_code)
+        result = sanitize_list(["EQ001"], validate_machine_id)
         assert result == ["EQ001"]
 
     def test_custom_validator(self) -> None:
@@ -391,34 +391,34 @@ class TestSanitizeList:
 
     def test_empty_list(self) -> None:
         """Empty list passes validation (no items to validate)."""
-        result = sanitize_list([], validate_equipment_code)
+        result = sanitize_list([], validate_machine_id)
         assert result == []
 
     def test_max_items_boundary(self) -> None:
         """List at exactly max_items passes; one over raises error."""
         codes_ok = [f"EQ{i:03d}" for i in range(100)]
-        assert len(sanitize_list(codes_ok, validate_equipment_code)) == 100
+        assert len(sanitize_list(codes_ok, validate_machine_id)) == 100
         codes_over = codes_ok + ["EQ100"]
         with pytest.raises(InputValidationError, match="Too many items"):
-            sanitize_list(codes_over, validate_equipment_code)
+            sanitize_list(codes_over, validate_machine_id)
 
     def test_custom_max_items(self) -> None:
         """Custom max_items is respected."""
         codes = ["EQ001", "EQ002", "EQ003"]
         with pytest.raises(InputValidationError, match="Too many items"):
-            sanitize_list(codes, validate_equipment_code, max_items=2)
+            sanitize_list(codes, validate_machine_id, max_items=2)
 
     # --- Error cases ---
 
     def test_non_list_input(self) -> None:
         """Non-list input raises InputValidationError."""
         with pytest.raises(InputValidationError, match="Expected list"):
-            sanitize_list("not_a_list", validate_equipment_code)  # type: ignore[arg-type]
+            sanitize_list("not_a_list", validate_machine_id)  # type: ignore[arg-type]
 
     def test_invalid_item_propagates_error(self) -> None:
         """Invalid item in list propagates validator error."""
         with pytest.raises(InputValidationError):
-            sanitize_list(["EQ001", "'; DROP TABLE--"], validate_equipment_code)
+            sanitize_list(["EQ001", "'; DROP TABLE--"], validate_machine_id)
 
 
 # ===================================================================
@@ -434,20 +434,20 @@ class TestValidateAnalyticsRequest:
     def test_full_valid_request(self) -> None:
         """Request with all valid parameters passes."""
         result = validate_analytics_request(
-            equipment_codes=["EQ001", "EQ002"],
-            supplier_names=["Acme Corp"],
+            machine_ids=["EQ001", "EQ002"],
+            vendor_names=["Acme Corp"],
             start_date="2025-01-01",
             end_date="2025-06-30",
         )
-        assert result["equipment_codes"] == ["EQ001", "EQ002"]
-        assert result["supplier_names"] == ["Acme Corp"]
+        assert result["machine_ids"] == ["EQ001", "EQ002"]
+        assert result["vendor_names"] == ["Acme Corp"]
         assert result["start_date"] == "2025-01-01"
         assert result["end_date"] == "2025-06-30"
 
-    def test_equipment_codes_only(self) -> None:
+    def test_machine_ids_only(self) -> None:
         """Request with only equipment codes omits other keys."""
-        result = validate_analytics_request(equipment_codes=["EQ001"])
-        assert result == {"equipment_codes": ["EQ001"]}
+        result = validate_analytics_request(machine_ids=["EQ001"])
+        assert result == {"machine_ids": ["EQ001"]}
 
     def test_dates_only(self) -> None:
         """Request with only dates passes."""
@@ -470,19 +470,19 @@ class TestValidateAnalyticsRequest:
         )
         assert result["start_date"] == result["end_date"] == "2025-06-15"
 
-    def test_equipment_codes_at_max_50(self) -> None:
+    def test_machine_ids_at_max_50(self) -> None:
         """50 equipment codes (max for analytics) passes."""
         codes = [f"EQ{i:03d}" for i in range(50)]
         assert (
-            len(validate_analytics_request(equipment_codes=codes)["equipment_codes"])
+            len(validate_analytics_request(machine_ids=codes)["machine_ids"])
             == 50
         )
 
-    def test_equipment_codes_over_max_50(self) -> None:
+    def test_machine_ids_over_max_50(self) -> None:
         """51 equipment codes raises error."""
         codes = [f"EQ{i:03d}" for i in range(51)]
         with pytest.raises(InputValidationError, match="Too many items"):
-            validate_analytics_request(equipment_codes=codes)
+            validate_analytics_request(machine_ids=codes)
 
     # --- Error cases ---
 
@@ -491,10 +491,10 @@ class TestValidateAnalyticsRequest:
         with pytest.raises(InputValidationError, match="must be before end date"):
             validate_analytics_request(start_date="2025-12-31", end_date="2025-01-01")
 
-    def test_invalid_equipment_code_propagates(self) -> None:
+    def test_invalid_machine_id_propagates(self) -> None:
         """Invalid equipment code in list propagates error."""
         with pytest.raises(InputValidationError):
-            validate_analytics_request(equipment_codes=["EQ001", "'; DROP--"])
+            validate_analytics_request(machine_ids=["EQ001", "'; DROP--"])
 
     def test_invalid_date_propagates(self) -> None:
         """Invalid date format propagates error."""
@@ -504,4 +504,4 @@ class TestValidateAnalyticsRequest:
     def test_invalid_supplier_propagates(self) -> None:
         """Invalid supplier name propagates error."""
         with pytest.raises(InputValidationError):
-            validate_analytics_request(supplier_names=["Acme'; DROP TABLE--"])
+            validate_analytics_request(vendor_names=["Acme'; DROP TABLE--"])

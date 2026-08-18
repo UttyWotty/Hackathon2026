@@ -40,7 +40,7 @@ def validate_dataframe(
         DataValidationError: If validation fails
 
     Example:
-        >>> validate_dataframe(df, ["EQUIPMENT_CODE", "DATE"], min_rows=10)
+        >>> validate_dataframe(df, ["MACHINE_ID", "DATE"], min_rows=10)
     """
     # Check if DataFrame exists and is not None
     if df is None:
@@ -74,15 +74,15 @@ def validate_dataframe(
     return True
 
 
-def validate_equipment_codes(
-    equipment_codes: Any,
+def validate_machine_ids(
+    machine_ids: Any,
     allow_empty: bool = False,
 ) -> List[str]:
     """
     Validate and normalize equipment codes.
 
     Args:
-        equipment_codes: Equipment code(s) - can be string, list, or None
+        machine_ids: Equipment code(s) - can be string, list, or None
         allow_empty: Whether to allow empty/None values
 
     Returns:
@@ -92,27 +92,27 @@ def validate_equipment_codes(
         DataValidationError: If validation fails
 
     Example:
-        >>> codes = validate_equipment_codes("MX-7110")
-        >>> codes = validate_equipment_codes(["MX-7110", "MX-7109"])
+        >>> codes = validate_machine_ids("MX-7110")
+        >>> codes = validate_machine_ids(["MX-7110", "MX-7109"])
     """
-    if equipment_codes is None or equipment_codes == []:
+    if machine_ids is None or machine_ids == []:
         if allow_empty:
             return []
         raise DataValidationError("Equipment codes cannot be empty")
 
     # Convert to list if single string
-    if isinstance(equipment_codes, str):
-        equipment_codes = [equipment_codes]
+    if isinstance(machine_ids, str):
+        machine_ids = [machine_ids]
 
     # Validate it's a list
-    if not isinstance(equipment_codes, list):
+    if not isinstance(machine_ids, list):
         raise DataValidationError(
-            f"Equipment codes must be a string or list, got {type(equipment_codes)}"
+            f"Equipment codes must be a string or list, got {type(machine_ids)}"
         )
 
     # Validate each code is a non-empty string
     validated_codes = []
-    for code in equipment_codes:
+    for code in machine_ids:
         if not isinstance(code, str):
             raise DataValidationError(
                 f"Equipment code must be string, got {type(code)}: {code}"
@@ -230,7 +230,7 @@ def check_data_quality(
         dict: Data quality report
 
     Example:
-        >>> report = check_data_quality(df, "EQUIPMENT_CODE", max_null_percentage=5.0)
+        >>> report = check_data_quality(df, "MACHINE_ID", max_null_percentage=5.0)
         >>> print(f"Null percentage: {report['null_percentage']:.2f}%")
     """
     if column not in df.columns:
@@ -278,7 +278,7 @@ def validate_schema(
 
     Example:
         >>> schema = {
-        ...     "EQUIPMENT_CODE": "object",
+        ...     "MACHINE_ID": "object",
         ...     "DATE": "datetime64[ns]",
         ...     "SHOTS": "int64"
         ... }
@@ -316,7 +316,7 @@ __version__ = "1.0.0"
 __author__ = "Utku Gulbardak"
 __all__ = [
     "validate_dataframe",
-    "validate_equipment_codes",
+    "validate_machine_ids",
     "validate_date_range",
     "validate_numeric_parameter",
     "check_data_quality",

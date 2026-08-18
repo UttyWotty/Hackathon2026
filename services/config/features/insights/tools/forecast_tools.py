@@ -1,6 +1,6 @@
 """Production metric forecasting tool adapter.
 
-Builds a daily history series from DEMO_TABLE for shot volume or average cycle
+Builds a daily history series from SHOT_DATA for shot volume or average cycle
 time and extrapolates it with the trend/moving-average logic in analysis.insights.
 Exposes the forecast_metric MCP tool.
 """
@@ -22,29 +22,29 @@ MAX_HISTORY_DAYS: int = 365
 DEFAULT_HISTORY_DAYS: int = 60
 MAX_HORIZON_DAYS: int = 60
 DEFAULT_HORIZON_DAYS: int = 14
-HARD_STOP_CT: float = 999.0
+HARD_STOP_DURATION: float = 999.0
 
 METRIC_DAILY_SHOTS: str = "daily_shots"
-METRIC_DAILY_AVG_CT: str = "daily_avg_ct"
-SUPPORTED_METRICS: tuple = (METRIC_DAILY_SHOTS, METRIC_DAILY_AVG_CT)
+METRIC_DAILY_AVG_DURATION: str = "daily_avg_duration"
+SUPPORTED_METRICS: tuple = (METRIC_DAILY_SHOTS, METRIC_DAILY_AVG_DURATION)
 
 METRIC_EXPRESSIONS: Dict[str, str] = {
     METRIC_DAILY_SHOTS: "COUNT(*)",
-    METRIC_DAILY_AVG_CT: "AVG(CASE WHEN CT < %s THEN CT END)" % HARD_STOP_CT,
+    METRIC_DAILY_AVG_DURATION: "AVG(CASE WHEN CT < %s THEN CT END)" % HARD_STOP_duration,
 }
 
 
 def forecast_metric(
     metric: str = METRIC_DAILY_SHOTS,
-    equipment_code: Optional[str] = None,
+    machine_id: Optional[str] = None,
     history_days: int = DEFAULT_HISTORY_DAYS,
     horizon_days: int = DEFAULT_HORIZON_DAYS,
 ) -> Dict[str, Any]:
     """Forecast a daily production metric from its recent history.
 
     Args:
-        metric: daily_shots or daily_avg_ct (default: daily_shots).
-        equipment_code: Optional single-equipment filter (plant-wide when omitted).
+        metric: daily_shots or daily_avg_duration (default: daily_shots).
+        machine_id: Optional single-equipment filter (plant-wide when omitted).
         history_days: History window in days (default: 60, max: 365).
         horizon_days: Days to forecast (default: 14, max: 60).
 
@@ -62,19 +62,19 @@ def forecast_metric(
         horizon_days = positive_int(horizon_days, "horizon_days", MAX_HORIZON_DAYS)
 
         equipment_filter = ""
-        if equipment_code:
-            equipment_filter = "AND EQUIPMENT_CODE = '%s'" % safe_param(
-                equipment_code, "equipment_code"
+        if machine_id:
+            equipment_filter = "AND MACHINE_ID = '%s'" % safe_param(
+                machine_id, "machine_id"
             )
 
         rows = query_records(f"""
-            SELECT DATE(LOCAL_SHOT_TIME) AS DAY,
+            SELECT DATE(SHOT_TIME) AS DAY,
                    {METRIC_EXPRESSIONS[metric]} AS VALUE
-            FROM DEMO_TABLE
-            WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{history_days}, CURRENT_DATE())
-              AND EQUIPMENT_CODE IS NOT NULL
+            FROM SHOT_DATA
+            WHERE SHOT_TIME >= DATEADD(day, -{history_days}, CURRENT_DATE())
+              AND MACHINE_ID IS NOT NULL
               {equipment_filter}
-            GROUP BY DATE(LOCAL_SHOT_TIME)
+            GROUP BY DATE(SHOT_TIME)
             ORDER BY DAY
             """)
         history = [
@@ -95,7 +95,7 @@ def forecast_metric(
         return {
             "status": "success",
             "metric": metric,
-            "equipment_code": equipment_code,
+            "machine_id": machine_id,
             "history_days": history_days,
             "horizon_days": horizon_days,
             "active_history_days": len(history),

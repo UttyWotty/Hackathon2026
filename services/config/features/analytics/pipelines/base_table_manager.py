@@ -15,7 +15,7 @@ from .shared_config import OVERLAP_DAYS
 MAX_DELETE_FRACTION: float = 0.2
 DATETIME_PARSE_FORMAT: str = "%Y-%m-%d %H:%M:%S"
 DATE_FORMAT: str = "%Y-%m-%d"
-TIME_COLUMN: str = "LOCAL_SHOT_TIME"
+TIME_COLUMN: str = "SHOT_TIME"
 
 
 class BaseTableManager(ABC):
@@ -36,7 +36,7 @@ class BaseTableManager(ABC):
 
     @abstractmethod
     def get_table_name(self) -> str:
-        """Return the Snowflake table name (e.g., 'ROI', 'CT_DEVIATION')."""
+        """Return the Snowflake table name (e.g., 'ROI', 'DEVIATION')."""
 
     @abstractmethod
     def get_logger_name(self) -> str:
@@ -112,7 +112,7 @@ class BaseTableManager(ABC):
     ) -> Optional[str]:
         """Get the start date for incremental processing using global max-date.
 
-        Queries MAX(LOCAL_SHOT_TIME) from the table, then subtracts
+        Queries MAX(SHOT_TIME) from the table, then subtracts
         overlap_days for safety.
 
         Args:

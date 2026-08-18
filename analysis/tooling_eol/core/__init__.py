@@ -9,9 +9,9 @@ from .data_loader import (
     ensure_time_column,
     get_db_schema,
     normalize_columns,
-    read_demo_table,
+    read_shot_data,
     read_maintenance_events,
-    read_mold_table,
+    read_tool_table,
 )
 from .eol_predictor import (
     calculate_confidence_from_history,
@@ -32,9 +32,9 @@ __all__ = [
     # Data loading
     "create_snowpark_session",
     "get_db_schema",
-    "read_demo_table",
+    "read_shot_data",
     "read_maintenance_events",
-    "read_mold_table",
+    "read_tool_table",
     "normalize_columns",
     "ensure_time_column",
     # Rate calculation

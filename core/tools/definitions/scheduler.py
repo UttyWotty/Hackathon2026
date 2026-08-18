@@ -29,7 +29,7 @@ SCHEDULER_TOOLS: List[Dict[str, Any]] = [
                         },
                         "tool_name": {
                             "type": "string",
-                            "description": "Name of the tool to execute (e.g., 'refresh_demo_table', 'run_ct_deviation_analysis')",
+                            "description": "Name of the tool to execute (e.g., 'refresh_shot_data', 'run_deviation_analysis')",
                         },
                         "arguments": {
                             "type": "object",

@@ -83,20 +83,20 @@ def predict_end_of_life_for_mold(
     if mold_df.empty:
         raise ValueError("mold_df must contain at least one row for a specific mold")
 
-    mold_id = int(mold_df["MOLD_ID"].iloc[0]) if "MOLD_ID" in mold_df.columns else -1
-    # TOOLING_TYPE may be null/empty; leave tooling_family None so downstream
+    tool_id = int(mold_df["TOOL_ID"].iloc[0]) if "TOOL_ID" in mold_df.columns else -1
+    # TYPE may be null/empty; leave type_category None so downstream
     # config lookups fall back to their defaults instead of failing.
-    tooling_family = None
-    if "TOOLING_TYPE" in mold_df.columns and mold_df["TOOLING_TYPE"].notna().any():
-        tooling_family = str(mold_df["TOOLING_TYPE"].dropna().mode().iloc[0])
+    type_category = None
+    if "TYPE" in mold_df.columns and mold_df["TYPE"].notna().any():
+        type_category = str(mold_df["TYPE"].dropna().mode().iloc[0])
 
-    equipment_code = None
-    if "EQUIPMENT_CODE" in mold_df.columns and mold_df["EQUIPMENT_CODE"].notna().any():
-        equipment_code = str(mold_df["EQUIPMENT_CODE"].dropna().mode().iloc[0])
+    machine_id = None
+    if "MACHINE_ID" in mold_df.columns and mold_df["MACHINE_ID"].notna().any():
+        machine_id = str(mold_df["MACHINE_ID"].dropna().mode().iloc[0])
 
     # Build weekly series
-    tmp = mold_df.dropna(subset=["LOCAL_SHOT_TIME"]).copy()
-    tmp["WEEK_START"] = tmp["LOCAL_SHOT_TIME"].dt.to_period("W-MON").dt.start_time
+    tmp = mold_df.dropna(subset=["SHOT_TIME"]).copy()
+    tmp["WEEK_START"] = tmp["SHOT_TIME"].dt.to_period("W-MON").dt.start_time
     weekly_series = (
         tmp.groupby("WEEK_START")["SHOT_COUNT"].sum().replace(0, np.nan).dropna()
     ).sort_index()
@@ -113,7 +113,7 @@ def predict_end_of_life_for_mold(
         except Exception:
             design_life = None
     if not design_life:
-        design_life = get_design_life(tooling_family)
+        design_life = get_design_life(type_category)
 
     # Current shots observed in available data (may be a partial lifetime window)
     current_shots = int(mold_df.shape[0])
@@ -127,7 +127,7 @@ def predict_end_of_life_for_mold(
 
     # Use maintenance_events if provided: pick latest event before latest shot
     if maintenance_events is not None and not maintenance_events.empty:
-        me = maintenance_events[maintenance_events["MOLD_ID"] == mold_id]
+        me = maintenance_events[maintenance_events["TOOL_ID"] == tool_id]
         if not me.empty:
             me_sorted = me.sort_values("EVENT_TS")
             latest_event = me_sorted["EVENT_TS"].max()
@@ -154,7 +154,7 @@ def predict_end_of_life_for_mold(
 
     # If refurb timestamp available, reset shots since refurb
     if refurb_ts is not None:
-        shots_since_refurb = mold_df[mold_df["LOCAL_SHOT_TIME"] >= refurb_ts].shape[0]
+        shots_since_refurb = mold_df[mold_df["SHOT_TIME"] >= refurb_ts].shape[0]
         current_shots = int(shots_since_refurb)
 
     # Seasonal horizon adjustment: scale weekly rate if flagged seasonal
@@ -189,8 +189,8 @@ def predict_end_of_life_for_mold(
         remaining_days = np.inf
 
     latest_ts = None
-    if "LOCAL_SHOT_TIME" in mold_df.columns:
-        latest_ts = pd.to_datetime(mold_df["LOCAL_SHOT_TIME"].max())
+    if "SHOT_TIME" in mold_df.columns:
+        latest_ts = pd.to_datetime(mold_df["SHOT_TIME"].max())
 
     # Baseline for projection: use the later of latest shot time and today
     baseline_ts = None
@@ -207,8 +207,8 @@ def predict_end_of_life_for_mold(
 
     # Confidence: based on number of active weeks with shot activity
     num_weeks_active = (
-        mold_df.dropna(subset=["LOCAL_SHOT_TIME"])
-        .assign(WEEK=lambda d: d["LOCAL_SHOT_TIME"].dt.strftime("%G%V"))["WEEK"]
+        mold_df.dropna(subset=["SHOT_TIME"])
+        .assign(WEEK=lambda d: d["SHOT_TIME"].dt.strftime("%G%V"))["WEEK"]
         .nunique()
     )
     confidence = calculate_confidence_from_history(int(num_weeks_active))
@@ -276,8 +276,8 @@ def predict_end_of_life_for_mold(
         life_consumption_pct = float((current_shots / design_life) * 100.0)
 
     return ELCPrediction(
-        mold_id=mold_id,
-        equipment_code=equipment_code,
+        tool_id=tool_id,
+        machine_id=machine_id,
         latest_shot_time=latest_ts,
         current_shots_observed=current_shots,
         weekly_rate=float(w_rate),
@@ -320,7 +320,7 @@ def predict_end_of_life(
     """Run EOL prediction for all molds present in the dataframe.
 
     Args:
-        df: DEMO_TABLE DataFrame.
+        df: SHOT_DATA DataFrame.
         bins: Utilization bins for categorization.
         maintenance_events: Optional DataFrame with maintenance history.
 
@@ -330,7 +330,7 @@ def predict_end_of_life(
     if df.empty:
         return pd.DataFrame(
             columns=[
-                "MOLD_ID",
+                "TOOL_ID",
                 "LATEST_SHOT_TIME",
                 "CURRENT_SHOTS_OBSERVED",
                 "WEEKLY_RATE",
@@ -350,14 +350,14 @@ def predict_end_of_life(
     df = ensure_time_column(df)
 
     # Validate required column
-    if "MOLD_ID" not in df.columns:
+    if "TOOL_ID" not in df.columns:
         raise KeyError(
-            "Required column 'MOLD_ID' not found. Available columns: "
+            "Required column 'TOOL_ID' not found. Available columns: "
             + ", ".join(map(str, df.columns))
         )
 
     results: list[ELCPrediction] = []
-    for mold_id, mold_df in df.groupby("MOLD_ID"):
+    for tool_id, mold_df in df.groupby("TOOL_ID"):
         try:
             results.append(
                 predict_end_of_life_for_mold(
@@ -365,7 +365,7 @@ def predict_end_of_life(
                 )
             )
         except Exception as exc:
-            logger.warning(f"Skipping mold_id={mold_id} due to error: {exc}")
+            logger.warning(f"Skipping tool_id={tool_id} due to error: {exc}")
 
     # Convert dataclass list to DataFrame
     out = pd.DataFrame([r.__dict__ for r in results])
@@ -383,7 +383,7 @@ def predict_end_of_life(
         # Order / rename for clarity
         out = out.rename(
             columns={
-                "equipment_code": "EQUIPMENT_CODE",
+                "machine_id": "MACHINE_ID",
                 "latest_shot_time": "LATEST_SHOT_TIME",
                 "current_shots_observed": "CURRENT_SHOTS_OBSERVED",
                 "weekly_rate": "WEEKLY_RATE",
@@ -423,9 +423,9 @@ def predict_end_of_life(
             if col in out.columns:
                 out[col] = pd.to_numeric(out[col], errors="coerce").round(2)
 
-        # Sort by soonest EOL first using date value, then EQUIPMENT_CODE
+        # Sort by soonest EOL first using date value, then MACHINE_ID
         out = out.sort_values(
-            by=["PREDICTED_EOL_DATE", "EQUIPMENT_CODE"], na_position="last"
+            by=["PREDICTED_EOL_DATE", "MACHINE_ID"], na_position="last"
         )
 
     return out

@@ -122,8 +122,8 @@ class ROIDatabase:
 
     def fetch_data(
         self,
-        supplier_names: Optional[list] = None,
-        equipment_codes: Optional[list] = None,
+        vendor_names: Optional[list] = None,
+        machine_ids: Optional[list] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
     ) -> pd.DataFrame:
@@ -131,8 +131,8 @@ class ROIDatabase:
         Fetch ROI data from Snowflake or local CSV with optional filtering.
 
         Args:
-            supplier_names: Filter by supplier name(s) - list of names (optional)
-            equipment_codes: Filter by equipment code(s) - list of codes (optional)
+            vendor_names: Filter by supplier name(s) - list of names (optional)
+            machine_ids: Filter by equipment code(s) - list of codes (optional)
             start_date: Start date in YYYY-MM-DD format (optional)
             end_date: End date in YYYY-MM-DD format (optional)
 
@@ -141,36 +141,36 @@ class ROIDatabase:
         """
         if self._local_mode:
             return self._fetch_local(
-                supplier_names=supplier_names,
-                equipment_codes=equipment_codes,
+                vendor_names=vendor_names,
+                machine_ids=machine_ids,
                 start_date=start_date,
                 end_date=end_date,
             )
         # Build dynamic WHERE clause
-        where_conditions = ["volume > 0", "local_shot_time is not null"]
+        where_conditions = ["volume > 0", "shot_time is not null"]
 
-        if supplier_names and len(supplier_names) > 0:
+        if vendor_names and len(vendor_names) > 0:
             # Validate and sanitize supplier names
             import re
 
             sanitized_suppliers = []
-            for name in supplier_names:
+            for name in vendor_names:
                 # Validate format (alphanumeric, spaces, hyphens, underscores)
                 if not re.match(r"^[a-zA-Z0-9\s\-_]+$", name):
                     raise ValueError(f"Invalid supplier name format: {name}")
                 # Escape single quotes
                 sanitized_suppliers.append(name.replace("'", "''"))
             supplier_list = "', '".join(sanitized_suppliers)
-            where_conditions.append(f"supplier_name IN ('{supplier_list}')")
+            where_conditions.append(f"vendor_name IN ('{supplier_list}')")
 
-        if equipment_codes and len(equipment_codes) > 0:
+        if machine_ids and len(machine_ids) > 0:
             # Equipment codes are validated at API level - just sanitize for SQL injection
             sanitized_equipment = []
-            for code in equipment_codes:
+            for code in machine_ids:
                 # Escape single quotes for SQL safety
                 sanitized_equipment.append(code.replace("'", "''"))
             equipment_list = "', '".join(sanitized_equipment)
-            where_conditions.append(f"equipment_code IN ('{equipment_list}')")
+            where_conditions.append(f"machine_id IN ('{equipment_list}')")
 
         if start_date:
             # Validate date format
@@ -181,7 +181,7 @@ class ROIDatabase:
                     f"Invalid start_date format: {start_date}. Expected YYYY-MM-DD"
                 )
             safe_start_date = start_date.replace("'", "''")
-            where_conditions.append(f"local_shot_time >= '{safe_start_date} 00:00:00'")
+            where_conditions.append(f"shot_time >= '{safe_start_date} 00:00:00'")
         if end_date:
             # Validate date format
             import re
@@ -191,32 +191,32 @@ class ROIDatabase:
                     f"Invalid end_date format: {end_date}. Expected YYYY-MM-DD"
                 )
             safe_end_date = end_date.replace("'", "''")
-            where_conditions.append(f"local_shot_time <= '{safe_end_date} 23:59:59'")
+            where_conditions.append(f"shot_time <= '{safe_end_date} 23:59:59'")
 
         where_clause = " AND ".join(where_conditions)
 
-        # Get DEMO_TABLE location from env or session
+        # Get SHOT_DATA location from env or session
         shots_db = os.getenv("SHOT_DB") or self.session.get_current_database()
         shots_schema = os.getenv("SHOT_SCHEMA") or self.session.get_current_schema()
-        master_table = f"{shots_db}.{shots_schema}.DEMO_TABLE"
+        master_table = f"{shots_db}.{shots_schema}.SHOT_DATA"
 
         sql_query = f"""
         SELECT 
-            SUPPLIER_NAME,
-            EQUIPMENT_CODE,
-            MOLD_ID,
-            COMPANY_ID AS SUPPLIER_ID,
-            COUNTER_ID,
+            VENDOR_NAME,
+            MACHINE_ID,
+            TOOL_ID,
+            VENDOR_ID AS SUPPLIER_ID,
+            SENSOR_ID,
             1 AS TOTAL_SHOT_COUNT,
             VOLUME,
-            APPROVED_CT,
-            CT,
-            LOCAL_SHOT_TIME
+            TARGET_DURATION,
+            duration,
+            SHOT_TIME
         FROM {master_table}
-        WHERE CT < 999.9 
+        WHERE DURATION < 999.9 
             AND VOLUME > 0
             AND {where_clause}
-        ORDER BY EQUIPMENT_CODE, LOCAL_SHOT_TIME
+        ORDER BY MACHINE_ID, SHOT_TIME
         """
 
         # Calculate date range for logging
@@ -351,8 +351,8 @@ class ROIDatabase:
 
     def _fetch_local(
         self,
-        supplier_names: Optional[list] = None,
-        equipment_codes: Optional[list] = None,
+        vendor_names: Optional[list] = None,
+        machine_ids: Optional[list] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
     ) -> pd.DataFrame:
@@ -361,36 +361,36 @@ class ROIDatabase:
         Applies the same filters as fetch_data but against the local dataset.
 
         Args:
-            supplier_names: Filter by supplier name(s).
-            equipment_codes: Filter by equipment code(s).
+            vendor_names: Filter by supplier name(s).
+            machine_ids: Filter by equipment code(s).
             start_date: Start date in YYYY-MM-DD format.
             end_date: End date in YYYY-MM-DD format.
 
         Returns:
             DataFrame shaped like the ROI SQL query output.
         """
-        from analysis.shared.local_source import load_demo_table
+        from analysis.shared.local_source import load_shot_data
 
         logger.info("Serving ROI data from local dataset")
-        frame = load_demo_table()
+        frame = load_shot_data()
 
         # Apply same filters as the Snowflake query
-        frame = frame[(frame["VOLUME"] > 0) & frame["LOCAL_SHOT_TIME"].notna()]
+        frame = frame[(frame["VOLUME"] > 0) & frame["SHOT_TIME"].notna()]
 
-        if supplier_names:
-            frame = frame[frame["SUPPLIER_NAME"].isin(supplier_names)]
-        if equipment_codes:
-            frame = frame[frame["EQUIPMENT_CODE"].isin(equipment_codes)]
+        if vendor_names:
+            frame = frame[frame["VENDOR_NAME"].isin(vendor_names)]
+        if machine_ids:
+            frame = frame[frame["MACHINE_ID"].isin(machine_ids)]
         if start_date:
-            frame = frame[frame["LOCAL_SHOT_TIME"] >= f"{start_date} 00:00:00"]
+            frame = frame[frame["SHOT_TIME"] >= f"{start_date} 00:00:00"]
         if end_date:
-            frame = frame[frame["LOCAL_SHOT_TIME"] <= f"{end_date} 23:59:59"]
+            frame = frame[frame["SHOT_TIME"] <= f"{end_date} 23:59:59"]
 
         # Shape columns to match ROI SQL output
         result = frame.copy()
         result["TOTAL_SHOT_COUNT"] = 1
-        if "COMPANY_ID" in result.columns:
-            result["SUPPLIER_ID"] = result["COMPANY_ID"]
+        if "VENDOR_ID" in result.columns:
+            result["SUPPLIER_ID"] = result["VENDOR_ID"]
 
         logger.info("Local ROI data: %d records", len(result))
         return result

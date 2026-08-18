@@ -33,7 +33,7 @@ def _make_shot_df(
     """Build a shot DataFrame with explicit time gaps between shots.
 
     Args:
-        ct_values: Cycle time for each shot.
+        ct_values: Duration for each shot.
         gap_seconds: Time gap to the *next* shot. Length must be len(ct_values)-1.
         part: Part name for all rows.
         base_time: Timestamp of the first shot.
@@ -45,9 +45,9 @@ def _make_shot_df(
         times.append(times[-1] + timedelta(seconds=gap))
     return pd.DataFrame(
         {
-            "LOCAL_SHOT_TIME": pd.to_datetime(times),
-            "CT": ct_values,
-            "PART_NAME": [part] * n,
+            "SHOT_TIME": pd.to_datetime(times),
+            "DURATION": ct_values,
+            "PRODUCT_NAME": [part] * n,
         }
     )
 
@@ -104,7 +104,7 @@ class TestCalculateRealDowntime:
         assert result["DOWNTIME"].sum() == 0.0
 
     def test_invalid_ct_skipped(self) -> None:
-        """Rows where previous CT >= 999 are skipped."""
+        """Rows where previous DURATION >= 999 are skipped."""
         ct_values = [INVALID_CT_THRESHOLD, 10.0]
         gap_seconds = [500.0]
         df = _make_shot_df(ct_values, gap_seconds)
@@ -186,7 +186,7 @@ class TestDetectDowntimeEvents:
         ct_values = [10.0, 10.0, 10.0, 10.0, 10.0, 100.0]
         df = _make_simple_df(ct_values, interval_seconds=15.0)
         result = detect_downtime_events(df)
-        spike_row = result[result["CT"] == 100.0]
+        spike_row = result[result["DURATION"] == 100.0]
         assert bool(spike_row["DOWNTIME_CT_FLAG"].iloc[0]) is True
         assert bool(spike_row["DOWNTIME_EVENT"].iloc[0]) is True
 
@@ -201,8 +201,8 @@ class TestDetectDowntimeEvents:
         """A DataFrame with fewer than 2 rows returns without events."""
         df = pd.DataFrame(
             {
-                "LOCAL_SHOT_TIME": pd.to_datetime([datetime(2025, 6, 1, 8, 0, 0)]),
-                "CT": [10.0],
+                "SHOT_TIME": pd.to_datetime([datetime(2025, 6, 1, 8, 0, 0)]),
+                "DURATION": [10.0],
             }
         )
         result = detect_downtime_events(df)
@@ -225,8 +225,8 @@ class TestDetectDowntimeEvents:
         df = _make_simple_df(ct_values, interval_seconds=15.0)
         result_strict = detect_downtime_events(df.copy(), ct_multiplier=1.5)
         result_loose = detect_downtime_events(df.copy(), ct_multiplier=5.0)
-        spike_strict = result_strict[result_strict["CT"] == 25.0]
-        spike_loose = result_loose[result_loose["CT"] == 25.0]
+        spike_strict = result_strict[result_strict["DURATION"] == 25.0]
+        spike_loose = result_loose[result_loose["DURATION"] == 25.0]
         assert bool(spike_strict["DOWNTIME_CT_FLAG"].iloc[0]) is True
         assert bool(spike_loose["DOWNTIME_CT_FLAG"].iloc[0]) is False
 
@@ -267,8 +267,8 @@ class TestCalculateDowntimeStatistics:
         df = _make_shot_df(ct_values, gap_seconds, part=part)
         return detect_downtime_events(df)
 
-    def test_returns_dataframe_with_part_name(self) -> None:
-        """Returns a per-part downtime DataFrame when PART_NAME column exists."""
+    def test_returns_dataframe_with_product_name(self) -> None:
+        """Returns a per-part downtime DataFrame when PRODUCT_NAME column exists."""
         ct_values = [10.0, 10.0, 10.0]
         gap_seconds = [15.0, 15.0]
         result_df = self._prepare_detected_df(ct_values, gap_seconds)
@@ -276,17 +276,17 @@ class TestCalculateDowntimeStatistics:
         assert stats is not None
         assert isinstance(stats, pd.DataFrame)
 
-    def test_returns_none_without_part_name(self) -> None:
-        """Returns None when PART_NAME column is absent."""
+    def test_returns_none_without_product_name(self) -> None:
+        """Returns None when PRODUCT_NAME column is absent."""
         df = pd.DataFrame(
             {
-                "LOCAL_SHOT_TIME": pd.to_datetime(
+                "SHOT_TIME": pd.to_datetime(
                     [
                         datetime(2025, 6, 1, 8, 0, 0),
                         datetime(2025, 6, 1, 8, 0, 15),
                     ]
                 ),
-                "CT": [10.0, 10.0],
+                "DURATION": [10.0, 10.0],
             }
         )
         df = detect_downtime_events(df)

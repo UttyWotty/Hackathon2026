@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 async def run_tooling_eol_analysis(
-    tooling_family: Optional[str] = None,
+    type_category: Optional[str] = None,
     output_dir: Optional[str] = None,
     save_csv: Optional[bool] = True,
     save_html: Optional[bool] = False,
@@ -38,7 +38,7 @@ async def run_tooling_eol_analysis(
     - Maintenance history (optional)
 
     Args:
-        tooling_family: Tooling family type for family-specific config
+        type_category: Tooling family type for family-specific config
             ("Injection Molding", "Die Casting", "Stamping")
         output_dir: Directory to save output files
         save_csv: Whether to save CSV report (default: True)
@@ -56,7 +56,7 @@ async def run_tooling_eol_analysis(
     """
     try:
         logger.info(
-            f"Running tooling EOL analysis with tooling_family={tooling_family}, "
+            f"Running tooling EOL analysis with type_category={type_category}, "
             f"save_csv={save_csv}, save_html={save_html}"
         )
 
@@ -66,7 +66,7 @@ async def run_tooling_eol_analysis(
             save_csv=save_csv,
             save_html=save_html,
             disable_maintenance=disable_maintenance,
-            tooling_family=tooling_family,
+            type_category=type_category,
         )
 
         if result["status"] == "success":
@@ -159,7 +159,7 @@ TOOLING_EOL_TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "tooling_family": {
+                "type_category": {
                     "type": "string",
                     "description": (
                         "Tooling family type for family-specific OEE and utilization bins. "

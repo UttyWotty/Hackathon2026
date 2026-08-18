@@ -13,8 +13,8 @@ from .core_analysis.root_cause_analysis_pipeline import RootCauseAnalysisPipelin
 
 
 def run_analysis_api(
-    equipment_code: Optional[str] = None,
-    supplier_name: Optional[str] = None,
+    machine_id: Optional[str] = None,
+    vendor_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     API entry point for Root Cause Analysis (for LLM integration).
@@ -27,13 +27,13 @@ def run_analysis_api(
     - Actionable recommendations
 
     Args:
-        equipment_code: Equipment identifier (optional - analyzes specific equipment)
-        supplier_name: Supplier name (optional - for supplier-level analysis)
+        machine_id: Equipment identifier (optional - analyzes specific equipment)
+        vendor_name: Supplier name (optional - for supplier-level analysis)
 
     Returns:
         dict: {
             "status": "success"|"error",
-            "equipment_code": str,
+            "machine_id": str,
             "analysis_summary": {
                 "total_shots": int,
                 "issue_rate": float,
@@ -58,12 +58,12 @@ def run_analysis_api(
     logging.info("RCA API ENTRY POINT")
     logging.info("=" * 100)
     logging.info(
-        f"Parameters: equipment_code={equipment_code}, supplier_name={supplier_name}"
+        f"Parameters: machine_id={machine_id}, vendor_name={vendor_name}"
     )
     print("=" * 100)
     print("RCA API ENTRY POINT")
     print("=" * 100)
-    print(f"Parameters: equipment_code={equipment_code}, supplier_name={supplier_name}")
+    print(f"Parameters: machine_id={machine_id}, vendor_name={vendor_name}")
 
     try:
         # Ensure environment is loaded (same as other analysis modules)
@@ -89,12 +89,12 @@ def run_analysis_api(
 
         # Create and run pipeline
         logging.info(
-            f"Creating RootCauseAnalysisPipeline with equipment_filter={equipment_code}"
+            f"Creating RootCauseAnalysisPipeline with equipment_filter={machine_id}"
         )
         print(
-            f"Creating RootCauseAnalysisPipeline with equipment_filter={equipment_code}"
+            f"Creating RootCauseAnalysisPipeline with equipment_filter={machine_id}"
         )
-        pipeline = RootCauseAnalysisPipeline(equipment_filter=equipment_code)
+        pipeline = RootCauseAnalysisPipeline(equipment_filter=machine_id)
 
         # Run complete analysis
         logging.info("Running complete pipeline...")
@@ -104,7 +104,7 @@ def run_analysis_api(
         if not results:
             return {
                 "status": "error",
-                "error": f"No data found or analysis failed for equipment {equipment_code}",
+                "error": f"No data found or analysis failed for equipment {machine_id}",
                 "error_type": "DataNotFoundError",
             }
 
@@ -156,15 +156,15 @@ def run_analysis_api(
                             "DAY_OF_WEEK", pattern.get("HOUR", "Unknown")
                         ),
                         "issue_count": pattern.get("CT_ISSUE_FLAG", 0),
-                        "total_shots": pattern.get("CT", 0),
+                        "total_shots": pattern.get("DURATION", 0),
                         "issue_rate": pattern.get("Issue_Rate", 0),
                     }
                 )
 
         return {
             "status": "success",
-            "equipment_code": equipment_code or "All Equipment",
-            "supplier_name": supplier_name,
+            "machine_id": machine_id or "All Equipment",
+            "vendor_name": vendor_name,
             "analysis_summary": summary,
             "pareto_results": pipeline.pareto_results,  # Include full Pareto results for LLM
             "top_issues": top_issues,

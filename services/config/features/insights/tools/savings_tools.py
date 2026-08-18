@@ -1,8 +1,8 @@
-"""Cycle time savings simulation tool adapter.
+"""Duration savings simulation tool adapter.
 
-Aggregates observed versus target cycle times per equipment/part from
-DEMO_TABLE and sizes the opportunity with analysis.insights.savings.
-Targets are the approved CT or the best observed CT within the same approved CT group.
+Aggregates observed versus target durations per equipment/part from
+SHOT_DATA and sizes the opportunity with analysis.insights.savings.
+Targets are the approved duration or the best observed duration within the same approved duration group.
 """
 
 import logging
@@ -22,7 +22,7 @@ MAX_WINDOW_DAYS: int = 365
 DEFAULT_WINDOW_DAYS: int = 30
 DEFAULT_MIN_SHOTS: int = 100
 MAX_MIN_SHOTS: int = 1000000
-HARD_STOP_CT: float = 999.0
+HARD_STOP_DURATION: float = 999.0
 
 TARGET_APPROVED: str = "approved"
 TARGET_GROUP_BEST: str = "group_best"
@@ -30,57 +30,57 @@ SUPPORTED_TARGETS: tuple = (TARGET_APPROVED, TARGET_GROUP_BEST)
 
 
 def _fetch_aggregates(
-    days: int, min_shots: int, equipment_code: Optional[str]
+    days: int, min_shots: int, machine_id: Optional[str]
 ) -> List[Dict[str, Any]]:
     """Per equipment/part shot aggregates over the window."""
     equipment_filter = ""
-    if equipment_code:
-        equipment_filter = "AND EQUIPMENT_CODE = '%s'" % safe_param(
-            equipment_code, "equipment_code"
+    if machine_id:
+        equipment_filter = "AND MACHINE_ID = '%s'" % safe_param(
+            machine_id, "machine_id"
         )
     return query_records(f"""
         SELECT
-            EQUIPMENT_CODE,
-            PART_ID,
-            MAX(PART_NAME) AS PART_NAME,
-            MAX(APPROVED_CT) AS APPROVED_CT,
-            AVG(CASE WHEN CT < {HARD_STOP_CT} THEN CT END) AS AVG_CT,
-            COUNT(CASE WHEN CT < {HARD_STOP_CT} THEN 1 END) AS SHOTS
-        FROM DEMO_TABLE
-        WHERE LOCAL_SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
-          AND EQUIPMENT_CODE IS NOT NULL
+            MACHINE_ID,
+            PRODUCT_ID,
+            MAX(PRODUCT_NAME) AS PRODUCT_NAME,
+            MAX(TARGET_DURATION) AS TARGET_DURATION,
+            AVG(CASE WHEN CT < {HARD_STOP_DURATION} THEN CT END) AS AVG_DURATION,
+            COUNT(CASE WHEN CT < {HARD_STOP_DURATION} THEN 1 END) AS SHOTS
+        FROM SHOT_DATA
+        WHERE SHOT_TIME >= DATEADD(day, -{days}, CURRENT_DATE())
+          AND MACHINE_ID IS NOT NULL
           {equipment_filter}
-        GROUP BY EQUIPMENT_CODE, PART_ID
-        HAVING COUNT(CASE WHEN CT < {HARD_STOP_CT} THEN 1 END) >= {min_shots}
+        GROUP BY MACHINE_ID, PRODUCT_ID
+        HAVING COUNT(CASE WHEN CT < {HARD_STOP_DURATION} THEN 1 END) >= {min_shots}
         """)
 
 
 def _group_best_targets(rows: List[Dict[str, Any]]) -> Dict[Any, float]:
-    """Best (lowest) observed average CT per approved CT group."""
+    """Best (lowest) observed average duration per approved duration group."""
     best: Dict[Any, float] = {}
     for row in rows:
-        group = row.get("APPROVED_CT")
-        avg_ct = row.get("AVG_CT")
-        if group is None or avg_ct is None:
+        group = row.get("TARGET_DURATION")
+        avg_duration = row.get("AVG_DURATION")
+        if group is None or avg_duration is None:
             continue
-        if group not in best or avg_ct < best[group]:
-            best[group] = avg_ct
+        if group not in best or avg_duration < best[group]:
+            best[group] = avg_duration
     return best
 
 
 def simulate_savings(
     days: int = DEFAULT_WINDOW_DAYS,
     target: str = TARGET_APPROVED,
-    equipment_code: Optional[str] = None,
+    machine_id: Optional[str] = None,
     min_shots: int = DEFAULT_MIN_SHOTS,
 ) -> Dict[str, Any]:
-    """Size the opportunity if equipment ran at a target cycle time.
+    """Size the opportunity if equipment ran at a target duration.
 
     Args:
         days: Analysis window in days (default: 30, max: 365).
-        target: 'approved' compares to APPROVED_CT; 'group_best' compares to the
-            best observed average CT within the same approved CT group.
-        equipment_code: Optional single-equipment filter.
+        target: 'approved' compares to TARGET_DURATION; 'group_best' compares to the
+            best observed average duration within the same approved duration group.
+        machine_id: Optional single-equipment filter.
         min_shots: Minimum valid shots per equipment/part to include (default: 100).
 
     Returns:
@@ -95,23 +95,23 @@ def simulate_savings(
         days = positive_int(days, "days", MAX_WINDOW_DAYS)
         min_shots = positive_int(min_shots, "min_shots", MAX_MIN_SHOTS)
 
-        rows = _fetch_aggregates(days, min_shots, equipment_code)
+        rows = _fetch_aggregates(days, min_shots, machine_id)
         group_best = _group_best_targets(rows) if target == TARGET_GROUP_BEST else {}
 
         records = []
         for row in rows:
             if target == TARGET_APPROVED:
-                target_ct = row.get("APPROVED_CT")
+                target_duration = row.get("TARGET_DURATION")
             else:
-                target_ct = group_best.get(row.get("APPROVED_CT"))
+                target_duration = group_best.get(row.get("TARGET_DURATION"))
             records.append(
                 {
-                    "equipment_code": row.get("EQUIPMENT_CODE"),
-                    "part_id": row.get("PART_ID"),
-                    "part_name": row.get("PART_NAME"),
+                    "machine_id": row.get("MACHINE_ID"),
+                    "product_id": row.get("PRODUCT_ID"),
+                    "product_name": row.get("PRODUCT_NAME"),
                     "shots": row.get("SHOTS") or 0,
-                    "avg_ct": round(row["AVG_CT"], 3) if row.get("AVG_CT") else None,
-                    "target_ct": target_ct,
+                    "avg_duration": round(row["AVG_DURATION"], 3) if row.get("AVG_DURATION") else None,
+                    "target_duration": target_duration,
                 }
             )
 
@@ -127,7 +127,7 @@ def simulate_savings(
             "records": result["records"],
             "notes": (
                 "group_best compares each tool to the fastest tool sharing the same "
-                "approved CT; approved compares to the approved CT itself."
+                "approved duration; approved compares to the approved duration itself."
             ),
         }
     except Exception as e:

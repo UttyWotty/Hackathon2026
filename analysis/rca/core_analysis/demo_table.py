@@ -19,7 +19,7 @@ from analysis.shared import create_snowflake_connection
 from analysis.shared.error_handling import ProcessingError
 from analysis.shared.logging import setup_module_logger
 
-logger = setup_module_logger("DEMO_TABLE")
+logger = setup_module_logger("SHOT_DATA")
 
 # ---------------------------------------------------------------------
 # Load Snowflake credentials from .env
@@ -77,7 +77,7 @@ def get_session():
 # -------------------------------------------------------
 def fetch_data_from_snowflake(session=None):
     """
-    Fetches data from the existing DEMO_TABLE in Snowflake.
+    Fetches data from the existing SHOT_DATA in Snowflake.
 
     Args:
         session (snowflake.snowpark.Session): Active Snowflake session (optional - created if None).
@@ -95,7 +95,7 @@ def fetch_data_from_snowflake(session=None):
         session = get_session()
         logger.info("✅ Session created successfully")
 
-    # Query DEMO_TABLE directly (RCA uses raw data)
+    # Query SHOT_DATA directly (RCA uses raw data)
     # RCA needs the full shot-level data for root cause analysis
     # Get database and schema from environment
     database = os.getenv("SNOWFLAKE_DATABASE", "MMS")
@@ -113,12 +113,12 @@ def fetch_data_from_snowflake(session=None):
     logger.info("Environment variables:")
     logger.info(f"   Database: {database}")
     logger.info(f"   Schema: {schema}")
-    logger.info(f"   Target table: {database}.{schema}.DEMO_TABLE")
+    logger.info(f"   Target table: {database}.{schema}.SHOT_DATA")
 
     # First, check if table exists and has data
     try:
         check_query = (
-            f"SELECT COUNT(*) as ROW_COUNT FROM {database}.{schema}.DEMO_TABLE"
+            f"SELECT COUNT(*) as ROW_COUNT FROM {database}.{schema}.SHOT_DATA"
         )
         logger.info(f"🔍 Checking table existence: {check_query}")
 
@@ -132,13 +132,13 @@ def fetch_data_from_snowflake(session=None):
 
         # Snowflake returns uppercase column names by default
         total_rows = count_df["ROW_COUNT"].iloc[0] if not count_df.empty else 0
-        logger.info(f"📊 DEMO_TABLE has {total_rows:,} total rows")
+        logger.info(f"📊 SHOT_DATA has {total_rows:,} total rows")
 
         if total_rows == 0:
-            logger.error("❌ DEMO_TABLE exists but is empty!")
+            logger.error("❌ SHOT_DATA exists but is empty!")
             return pd.DataFrame()
     except Exception as e:
-        logger.error(f"❌ Error checking DEMO_TABLE: {str(e)}")
+        logger.error(f"❌ Error checking SHOT_DATA: {str(e)}")
         logger.error(f"❌ Error type: {type(e).__name__}")
         logger.error("💡 Table might not exist or you don't have access")
         import traceback
@@ -149,60 +149,60 @@ def fetch_data_from_snowflake(session=None):
 
     sql_query = f"""
     SELECT 
-        SUPPLIER_NAME,
-        EQUIPMENT_CODE,
-        COUNTER_CODE,
-        CT,
-        APPROVED_CT,
+        VENDOR_NAME,
+        MACHINE_ID,
+        SENSOR_CODE,
+        duration,
+        TARGET_DURATION,
         TEMPERATURE,
-        PART_NAME,
-        TOOLING_TYPE,
-        TOOLING_TYPE AS TOOLING_FAMILY,
-        CT_STATUS,
-        LOCAL_SHOT_TIME,
+        PRODUCT_NAME,
+        TYPE,
+        TYPE AS TYPE,
+        STATUS,
+        SHOT_TIME,
         VOLUME,
-        COUNTER_ID,
-        MOLD_ID,
-        COMPANY_ID,
-        PART_ID
-    FROM {database}.{schema}.DEMO_TABLE
-    WHERE SUPPLIER_NAME IS NOT NULL 
-    AND PART_NAME IS NOT NULL
-    ORDER BY LOCAL_SHOT_TIME DESC
+        SENSOR_ID,
+        TOOL_ID,
+        VENDOR_ID,
+        PRODUCT_ID
+    FROM {database}.{schema}.SHOT_DATA
+    WHERE VENDOR_NAME IS NOT NULL 
+    AND PRODUCT_NAME IS NOT NULL
+    ORDER BY SHOT_TIME DESC
     LIMIT 100000
     """
     start_time = time.time()
     logger.info("🔍 Executing main data query...")
     logger.info(f"Full query: {sql_query}")
-    logger.info(f"🔍 Querying: {database}.{schema}.DEMO_TABLE")
+    logger.info(f"🔍 Querying: {database}.{schema}.SHOT_DATA")
 
     try:
         df = session.sql(sql_query).to_pandas()
         elapsed = round(time.time() - start_time, 2)
         logger.info(f"✅ Query executed in {elapsed} seconds")
-        logger.info(f"✅ Retrieved {len(df)} rows from DEMO_TABLE")
+        logger.info(f"✅ Retrieved {len(df)} rows from SHOT_DATA")
         logger.info(f"📊 DataFrame shape: {df.shape}")
         logger.info(f"📊 DataFrame columns: {df.columns.tolist()}")
-        logger.info(f"✅ Retrieved {len(df):,} rows from DEMO_TABLE in {elapsed}s")
+        logger.info(f"✅ Retrieved {len(df):,} rows from SHOT_DATA in {elapsed}s")
     except Exception as e:
         logger.error(f"❌ Error executing main query: {str(e)}")
-        raise ProcessingError(f"DEMO_TABLE query failed: {e}") from e
+        raise ProcessingError(f"SHOT_DATA query failed: {e}") from e
 
     if len(df) > 0:
         logger.info(
-            f"Sample equipment codes in data: {df['EQUIPMENT_CODE'].unique()[:10].tolist()}"
+            f"Sample equipment codes in data: {df['MACHINE_ID'].unique()[:10].tolist()}"
         )
         logger.info(
-            f"🔧 Available equipment: {df['EQUIPMENT_CODE'].nunique()} unique codes"
+            f"🔧 Available equipment: {df['MACHINE_ID'].nunique()} unique codes"
         )
-        logger.info(f"📦 Available parts: {df['PART_NAME'].nunique()} unique parts")
+        logger.info(f"📦 Available parts: {df['PRODUCT_NAME'].nunique()} unique parts")
         logger.info(
-            f"📅 Date range: {df['LOCAL_SHOT_TIME'].min()} to {df['LOCAL_SHOT_TIME'].max()}"
+            f"📅 Date range: {df['SHOT_TIME'].min()} to {df['SHOT_TIME'].max()}"
         )
     else:
         logger.warning("⚠️ No data returned from query after applying filters!")
         logger.warning(
-            "💡 Check if SUPPLIER_NAME and PART_NAME columns have NULL values"
+            "💡 Check if VENDOR_NAME and PRODUCT_NAME columns have NULL values"
         )
 
     return df
@@ -211,7 +211,7 @@ def fetch_data_from_snowflake(session=None):
 # -------------------------------------------------------
 def create_result_table(session):
     """
-    Creates the DEMO_TABLE result table in Snowflake if it does not already exist.
+    Creates the SHOT_DATA result table in Snowflake if it does not already exist.
 
     Args:
         session (snowflake.snowpark.Session): Active Snowflake session.
@@ -221,33 +221,33 @@ def create_result_table(session):
     """
     exists_query = """
     SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
-    WHERE TABLE_SCHEMA = 'CALDERA' AND TABLE_NAME = 'DEMO_TABLE'
+    WHERE TABLE_SCHEMA = 'CALDERA' AND TABLE_NAME = 'SHOT_DATA'
     """
     result = session.sql(exists_query).collect()
     if result[0][0] == 0:
         create_query = """
-        CREATE TABLE MMS.CALDERA.DEMO_TABLE (
-            SUPPLIER_NAME STRING,
-            EQUIPMENT_CODE STRING,
-            COUNTER_CODE STRING,
+        CREATE TABLE MMS.CALDERA.SHOT_DATA (
+            VENDOR_NAME STRING,
+            MACHINE_ID STRING,
+            SENSOR_CODE STRING,
             CT FLOAT,
-            APPROVED_CT FLOAT,
+            TARGET_DURATION FLOAT,
             TEMPERATURE FLOAT,
-            PART_NAME STRING,
-            TOOLING_TYPE STRING,
-            TOOLING_FAMILY STRING,
-            CT_STATUS STRING,
-            LOCAL_SHOT_TIME TIMESTAMP,
+            PRODUCT_NAME STRING,
+            TYPE STRING,
+            TYPE STRING,
+            STATUS STRING,
+            SHOT_TIME TIMESTAMP,
             VOLUME NUMBER,
-            COUNTER_ID NUMBER,
-            MOLD_ID NUMBER,
-            COMPANY_ID NUMBER,
-            PART_ID STRING,
+            SENSOR_ID NUMBER,
+            TOOL_ID NUMBER,
+            VENDOR_ID NUMBER,
+            PRODUCT_ID STRING,
             UPLOAD_TIME TIMESTAMP DEFAULT CURRENT_TIMESTAMP()
         )
         """
         session.sql(create_query).collect()
-        logger.info("✅ Created table: DEMO_TABLE")
+        logger.info("✅ Created table: SHOT_DATA")
     else:
         logger.warning("ℹ️ Table already exists")
 
@@ -257,11 +257,11 @@ def create_result_table(session):
 
 def upload_data_to_snowflake(connector_conn, df, chunk_size=500000):
     """
-    Uploads the processed DEMO_TABLE DataFrame to the Snowflake DEMO_TABLE table in chunks.
+    Uploads the processed SHOT_DATA DataFrame to the Snowflake SHOT_DATA table in chunks.
 
     Args:
         connector_conn (snowflake.connector.SnowflakeConnection): Snowflake connector connection.
-        df (pd.DataFrame): DataFrame containing processed DEMO_TABLE data.
+        df (pd.DataFrame): DataFrame containing processed SHOT_DATA data.
         chunk_size (int, optional): Number of rows per upload chunk. Defaults to 500000.
 
     Returns:
@@ -292,7 +292,7 @@ def upload_data_to_snowflake(connector_conn, df, chunk_size=500000):
             write_pandas(
                 conn=connector_conn,
                 df=chunk,
-                table_name="DEMO_TABLE",
+                table_name="SHOT_DATA",
                 schema="CALDERA",
                 database="MMS",
                 overwrite=not overwrite_done,
@@ -316,7 +316,7 @@ if __name__ == "__main__":
     df = fetch_data_from_snowflake(session)
 
     if not df.empty:
-        df["LOCAL_SHOT_TIME"] = pd.to_datetime(df["LOCAL_SHOT_TIME"]).dt.strftime(
+        df["SHOT_TIME"] = pd.to_datetime(df["SHOT_TIME"]).dt.strftime(
             "%Y-%m-%d %H:%M:%S"
         )
         create_result_table(session)

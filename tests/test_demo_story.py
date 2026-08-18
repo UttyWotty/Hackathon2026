@@ -28,27 +28,27 @@ WEEK_TWO = "2026-06-15"
 
 
 def _frame(rows: List[dict]) -> pd.DataFrame:
-    """Build a DEMO_TABLE-shaped frame from row dictionaries."""
+    """Build a SHOT_DATA-shaped frame from row dictionaries."""
     return pd.DataFrame(rows)
 
 
 def _shots(
-    equipment: str, day: str, ct: float, approved_ct: float, count: int
+    equipment: str, day: str, ct: float, target_duration: float, count: int
 ) -> List[dict]:
     """Repeat one shot shape count times on a given day."""
     return [
         {
-            "EQUIPMENT_CODE": equipment,
-            "LOCAL_SHOT_TIME": f"{day} 08:00:00",
-            "CT": ct,
-            "APPROVED_CT": approved_ct,
+            "MACHINE_ID": equipment,
+            "SHOT_TIME": f"{day} 08:00:00",
+            "DURATION": ct,
+            "TARGET_DURATION": target_duration,
         }
         for _ in range(count)
     ]
 
 
 def test_weekly_deviation_computes_percentage_above_approved():
-    df = _frame(_shots(EQUIPMENT, WEEK_ONE, ct=11.0, approved_ct=10.0, count=100))
+    df = _frame(_shots(EQUIPMENT, WEEK_ONE, ct=11.0, target_duration=10.0, count=100))
     weekly = weekly_deviation(df)
     assert len(weekly) == 1
     assert weekly[COL_DEVIATION].iloc[0] == pytest.approx(10.0)
@@ -70,12 +70,12 @@ def test_weekly_deviation_separates_machines():
         + _shots(PEER, WEEK_ONE, 10.1, 10.0, 100)
     )
     weekly = weekly_deviation(df)
-    assert set(weekly["EQUIPMENT_CODE"]) == {EQUIPMENT, PEER}
+    assert set(weekly["MACHINE_ID"]) == {EQUIPMENT, PEER}
     assert drift_magnitude(weekly, PEER) == pytest.approx([1.0])
 
 
-def test_weekly_deviation_drops_sentinel_cycle_times():
-    """The chart applies the CT deviation predicate, so 999.9 never counts."""
+def test_weekly_deviation_drops_sentinel_durations():
+    """The chart applies the duration deviation predicate, so 999.9 never counts."""
     df = _frame(
         _shots(EQUIPMENT, WEEK_ONE, 11.0, 10.0, 100)
         + _shots(EQUIPMENT, WEEK_ONE, 999.9, 10.0, 100)
@@ -97,16 +97,16 @@ def test_weekly_deviation_drops_a_week_below_the_shot_floor():
 def test_weekly_deviation_returns_an_empty_frame_for_empty_input():
     weekly = weekly_deviation(
         _frame([]).reindex(
-            columns=["EQUIPMENT_CODE", "LOCAL_SHOT_TIME", "CT", "APPROVED_CT"]
+            columns=["MACHINE_ID", "SHOT_TIME", "DURATION", "TARGET_DURATION"]
         )
     )
     assert weekly.empty
-    assert list(weekly.columns) == ["EQUIPMENT_CODE", COL_WEEK, COL_DEVIATION]
+    assert list(weekly.columns) == ["MACHINE_ID", COL_WEEK, COL_DEVIATION]
 
 
 def test_weekly_deviation_rejects_a_frame_missing_a_column():
     with pytest.raises(StoryError):
-        weekly_deviation(_frame([{"EQUIPMENT_CODE": EQUIPMENT}]))
+        weekly_deviation(_frame([{"MACHINE_ID": EQUIPMENT}]))
 
 
 def test_to_chart_frame_gives_one_column_per_machine():

@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 from demo.presenters import (
     EMPTY_LIST_LABEL,
     NO_TOOL_LABEL,
-    PHASE_ACT,
+    PHASE_Aduration,
     PHASE_ORDER,
     PHASE_REASON,
     PHASE_SENSE,
@@ -63,7 +63,7 @@ def test_build_step_row_labels_a_step_that_called_no_tool():
 
 
 def test_build_step_row_truncates_an_oversized_payload():
-    row = build_step_row(_step(1, PHASE_ACT, payload="x" * 5000))
+    row = build_step_row(_step(1, PHASE_Aduration, payload="x" * 5000))
     assert len(row.payload) < 5000
     assert row.payload.endswith("...")
 
@@ -83,9 +83,9 @@ def test_group_steps_by_phase_keeps_an_empty_act_group_visible():
 def test_group_steps_by_phase_assigns_each_step_to_its_own_phase():
     groups = group_steps_by_phase(
         [
-            _step(1, PHASE_SENSE, tool_name="run_ct_deviation_analysis"),
-            _step(2, PHASE_ACT, tool_name="send_email"),
-            _step(3, PHASE_ACT, tool_name="schedule_job"),
+            _step(1, PHASE_SENSE, tool_name="run_deviation_analysis"),
+            _step(2, PHASE_Aduration, tool_name="send_email"),
+            _step(3, PHASE_Aduration, tool_name="schedule_job"),
         ]
     )
     counts = {group.phase: len(group.rows) for group in groups}

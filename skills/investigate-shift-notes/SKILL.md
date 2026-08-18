@@ -33,11 +33,11 @@ Creating the service:
 ```sql
 CREATE OR REPLACE CORTEX SEARCH SERVICE shift_note_search
   ON note_text
-  ATTRIBUTES equipment_code, shift_date
+  ATTRIBUTES machine_id, shift_date
   WAREHOUSE = <warehouse>
   TARGET_LAG = '1 day'
   EMBEDDING_MODEL = 'snowflake-arctic-embed-l-v2.0'
-  AS (SELECT note_text, equipment_code, shift_date FROM SHIFT_NOTE);
+  AS (SELECT note_text, machine_id, shift_date FROM SHIFT_NOTE);
 ```
 
 ## Workflow
