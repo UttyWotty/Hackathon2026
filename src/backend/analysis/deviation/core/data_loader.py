@@ -51,7 +51,7 @@ def create_snowpark_session() -> Session:
 
         # Validate required environment variables
         missing_vars = [
-            key for key, value in connection_parameters.items() if not value
+            key for key, value in connection_parameters.items() if value is None
         ]
         if missing_vars:
             raise ValueError(
@@ -105,7 +105,7 @@ def create_snowflake_connector() -> snowflake.connector.SnowflakeConnection:
 
         # Validate required environment variables
         missing_vars = [
-            key for key, value in connection_parameters.items() if not value
+            key for key, value in connection_parameters.items() if value is None
         ]
         if missing_vars:
             raise ValueError(
