@@ -9,6 +9,9 @@ fallback notes for known platform constraints.
 - **Snowsight URL:** `https://app.snowflake.com/IQSISUH/rb95130/`
 - **Demo user:** `DEMO_USER` (role: `DEMO_ROLE`, warehouse: `COMPUTE_WH`)
 - **App:** Streamlit Apps > `AUTONOMOUS_MFG_AGENT_DEMO`
+- **App direct link:** `https://app.snowflake.com/IQSISUH/rb95130/#/streamlit-apps/DEMO.PUBLIC.AUTONOMOUS_MFG_AGENT_DEMO`
+- **Webhook.site (live alert proof):** `https://webhook.site/#!/view/cdd8ec2e-714a-4208-8f1b-0bcc06353d15`
+- **Webhook.site token expires:** 2026-08-26
 
 ## Pre-Demo State Reset
 
@@ -65,6 +68,19 @@ This gives: 8 machines, all active, empty audit trail, no MX-9201.
 - Same Cards v2 schema as the backend Google Chat client
 - Talking point: "SiS sandbox can't make outbound HTTP (trial account, no EAI),
   but the payload is production-ready -- identical to what lands in Google Chat"
+
+### 6. Live Webhook Delivery (if SME asks to see it land)
+
+- Open the webhook.site tab (link in Access section above)
+- Run this one-liner in your terminal:
+
+```bash
+snow sql -q "SELECT WEBHOOK_PAYLOAD::VARCHAR FROM DEMO.PUBLIC.AUDIT_LOG WHERE ACTION_TYPE='ALERT' AND WEBHOOK_PAYLOAD IS NOT NULL ORDER BY TIMESTAMP DESC LIMIT 1" --connection RB95130 --format json | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['WEBHOOK_PAYLOAD::VARCHAR'])" | curl -s -X POST "https://webhook.site/cdd8ec2e-714a-4208-8f1b-0bcc06353d15" -H "Content-Type: application/json" -d @-
+```
+
+- SME sees the Cards v2 payload land live in the webhook.site tab
+- Talking point: "The payload goes from Snowflake audit table to external endpoint.
+  In production, the backend client POSTs this automatically to Google Chat."
 
 ## Key Talking Points
 
