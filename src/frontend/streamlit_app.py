@@ -5,6 +5,7 @@ with interactive controls for on-demand anomaly sweeps, CSV uploads,
 and per-equipment root cause investigations.
 """
 
+import pandas as pd
 import streamlit as st
 from action_loop import (
     render_action_buttons,
@@ -140,13 +141,21 @@ def render_kpi_cards(summary_df):
     num_machines = len(summary_df)
     worst_deviation = summary_df["DEVIATION_PCT"].max()
     worst_machine = summary_df.iloc[0]["MACHINE_ID"]
-    avg_cv = summary_df["CV_PCT"].mean()
+
+    stability_col = 100.0 - summary_df["CV_PCT"]
+    worst_stability_idx = stability_col.idxmin()
+    worst_stability = stability_col.iloc[worst_stability_idx]
+    worst_stability_machine = summary_df.iloc[worst_stability_idx]["MACHINE_ID"]
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Shots", f"{total_shots:,.0f}")
     col2.metric("Fleet Size", f"{num_machines} machines")
     col3.metric("Worst Deviation", f"{worst_deviation:.1f}%", delta=f"{worst_machine}")
-    col4.metric("Avg Fleet CV", f"{avg_cv:.1f}%")
+    col4.metric(
+        "Lowest Stability",
+        f"{worst_stability:.1f}%",
+        delta=f"{worst_stability_machine}",
+    )
 
 
 def render_drift_tab(deviation_df):
@@ -164,8 +173,8 @@ def render_drift_tab(deviation_df):
         )
     with col2:
         st.warning(
-            f"**Alert:** {DRIFT_EQUIPMENT} crossed critical threshold "
-            f"(>{CRITICAL_DEVIATION_PCT}%) in week 6."
+            f"**Alert:** {DRIFT_EQUIPMENT} crossed autonomous action threshold "
+            f"(>{WARNING_DEVIATION_PCT}%) in week 3 -- agent intervened automatically."
         )
 
     chart_data = deviation_df.copy()
@@ -316,13 +325,24 @@ def render_drift_tab(deviation_df):
                 "significantly long",
                 "well over",
             ]
+
+            week_starts = pd.to_datetime(drift_detail["WEEK_START"])
+            deviations = drift_detail["DEVIATION_PCT"].values
+
             for _, note_row in notes.iterrows():
                 note_text = str(note_row["NOTE_TEXT"]).lower()
                 is_corroborating = any(kw in note_text for kw in corroboration_keywords)
                 if is_corroborating:
+                    note_date = pd.to_datetime(note_row["SHIFT_DATE"])
+                    diffs = abs(week_starts - note_date)
+                    nearest_idx = diffs.argmin()
+                    matched_week = week_starts.iloc[nearest_idx].strftime("%Y-%m-%d")
+                    matched_dev = deviations[nearest_idx]
                     st.warning(
                         f"**{note_row['SHIFT_DATE']}** | {note_row['AUTHOR_ROLE']}\n\n"
-                        f"{note_row['NOTE_TEXT']}"
+                        f"{note_row['NOTE_TEXT']}\n\n"
+                        f"--- Corroborates **{matched_dev:.1f}% deviation spike** "
+                        f"(week of {matched_week})"
                     )
                 else:
                     st.text(f"[{note_row['SHIFT_DATE']}] {note_row['NOTE_TEXT']}")
@@ -331,7 +351,7 @@ def render_drift_tab(deviation_df):
         st.markdown(
             "**Key insight:** Operators noted 'cycle drifting further from standard' "
             "and 'ejection sluggish on the B half' weeks before the deviation crossed "
-            "the critical 15% threshold. The agent correlates these unstructured signals "
+            "the critical 10% threshold. The agent correlates these unstructured signals "
             "with the quantitative drift to build a complete picture."
         )
 
@@ -466,6 +486,18 @@ def main():
         "Hackathon 2026 | Team: emoldinounited | "
         "Track: Intelligent Workflow Automation Agent"
     )
+
+    # Post-ingest: auto-sweep BEFORE rendering results
+    if st.session_state.pop("ingest_trigger_sweep", False):
+        from interactive_controls import run_anomaly_sweep, classify_severity
+
+        results = run_anomaly_sweep()
+        results["SEVERITY"] = results["DEVIATION_PCT"].apply(classify_severity)
+        st.session_state["sweep_results"] = results
+        st.cache_data.clear()
+
+    if st.session_state.pop("ingest_success", None):
+        st.success("Telemetry ingested. Fleet sweep re-run with new data.")
 
     # Show interactive results if triggered
     render_sweep_results()

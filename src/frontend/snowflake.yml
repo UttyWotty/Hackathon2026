@@ -13,3 +13,4 @@ entities:
       - "interactive_controls.py"
       - "action_loop.py"
       - "analysis_panels.py"
+      - "sample_telemetry_MX9201.csv"

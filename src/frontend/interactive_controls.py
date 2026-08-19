@@ -128,7 +128,8 @@ def render_sweep_results():
 def render_csv_upload():
     """Render CSV upload control for fresh telemetry data.
 
-    Uses text_area paste approach since SiS Streamlit version lacks file_uploader.
+    SiS runtime runs Streamlit 1.22 which lacks st.file_uploader.
+    Uses text_area paste approach as the supported alternative.
     """
     st.sidebar.markdown("---")
     st.sidebar.subheader("Upload Telemetry")
@@ -150,8 +151,9 @@ def _ingest_csv(df: pd.DataFrame):
             auto_create_table=False,
             overwrite=False,
         )
-        st.sidebar.success(f"Inserted {len(df)} rows into {SHOTS_TABLE}")
         st.cache_data.clear()
+        st.session_state["ingest_success"] = len(df)
+        st.session_state["ingest_trigger_sweep"] = True
         if "uploaded_preview" in st.session_state:
             del st.session_state["uploaded_preview"]
     except Exception as exc:
@@ -184,17 +186,24 @@ def render_upload_preview():
         "88202,4102,702,4,2026-08-01 09:00:00,2026-08-01\n"
     )
 
-    col_sample, col_clear = st.columns(2)
+    col_sample, col_demo, col_clear = st.columns(3)
     with col_sample:
-        if st.button("Load Sample Data"):
+        if st.button("Load Sample (3 rows)"):
             st.session_state["csv_text_input"] = SAMPLE_CSV
+    with col_demo:
+        if st.button("Load MX-9201 (3K rows)"):
+            import os
+
+            csv_path = os.path.join(
+                os.path.dirname(__file__), "sample_telemetry_MX9201.csv"
+            )
+            with open(csv_path, "r") as f:
+                st.session_state["csv_text_input"] = f.read()
     with col_clear:
         if st.button("Cancel Upload"):
             st.session_state["show_csv_paste"] = False
             if "csv_text_input" in st.session_state:
                 del st.session_state["csv_text_input"]
-            if "uploaded_preview_df" in st.session_state:
-                del st.session_state["uploaded_preview_df"]
             return
 
     csv_text = st.text_area(
@@ -286,6 +295,24 @@ def render_rca_results():
         else:
             st.dataframe(notes, use_container_width=True)
 
-    if st.button(f"Clear investigation for {machine}"):
-        del st.session_state["rca_machine"]
-        st.experimental_rerun()
+    col_clear, col_resolve = st.columns(2)
+    with col_clear:
+        if st.button(f"Close panel", key=f"close_{machine}"):
+            del st.session_state["rca_machine"]
+            st.experimental_rerun()
+    with col_resolve:
+        if st.button(
+            f"Mark {machine} resolved", key=f"resolve_{machine}", type="primary"
+        ):
+            from action_loop import update_equipment_status, _log_skill
+
+            update_equipment_status(machine, "active")
+            _log_skill(
+                "$investigate-shift-notes",
+                f"Investigation complete: {machine} marked resolved",
+            )
+            del st.session_state["rca_machine"]
+            if "resolved_machines" not in st.session_state:
+                st.session_state["resolved_machines"] = set()
+            st.session_state["resolved_machines"].add(machine)
+            st.experimental_rerun()
