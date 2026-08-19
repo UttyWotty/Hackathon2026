@@ -7,7 +7,7 @@ root cause investigation triggers for the Streamlit-in-Snowflake app.
 import pandas as pd
 import streamlit as st
 from action_loop import _log_skill
-from snowflake.snowpark.context import get_active_session
+from session_helper import get_session
 
 DATABASE = "DEMO"
 SCHEMA = "PUBLIC"
@@ -26,7 +26,7 @@ def run_anomaly_sweep() -> pd.DataFrame:
     Returns:
         DataFrame with per-machine deviation and stability metrics.
     """
-    session = get_active_session()
+    session = get_session()
     query = f"""
     SELECT
         MACHINE_ID,
@@ -141,7 +141,7 @@ def render_csv_upload():
 
 def _ingest_csv(df: pd.DataFrame):
     """Write uploaded DataFrame into SHOT_DATA table."""
-    session = get_active_session()
+    session = get_session()
     try:
         session.write_pandas(
             df,
@@ -234,7 +234,7 @@ def render_rca_selector():
     st.sidebar.markdown("---")
     st.sidebar.subheader("Investigate Equipment")
 
-    session = get_active_session()
+    session = get_session()
     machines = (
         session.sql(f"SELECT DISTINCT MACHINE_ID FROM {FULL_TABLE} ORDER BY MACHINE_ID")
         .to_pandas()["MACHINE_ID"]
@@ -256,7 +256,7 @@ def render_rca_results():
         return
 
     machine = st.session_state["rca_machine"]
-    session = get_active_session()
+    session = get_session()
 
     st.subheader(f"Investigation: {machine}")
 

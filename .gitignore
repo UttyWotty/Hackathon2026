@@ -170,6 +170,7 @@ synthetic_out/
 .mcp.json
 
 # Internal planning docs (not for submission)
+techdebt.md
 
 
 # Submission deck (local only)

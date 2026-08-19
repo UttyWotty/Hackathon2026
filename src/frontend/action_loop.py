@@ -10,7 +10,7 @@ from datetime import datetime
 
 import pandas as pd
 import streamlit as st
-from snowflake.snowpark.context import get_active_session
+from session_helper import get_session
 
 DATABASE = "DEMO"
 SCHEMA = "PUBLIC"
@@ -72,7 +72,7 @@ def _log_skill(skill_name: str, detail: str):
 
 def log_work_order(machine_id: str, severity: str, description: str):
     """Insert a maintenance work order into AUDIT_LOG."""
-    session = get_active_session()
+    session = get_session()
     safe_desc = description.replace("'", "''")
     session.sql(f"""
         INSERT INTO {AUDIT_TABLE} (MACHINE_ID, ACTION_TYPE, SEVERITY, DESCRIPTION)
@@ -140,7 +140,7 @@ def trigger_alert(machine_id: str, severity: str, message: str):
     payload structure via google_chat/client.py when GOOGLE_CHAT_WEBHOOK_URL
     is configured.
     """
-    session = get_active_session()
+    session = get_session()
     safe_msg = message.replace("'", "''")
     payload = _build_webhook_payload(machine_id, severity, message)
     payload_json = json.dumps(payload).replace("'", "''")
@@ -158,7 +158,7 @@ def trigger_alert(machine_id: str, severity: str, message: str):
 
 def update_equipment_status(machine_id: str, new_status: str):
     """Update the operating status for a machine in SHOT_DATA."""
-    session = get_active_session()
+    session = get_session()
     session.sql(f"""
         UPDATE {SHOTS_TABLE}
         SET STATUS = '{new_status}'
@@ -300,7 +300,7 @@ def render_action_buttons():
 
 def render_audit_trail():
     """Display recent entries from the AUDIT_LOG table."""
-    session = get_active_session()
+    session = get_session()
     audit_df = session.sql(f"""
         SELECT TIMESTAMP, MACHINE_ID, ACTION_TYPE, SEVERITY, DESCRIPTION,
                INITIATED_BY, WEBHOOK_PAYLOAD

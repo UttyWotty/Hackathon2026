@@ -29,7 +29,7 @@ from interactive_controls import (
     render_sweep_results,
     render_upload_preview,
 )
-from snowflake.snowpark.context import get_active_session
+from session_helper import get_session
 
 PAGE_TITLE = "Autonomous Manufacturing Workflow Agent"
 DATABASE = "DEMO"
@@ -40,11 +40,6 @@ FULL_TABLE = f"{DATABASE}.{SCHEMA}.{SHOTS_TABLE}"
 DRIFT_EQUIPMENT = "MX-7103"
 CRITICAL_DEVIATION_PCT = 15.0
 WARNING_DEVIATION_PCT = 10.0
-
-
-def get_session():
-    """Get active Snowpark session."""
-    return get_active_session()
 
 
 @st.cache_data(ttl=600)

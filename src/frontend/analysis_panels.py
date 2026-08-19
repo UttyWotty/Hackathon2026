@@ -9,7 +9,7 @@ from datetime import date, timedelta
 import altair as alt
 import pandas as pd
 import streamlit as st
-from snowflake.snowpark.context import get_active_session
+from session_helper import get_session
 
 DATABASE = "DEMO"
 SCHEMA = "PUBLIC"
@@ -49,7 +49,7 @@ def _date_filter(start: str, end: str) -> str:
 
 def render_pareto_panel():
     """Pareto analysis: which machines contribute most to total deviation."""
-    session = get_active_session()
+    session = get_session()
 
     st.subheader("Pareto Analysis - Deviation Contribution")
     st.caption(
@@ -101,7 +101,7 @@ def render_pareto_panel():
 
 def render_five_whys_panel():
     """5 Whys temporal breakdown for a selected machine."""
-    session = get_active_session()
+    session = get_session()
 
     st.subheader("5 Whys - Temporal Root Cause Drill-Down")
     st.caption("Drill through 5 layers of WHY to isolate the root cause")
@@ -305,7 +305,7 @@ def render_five_whys_panel():
 
 def render_efficiency_panel():
     """Fleet efficiency: TARGET_DURATION / DURATION ratio per machine."""
-    session = get_active_session()
+    session = get_session()
 
     st.subheader("Duration Efficiency - Fleet Comparison")
     st.caption(
@@ -368,7 +368,7 @@ def render_efficiency_panel():
 
 def render_tooling_eol_panel():
     """Tooling end-of-life: shots used vs designed life."""
-    session = get_active_session()
+    session = get_session()
 
     st.subheader("Tooling End-of-Life Prediction")
     st.caption("Remaining tool life based on accumulated shots vs designed shot limit")
@@ -440,7 +440,7 @@ def render_tooling_eol_panel():
 
 def render_maintenance_panel():
     """Before/after maintenance comparison."""
-    session = get_active_session()
+    session = get_session()
 
     st.subheader("Maintenance Impact Analysis")
     st.caption(
@@ -505,7 +505,7 @@ def render_maintenance_panel():
 
 def render_decision_trail_panel():
     """Show the full audit trail of agent decisions and actions."""
-    session = get_active_session()
+    session = get_session()
 
     st.subheader("Decision Trail")
     st.caption("Complete audit log of all autonomous agent actions")
@@ -531,7 +531,7 @@ def render_decision_trail_panel():
 
 def render_insights_panel():
     """Show saved insights and shift note knowledge base."""
-    session = get_active_session()
+    session = get_session()
 
     st.subheader("Knowledge Base - Operator Insights")
     st.caption("Aggregated operator shift notes and patterns across the fleet")
