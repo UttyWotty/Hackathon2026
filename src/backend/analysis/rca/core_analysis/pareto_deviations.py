@@ -87,7 +87,7 @@ def calculate_std_deviations(
         std_threshold: Number of standard deviations for the bound.
 
     Returns:
-        DataFrame with STD_OUTLIER and DEVIATION_FROM_MEAN_PDURATION columns.
+        DataFrame with STD_OUTLIER and DEVIATION_FROM_MEAN_PCT columns.
     """
     df = df.reset_index(drop=True)
 
@@ -136,7 +136,7 @@ def calculate_iqr_deviations(
         iqr_multiplier: Multiplier for IQR bounds.
 
     Returns:
-        DataFrame with IQR_OUTLIER and DEVIATION_FROM_MEDIAN_PDURATION columns.
+        DataFrame with IQR_OUTLIER and DEVIATION_FROM_MEDIAN_PCT columns.
     """
     df = df.reset_index(drop=True)
 

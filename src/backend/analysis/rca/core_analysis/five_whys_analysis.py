@@ -43,10 +43,14 @@ logger = logging.getLogger(__name__)
 try:
     from .shot_data import fetch_data_from_snowflake, session
 except ImportError:
-    from shot_data import (  # type: ignore[no-redef]
-        fetch_data_from_snowflake,
-        session,
-    )
+    try:
+        from shot_data import (  # type: ignore[no-redef]
+            fetch_data_from_snowflake,
+            session,
+        )
+    except ImportError:
+        fetch_data_from_snowflake = None  # type: ignore[assignment]
+        session = None
 
 # ---------------------------------------------------------------------------
 # Constants

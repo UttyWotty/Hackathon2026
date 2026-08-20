@@ -32,10 +32,8 @@ from services.infrastructure.scheduler.tool_dispatcher import dispatch_tool_dire
 from services.workflow.agent_prompt import build_agent_prompt, build_failure_note
 from services.workflow.model_text import strip_reasoning
 from services.workflow.sense import (
-    DEFAULT_SENSE_TASKS,
     SenseFinding,
     SenseTask,
-    derive_followup_tasks,
     format_findings,
     run_sense_tasks,
 )
@@ -158,11 +156,6 @@ class WorkflowController:
         findings = await run_sense_tasks(
             self.sense_tasks, self.dispatcher, on_step=record
         )
-        followups = derive_followup_tasks(findings)
-        if followups:
-            findings.extend(
-                await run_sense_tasks(followups, self.dispatcher, on_step=record)
-            )
         return findings
 
     def _build_prompt(self, findings: List[SenseFinding]) -> str:

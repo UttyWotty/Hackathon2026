@@ -25,8 +25,12 @@ from .pareto_issue_analyzer import (
 )
 from .pareto_scrap_detector import calculate_scrap_statistics, detect_scrap_indicators
 
-# Import the data fetching function from shot_data
-from .shot_data import fetch_data_from_snowflake, session
+# Import the data fetching function from shot_data (may not exist after sanitization)
+try:
+    from .shot_data import fetch_data_from_snowflake, session
+except ImportError:
+    fetch_data_from_snowflake = None  # type: ignore[assignment]
+    session = None
 
 warnings.filterwarnings("ignore")
 
