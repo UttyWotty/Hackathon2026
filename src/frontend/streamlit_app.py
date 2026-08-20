@@ -523,12 +523,12 @@ def main():
     render_rca_results()
     render_upload_preview()
 
-    # Agent Activity Log (Item 3: visible skill invocations) - DEFAULT OPEN
-    with st.expander("Agent Activity Log (CoCo Skill Invocations)", expanded=True):
+    # Agent Activity Log (collapsed by default to reduce clutter)
+    with st.expander("Agent Activity Log (CoCo Skill Invocations)", expanded=False):
         render_skill_log()
 
-    # Audit Trail (Item 4: autonomous action records)
-    with st.expander("Audit Trail (Work Orders and Alerts)", expanded=True):
+    # Audit Trail (collapsed by default)
+    with st.expander("Audit Trail (Work Orders and Alerts)", expanded=False):
         render_audit_trail()
 
     st.divider()
