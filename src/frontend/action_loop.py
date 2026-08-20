@@ -236,9 +236,13 @@ def render_action_buttons():
     critical = results[results["DEVIATION_PCT"] >= AUTO_TRIGGER_THRESHOLD]
     actioned = st.session_state.get("actioned_machines", set())
 
-    new_to_action = critical[~critical["MACHINE_ID"].isin(actioned)]
-    if not new_to_action.empty:
-        run_autonomous_actions(results)
+    # Only fire autonomous actions when a fresh sweep just completed (flag set by
+    # render_sweep_panel), NOT on every render/rerun. This prevents duplicate DB
+    # writes on browser reload.
+    if st.session_state.pop("sweep_just_completed", False):
+        new_to_action = critical[~critical["MACHINE_ID"].isin(actioned)]
+        if not new_to_action.empty:
+            run_autonomous_actions(results)
 
     all_actioned = critical[critical["MACHINE_ID"].isin(
         st.session_state.get("actioned_machines", set())

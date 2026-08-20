@@ -67,6 +67,7 @@ def render_sweep_panel():
             results = run_anomaly_sweep()
             results["SEVERITY"] = results["DEVIATION_PCT"].apply(classify_severity)
             st.session_state["sweep_results"] = results
+            st.session_state["sweep_just_completed"] = True
             critical = len(results[results["SEVERITY"] == "CRITICAL"])
             _log_skill(
                 "$sense-equipment-anomalies",

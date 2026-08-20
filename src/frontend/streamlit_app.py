@@ -500,6 +500,7 @@ def main():
         results = run_anomaly_sweep()
         results["SEVERITY"] = results["DEVIATION_PCT"].apply(classify_severity)
         st.session_state["sweep_results"] = results
+        st.session_state["sweep_just_completed"] = True
         st.cache_data.clear()
 
     if st.session_state.pop("ingest_success", None):
