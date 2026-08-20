@@ -98,6 +98,10 @@ DEVIATION_TOOLS = [
 # ==================== Tool Implementation ==================== #
 
 
+DEVIATION_DEFAULT_START = "2026-07-01"
+DEVIATION_DEFAULT_END = "2026-08-20"
+
+
 def run_deviation_analysis(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -111,8 +115,8 @@ def run_deviation_analysis(
     """Execute duration deviation analysis.
 
     Args:
-        start_date: Start date (YYYY-MM-DD)
-        end_date: End date (YYYY-MM-DD)
+        start_date: Start date (YYYY-MM-DD). Defaults to 2026-07-01.
+        end_date: End date (YYYY-MM-DD). Defaults to 2026-08-20.
         machine_ids: List of equipment codes
         vendor_names: List of supplier names
         output_dir: Output directory path
@@ -127,11 +131,13 @@ def run_deviation_analysis(
         # Import here to avoid import errors during module initialization
         from analysis.deviation import run_analysis_api
 
+        start_date = start_date or DEVIATION_DEFAULT_START
+        end_date = end_date or DEVIATION_DEFAULT_END
+
         logger.info(
-            f"🔧 Running duration deviation analysis: "
-            f"date_range={start_date} to {end_date}, "
-            f"equipment={machine_ids}, "
-            f"suppliers={vendor_names}"
+            "Running duration deviation analysis: "
+            "date_range=%s to %s, equipment=%s, suppliers=%s",
+            start_date, end_date, machine_ids, vendor_names,
         )
 
         # Run analysis

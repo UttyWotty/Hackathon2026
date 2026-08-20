@@ -122,7 +122,7 @@ def _print_score(run_id: str, summary: str) -> None:
 
 
 # Tools to exclude from demo runs: broken imports or missing backing tables.
-EXCLUDED_TOOLS = {"run_rca_analysis", "get_plant_health_snapshot"}
+EXCLUDED_TOOLS = {"run_rca_analysis", "get_plant_health_snapshot", "generate_presentation"}
 
 
 async def _run(args: argparse.Namespace) -> int:
