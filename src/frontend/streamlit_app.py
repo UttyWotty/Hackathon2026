@@ -455,43 +455,43 @@ def main():
     render_csv_upload()
 
     st.sidebar.markdown("---")
-    st.sidebar.subheader("Agent Architecture")
-    st.sidebar.code(
-        "[TRIGGER] Schedule / command / button\n"
-        "     |\n"
-        "     v\n"
-        "[SENSE] Multi-signal fleet sweep\n"
-        "  - Duration deviation from target\n"
-        "  - Week-over-week stability decline\n"
-        "  - Efficiency degradation\n"
-        "  - Tooling wear (shot accumulation)\n"
-        "     |\n"
-        "     v\n"
-        "[REASON] Snowflake Cortex LLM\n"
-        "  - Cross-signal correlation\n"
-        "  - Prioritize by severity\n"
-        "  - Decide investigation targets\n"
-        "     |\n"
-        "     v\n"
-        "[ACT] Investigate + Respond\n"
-        "  - Temporal root cause breakdown\n"
-        "  - Corroborate with operator notes\n"
-        "  - Log work orders / send alerts\n"
-        "  - Update equipment status\n"
-        "     |\n"
-        "     v\n"
-        "[RECORD] Audit + Self-evaluate\n"
-        "  - Full decision trail to AUDIT_LOG\n"
-        "  - Evidence + severity recorded\n"
-        "  - Self-grade against ground truth",
-        language=None,
-    )
-    st.sidebar.markdown("**$sense-equipment-anomalies**")
-    st.sidebar.caption("Sweeps fleet for duration drift and stability decline.")
-    st.sidebar.markdown("**$investigate-shift-notes**")
-    st.sidebar.caption("Searches operator notes to explain WHY a machine is abnormal.")
-    st.sidebar.markdown("**$report-and-act**")
-    st.sidebar.caption("Records decision, evidence, and actions to audit trail.")
+    with st.sidebar.expander("Agent Architecture", expanded=False):
+        st.code(
+            "[TRIGGER] Schedule / command / button\n"
+            "     |\n"
+            "     v\n"
+            "[SENSE] Multi-signal fleet sweep\n"
+            "  - Duration deviation from target\n"
+            "  - Week-over-week stability decline\n"
+            "  - Efficiency degradation\n"
+            "  - Tooling wear (shot accumulation)\n"
+            "     |\n"
+            "     v\n"
+            "[REASON] Snowflake Cortex LLM\n"
+            "  - Cross-signal correlation\n"
+            "  - Prioritize by severity\n"
+            "  - Decide investigation targets\n"
+            "     |\n"
+            "     v\n"
+            "[ACT] Investigate + Respond\n"
+            "  - Temporal root cause breakdown\n"
+            "  - Corroborate with operator notes\n"
+            "  - Log work orders / send alerts\n"
+            "  - Update equipment status\n"
+            "     |\n"
+            "     v\n"
+            "[RECORD] Audit + Self-evaluate\n"
+            "  - Full decision trail to AUDIT_LOG\n"
+            "  - Evidence + severity recorded\n"
+            "  - Self-grade against ground truth",
+            language=None,
+        )
+        st.markdown("**$sense-equipment-anomalies**")
+        st.caption("Sweeps fleet for duration drift and stability decline.")
+        st.markdown("**$investigate-shift-notes**")
+        st.caption("Searches operator notes to explain WHY a machine is abnormal.")
+        st.markdown("**$report-and-act**")
+        st.caption("Records decision, evidence, and actions to audit trail.")
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("Data Management")
