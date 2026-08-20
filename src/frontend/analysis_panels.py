@@ -33,7 +33,7 @@ GRANULARITY_MAP = {
 def _render_date_range(key_prefix: str) -> tuple:
     """Render date range picker and return (start_date, end_date) strings."""
     col_start, col_end = st.columns(2)
-    default_end = date(2026, 8, 18)
+    default_end = date.today()
     default_start = default_end - timedelta(days=DEFAULT_LOOKBACK_DAYS)
     with col_start:
         start = st.date_input("From", value=default_start, key=f"{key_prefix}_start")

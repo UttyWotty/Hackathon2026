@@ -133,15 +133,19 @@ def load_drift_detail():
 
 def render_kpi_cards(summary_df):
     """Render fleet KPI cards."""
+    if summary_df.empty:
+        st.info("No fleet data available yet.")
+        return
+
     total_shots = summary_df["TOTAL_SHOTS"].sum()
     num_machines = len(summary_df)
     worst_deviation = summary_df["DEVIATION_PCT"].max()
-    worst_machine = summary_df.iloc[0]["MACHINE_ID"]
+    worst_machine = summary_df.loc[summary_df["DEVIATION_PCT"].idxmax(), "MACHINE_ID"]
 
     stability_col = 100.0 - summary_df["CV_PCT"]
     worst_stability_idx = stability_col.idxmin()
-    worst_stability = stability_col.iloc[worst_stability_idx]
-    worst_stability_machine = summary_df.iloc[worst_stability_idx]["MACHINE_ID"]
+    worst_stability = stability_col.loc[worst_stability_idx]
+    worst_stability_machine = summary_df.loc[worst_stability_idx, "MACHINE_ID"]
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Shots", f"{total_shots:,.0f}")
@@ -163,15 +167,21 @@ def render_drift_tab(deviation_df):
     col1, col2 = st.columns([2, 1])
     with col1:
         st.write(
-            f"**{DRIFT_EQUIPMENT}** drifts from ~2% to ~24% above approved duration "
-            "over 6 weeks while stability stays at 90%. No single-metric alert fires. "
-            "The agent catches it by reasoning across deviation and stability together."
+            "This chart shows each machine's duration deviation from target over time. "
+            "Machines with consistent drift that maintain high stability are the "
+            "'invisible anomalies' that single-metric alerts miss."
         )
     with col2:
-        st.warning(
-            f"**Alert:** {DRIFT_EQUIPMENT} crossed autonomous action threshold "
-            f"(>{WARNING_DEVIATION_PCT}%) in week 3 -- agent intervened automatically."
-        )
+        if not deviation_df.empty:
+            max_dev = deviation_df["DEVIATION_PCT"].max()
+            max_machine = deviation_df.loc[
+                deviation_df["DEVIATION_PCT"].idxmax(), "MACHINE_ID"
+            ]
+            if max_dev > WARNING_DEVIATION_PCT:
+                st.warning(
+                    f"**{max_machine}** shows {max_dev:.1f}% peak deviation "
+                    f"(threshold: {WARNING_DEVIATION_PCT}%)"
+                )
 
     chart_data = deviation_df.copy()
     chart_data["IS_HEADLINE"] = chart_data["MACHINE_ID"] == DRIFT_EQUIPMENT
@@ -590,8 +600,8 @@ def main():
 
     st.divider()
     st.caption(
-        "Synthetic data: 243K shots, 8 machines, 6 weeks. "
-        "Agent sweeps fleet, reasons, investigates, and records decisions autonomously."
+        "Agent sweeps fleet, reasons over anomalies, investigates root causes, "
+        "and records decisions autonomously."
     )
 
 

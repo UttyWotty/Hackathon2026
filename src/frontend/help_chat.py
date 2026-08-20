@@ -222,7 +222,7 @@ def _fetch_machine_summary(machine_id: str) -> str:
 
         return "\n".join(parts) + "\n"
     except Exception:
-        return ""
+        return "\n[LIVE DATA: unavailable due to a query error]\n"
 
 
 def _normalize_machine_id(raw: str) -> str:

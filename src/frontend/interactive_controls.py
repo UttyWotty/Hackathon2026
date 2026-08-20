@@ -155,8 +155,6 @@ def _ingest_csv(df: pd.DataFrame):
         st.cache_data.clear()
         st.session_state["ingest_success"] = len(df)
         st.session_state["ingest_trigger_sweep"] = True
-        if "uploaded_preview" in st.session_state:
-            del st.session_state["uploaded_preview"]
     except Exception:
         st.sidebar.error("Upload failed. Please check the CSV format and try again.")
 
@@ -298,7 +296,7 @@ def render_rca_results():
 
     col_clear, col_resolve = st.columns(2)
     with col_clear:
-        if st.button(f"Close panel", key=f"close_{machine}"):
+        if st.button("Close panel", key=f"close_{machine}"):
             del st.session_state["rca_machine"]
             st.experimental_rerun()
     with col_resolve:
