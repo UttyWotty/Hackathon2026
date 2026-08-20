@@ -113,8 +113,8 @@ def shutdown_langfuse() -> None:
         finally:
             try:
                 _langfuse_instance.shutdown()  # type: ignore[union-attr]
-            except Exception:
-                pass
+            except Exception as shutdown_exc:
+                logger.debug("Langfuse shutdown error: %s", shutdown_exc)
             _langfuse_instance = None
 
     _initialized = False

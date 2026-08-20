@@ -314,8 +314,8 @@ class ROIDatabase:
                 if cursor:
                     try:
                         cursor.close()
-                    except Exception:
-                        pass
+                    except Exception as close_exc:
+                        logging.debug("Cursor close failed during retry: %s", close_exc)
 
                 # Check if it's a certificate error that might be retryable
                 is_certificate_error = (
