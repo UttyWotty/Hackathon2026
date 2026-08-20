@@ -30,6 +30,13 @@ GRANULARITY_MAP = {
 }
 
 
+@st.cache_data(ttl=300)
+def _cached_query(query: str):
+    """Execute a SQL query with 5-minute caching to reduce redundant Snowflake calls."""
+    session = get_session()
+    return session.sql(query).to_pandas()
+
+
 def _render_date_range(key_prefix: str) -> tuple:
     """Render date range picker and return (start_date, end_date) strings."""
     col_start, col_end = st.columns(2)
@@ -59,7 +66,7 @@ def render_pareto_panel():
     start, end = _render_date_range("pareto")
     date_clause = _date_filter(start, end)
 
-    df = session.sql(f"""
+    df = _cached_query(f"""
         SELECT
             MACHINE_ID,
             COUNT(*) AS SHOT_COUNT,
@@ -70,7 +77,7 @@ def render_pareto_panel():
           AND {date_clause}
         GROUP BY MACHINE_ID
         ORDER BY TOTAL_DEVIATION_SEC DESC
-    """).to_pandas()
+    """)
 
     if df.empty:
         st.warning("No data available.")
@@ -481,7 +488,7 @@ def render_efficiency_panel():
     start, end = _render_date_range("efficiency")
     date_clause = _date_filter(start, end)
 
-    df = session.sql(f"""
+    df = _cached_query(f"""
         SELECT
             MACHINE_ID,
             ROUND(AVG(TARGET_DURATION / NULLIF(DURATION, 0)) * 100, 1) AS EFFICIENCY_PCT,
@@ -492,7 +499,7 @@ def render_efficiency_panel():
           AND {date_clause}
         GROUP BY MACHINE_ID
         ORDER BY EFFICIENCY_PCT
-    """).to_pandas()
+    """)
 
     if df.empty:
         st.warning("No data.")
@@ -539,7 +546,7 @@ def render_tooling_eol_panel():
     st.subheader("Tooling End-of-Life Prediction")
     st.caption("Remaining tool life based on accumulated shots vs designed shot limit")
 
-    df = session.sql(f"""
+    df = _cached_query(f"""
         SELECT
             t.MACHINE_ID,
             t.DESIGNED_SHOT,
@@ -550,7 +557,7 @@ def render_tooling_eol_panel():
         LEFT JOIN {FULL_TABLE} s ON t.MACHINE_ID = s.MACHINE_ID
         GROUP BY t.MACHINE_ID, t.DESIGNED_SHOT, t.TYPE
         ORDER BY LIFE_USED_PCT DESC
-    """).to_pandas()
+    """)
 
     if df.empty:
         st.warning("No tooling data.")
@@ -613,7 +620,7 @@ def render_maintenance_panel():
         "Did maintenance actually help? Compare duration before vs after each work order."
     )
 
-    df = session.sql(f"""
+    df = _cached_query(f"""
         WITH wo AS (
             SELECT TOOL_ID, COMPLETED_AT, ORDER_TYPE
             FROM {WORK_ORDER_TABLE}
@@ -636,7 +643,7 @@ def render_maintenance_panel():
         GROUP BY t.MACHINE_ID, wo.ORDER_TYPE, wo.COMPLETED_AT
         HAVING AVG_BEFORE IS NOT NULL AND AVG_AFTER IS NOT NULL
         ORDER BY wo.COMPLETED_AT DESC
-    """).to_pandas()
+    """)
 
     if df.empty:
         st.info("No before/after data available for completed work orders.")
@@ -746,17 +753,17 @@ def render_insights_panel():
     tab_notes, tab_patterns = st.tabs(["Recent Notes", "Pattern Summary"])
 
     with tab_notes:
-        notes = session.sql(f"""
+        notes = _cached_query(f"""
             SELECT MACHINE_ID, SHIFT_DATE, AUTHOR_ROLE, NOTE_TEXT
             FROM {SHIFT_NOTE_TABLE}
             ORDER BY SHIFT_DATE DESC
             LIMIT 30
-        """).to_pandas()
+        """)
         if not notes.empty:
             st.dataframe(notes, use_container_width=True)
 
     with tab_patterns:
-        patterns = session.sql(f"""
+        patterns = _cached_query(f"""
             SELECT
                 MACHINE_ID,
                 COUNT(*) AS TOTAL_NOTES,
@@ -772,7 +779,7 @@ def render_insights_panel():
             FROM {SHIFT_NOTE_TABLE}
             GROUP BY MACHINE_ID
             ORDER BY DRIFT_MENTIONS DESC
-        """).to_pandas()
+        """)
 
         if not patterns.empty:
             st.dataframe(patterns, use_container_width=True)
