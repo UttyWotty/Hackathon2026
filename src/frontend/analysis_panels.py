@@ -669,30 +669,59 @@ def render_maintenance_panel():
     )
 
 
+TRAIL_TABLE = f"{DATABASE}.{SCHEMA}.AGENT_DECISION_TRAIL"
+
+
 def render_decision_trail_panel():
-    """Show the full audit trail of agent decisions and actions."""
+    """Show the real agent decision trail and the UI action log."""
     session = get_session()
 
-    st.subheader("Decision Trail")
-    st.caption("Complete audit log of all autonomous agent actions")
+    st.subheader("Agent Decision Trail")
+    st.caption("Real sense-reason-act steps from the autonomous agent's LLM loop")
 
-    df = session.sql(f"""
-        SELECT TIMESTAMP, MACHINE_ID, ACTION_TYPE, SEVERITY, DESCRIPTION, INITIATED_BY
-        FROM {AUDIT_TABLE}
-        ORDER BY TIMESTAMP DESC
-        LIMIT 50
+    trail_df = session.sql(f"""
+        SELECT SEQUENCE, PHASE, TOOL_NAME, STEP_STATUS, RESULT_SUMMARY,
+               STEP_DURATION_MS, RUN_ID, RUN_STATUS, MODEL_ID, STARTED_AT
+        FROM {TRAIL_TABLE}
+        ORDER BY SEQUENCE
     """).to_pandas()
 
-    if df.empty:
-        st.info("No decisions recorded yet. Run a sweep to trigger autonomous actions.")
-        return
+    if trail_df.empty:
+        st.info(
+            "No agent trail exported yet. Run the agent and export: "
+            "`python scripts/run_agent.py && python scripts/export_trail.py`"
+        )
+    else:
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total Steps", len(trail_df))
+        col2.metric(
+            "Tool Calls", len(trail_df[trail_df["TOOL_NAME"].notna()])
+        )
+        col3.metric(
+            "Act Steps", len(trail_df[trail_df["PHASE"] == "act"])
+        )
+        col4.metric(
+            "Model", trail_df.iloc[0]["MODEL_ID"] or "unknown"
+        )
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Actions", len(df))
-    col2.metric("Work Orders", len(df[df["ACTION_TYPE"] == "WORK_ORDER"]))
-    col3.metric("Alerts Sent", len(df[df["ACTION_TYPE"] == "ALERT"]))
+        st.dataframe(
+            trail_df[["SEQUENCE", "PHASE", "TOOL_NAME", "STEP_STATUS", "RESULT_SUMMARY"]],
+            use_container_width=True,
+        )
 
-    st.dataframe(df, use_container_width=True)
+    st.divider()
+    with st.expander("Action Log (UI-triggered writes)", expanded=False):
+        audit_df = session.sql(f"""
+            SELECT TIMESTAMP, MACHINE_ID, ACTION_TYPE, SEVERITY, DESCRIPTION, INITIATED_BY
+            FROM {AUDIT_TABLE}
+            ORDER BY TIMESTAMP DESC
+            LIMIT 50
+        """).to_pandas()
+
+        if audit_df.empty:
+            st.info("No actions recorded yet.")
+        else:
+            st.dataframe(audit_df, use_container_width=True)
 
 
 def render_insights_panel():
