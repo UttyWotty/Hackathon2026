@@ -228,7 +228,7 @@ class WorkflowController:
 
             try:
                 result = await self.dispatcher(name, arguments)
-                failed = False
+                failed = isinstance(result, dict) and result.get("status") == "error"
             except Exception as exc:  # noqa: BLE001 - reported back to the model
                 result = {"status": "error", "error": str(exc)}
                 failed = True

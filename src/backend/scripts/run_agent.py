@@ -121,22 +121,30 @@ def _print_score(run_id: str, summary: str) -> None:
         print(f"  UNBACKED CLAIMS: {report.claimed_only}", flush=True)
 
 
+# Tools to exclude from demo runs: broken imports or missing backing tables.
+EXCLUDED_TOOLS = {"run_rca_analysis", "get_plant_health_snapshot"}
+
+
 async def _run(args: argparse.Namespace) -> int:
     """Execute one autonomous run and report the outcome."""
     init_database()
     client = get_traced_llm_client()
 
+    full = get_tools_for_llm()
+    filtered = [t for t in full if t["toolSpec"]["name"] not in EXCLUDED_TOOLS]
+
     tools_provider = None
     if args.tools:
-        # Trim the schema: all 35 tools are roughly 7,000 tokens of prefill,
-        # which a local quantized model can take minutes to work through.
-        full = get_tools_for_llm()
-        trimmed = full[: args.tools]
+        trimmed = filtered[: args.tools]
         print(f"tools   : limited to {len(trimmed)} of {len(full)}", flush=True)
 
         def tools_provider() -> list:
             """Return the trimmed tool schema."""
             return trimmed
+    else:
+        def tools_provider() -> list:
+            """Return filtered tool schema (excluded broken tools)."""
+            return filtered
 
     controller = WorkflowController(
         llm_client=client,
