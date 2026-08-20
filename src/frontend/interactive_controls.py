@@ -220,6 +220,7 @@ def render_upload_preview():
         "CSV Content",
         value=st.session_state.get("csv_text_input", ""),
         height=200,
+        key="csv_text_area",
     )
 
     if csv_text:
