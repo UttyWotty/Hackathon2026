@@ -32,6 +32,7 @@ from services.infrastructure.scheduler.tool_dispatcher import dispatch_tool_dire
 from services.workflow.agent_prompt import build_agent_prompt, build_failure_note
 from services.workflow.model_text import strip_reasoning
 from services.workflow.sense import (
+    DEFAULT_SENSE_TASKS,
     SenseFinding,
     SenseTask,
     format_findings,
