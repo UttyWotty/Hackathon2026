@@ -20,6 +20,17 @@ SEVERITY_WARNING = 10.0
 SEVERITY_MINOR = 5.0
 
 
+def _clear_data_caches():
+    """Clear only data-related caches, preserving session/resource caches."""
+    from analysis_panels import _cached_query
+    from streamlit_app import load_fleet_deviation, load_fleet_summary, load_stability_trend
+
+    _cached_query.clear()
+    load_fleet_deviation.clear()
+    load_fleet_summary.clear()
+    load_stability_trend.clear()
+
+
 def run_anomaly_sweep() -> pd.DataFrame:
     """Execute an on-demand anomaly sweep across the fleet.
 
@@ -73,7 +84,7 @@ def render_sweep_panel():
                 "$sense-equipment-anomalies",
                 f"Sweep complete: {len(results)} machines, {critical} critical",
             )
-            st.cache_data.clear()
+            _clear_data_caches()
 
     if "sweep_results" in st.session_state:
         results = st.session_state["sweep_results"]
@@ -152,7 +163,7 @@ def _ingest_csv(df: pd.DataFrame):
             auto_create_table=False,
             overwrite=False,
         )
-        st.cache_data.clear()
+        _clear_data_caches()
         st.session_state["ingest_success"] = len(df)
         st.session_state["ingest_trigger_sweep"] = True
     except Exception:

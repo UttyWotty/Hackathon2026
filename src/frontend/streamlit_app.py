@@ -493,7 +493,8 @@ def main():
         session = get_session()
         session.sql("TRUNCATE TABLE DEMO.PUBLIC.AUDIT_LOG").collect()
         st.sidebar.success("Audit log cleared.")
-        st.cache_data.clear()
+        from interactive_controls import _clear_data_caches
+        _clear_data_caches()
 
     render_help_chat()
 
@@ -512,7 +513,8 @@ def main():
         results["SEVERITY"] = results["DEVIATION_PCT"].apply(classify_severity)
         st.session_state["sweep_results"] = results
         st.session_state["sweep_just_completed"] = True
-        st.cache_data.clear()
+        from interactive_controls import _clear_data_caches
+        _clear_data_caches()
 
     if st.session_state.pop("ingest_success", None):
         st.success("Telemetry ingested. Fleet sweep re-run with new data.")
