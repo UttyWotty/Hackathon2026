@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Result summaries are truncated before storage: analysis output can carry an
 # entire DataFrame and the trail is meant to be readable, not complete.
-MAX_SUMMARY_CHARS = 2000
+MAX_SUMMARY_CHARS = 8000
 
 MILLISECONDS_PER_SECOND = 1000.0
 

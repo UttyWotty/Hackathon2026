@@ -131,8 +131,8 @@ def run_deviation_analysis(
         # Import here to avoid import errors during module initialization
         from analysis.deviation import run_analysis_api
 
-        start_date = start_date or DEVIATION_DEFAULT_START
-        end_date = end_date or DEVIATION_DEFAULT_END
+        start_date = DEVIATION_DEFAULT_START
+        end_date = DEVIATION_DEFAULT_END
 
         logger.info(
             "Running duration deviation analysis: "
