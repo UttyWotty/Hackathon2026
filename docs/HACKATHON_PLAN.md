@@ -36,7 +36,7 @@ Interactive surface: Streamlit dashboard with on-demand controls.
 - [x] Phase 3 - Autonomous controller + decision trail + 3 CoCo skills
 - [x] Phase 4 - Interactive Streamlit dashboard deployed to Snowflake
 - [x] Phase 5 - Refinement (evaluator feedback items 1-5):
-  - [x] Demo credentials (DEMO_USER on competition account)
+  - [x] Demo credentials (dedicated user on competition account)
   - [x] Interactive dashboard (sweep, CSV upload, per-equipment RCA)
   - [x] Visible CoCo skill invocations (Agent Activity Log)
   - [x] Autonomous action loop (work orders + alerts -> AUDIT_LOG)
@@ -47,12 +47,11 @@ Interactive surface: Streamlit dashboard with on-demand controls.
 
 ## 5. Account Details
 
-- Competition account: IQSISUH-RB95130
+- Competition account: (see .env)
 - Database: DEMO
 - Schema: PUBLIC
 - Tables: SHOT_DATA, TOOL, VENDOR, PRODUCT, LOCATION, SHIFT_NOTE, WORK_ORDER, AUDIT_LOG
 - Streamlit: DEMO.PUBLIC.AUTONOMOUS_MFG_AGENT_DEMO
-- Demo user: DEMO_USER (DEMO_ROLE with read + write access)
 
 ## 6. CoCo Skills
 
