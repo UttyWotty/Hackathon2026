@@ -1,3 +1,13 @@
+[project]
+name = "cortex-workflow-agent"
+version = "1.0.0"
+description = "Autonomous manufacturing workflow agent powered by Snowflake Cortex"
+requires-python = ">=3.10"
+readme = "README.md"
+
+[project.scripts]
+run-agent = "scripts.run_agent:main"
+
 [tool.black]
 line-length = 88
 target-version = ["py310"]

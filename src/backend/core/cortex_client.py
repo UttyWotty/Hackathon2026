@@ -19,19 +19,12 @@ from .token_tracker import get_token_tracker
 
 logger = logging.getLogger(__name__)
 
-# Credentials. Empty defaults keep import side-effect free; absence is reported
-# by the constructor rather than at import time.
-SNOWFLAKE_ACCOUNT = os.getenv("SNOWFLAKE_ACCOUNT", "")
-SNOWFLAKE_PAT = os.getenv("SNOWFLAKE_PAT", "")
-
 # The model id is account- and region-specific. Confirm with
 # SHOW CORTEX BASE MODELS before the first run rather than trusting this default.
-CORTEX_MODEL = os.getenv("CORTEX_MODEL", "claude-sonnet-4-5")
+DEFAULT_CORTEX_MODEL = "claude-sonnet-4-5"
 
-CORTEX_TIMEOUT_SECONDS = int(os.getenv("CORTEX_TIMEOUT_SECONDS", "60"))
-CORTEX_ENABLE_PROMPT_CACHING = (
-    os.getenv("CORTEX_ENABLE_PROMPT_CACHING", "true").lower() == "true"
-)
+DEFAULT_CORTEX_TIMEOUT_SECONDS = 60
+DEFAULT_ENABLE_PROMPT_CACHING = True
 
 # Wire constants from the verified request shape (HACKATHON_PLAN.md, A.1).
 ANTHROPIC_VERSION = "2023-06-01"
@@ -59,21 +52,24 @@ class CortexClient:
         account: Optional[str] = None,
         pat: Optional[str] = None,
         model: Optional[str] = None,
-        timeout_seconds: int = CORTEX_TIMEOUT_SECONDS,
-        enable_prompt_caching: bool = CORTEX_ENABLE_PROMPT_CACHING,
+        timeout_seconds: int = DEFAULT_CORTEX_TIMEOUT_SECONDS,
+        enable_prompt_caching: bool = DEFAULT_ENABLE_PROMPT_CACHING,
         transport: Optional[Transport] = None,
     ) -> None:
         """
         Initialise the Cortex client.
 
+        All configuration is read from environment variables at construction time,
+        not at import time, so load_dotenv() can be called before instantiation.
+
         Args:
             account: Account identifier such as "myorg-myacct". Defaults to
                 the SNOWFLAKE_ACCOUNT environment variable.
             pat: Programmatic Access Token. Defaults to SNOWFLAKE_PAT.
-            model: Cortex model id. Defaults to CORTEX_MODEL.
-            timeout_seconds: Per-request timeout. Defaults to CORTEX_TIMEOUT_SECONDS.
+            model: Cortex model id. Defaults to CORTEX_MODEL env or claude-sonnet-4-5.
+            timeout_seconds: Per-request timeout. Defaults to 60.
             enable_prompt_caching: Attach an ephemeral cache breakpoint to the
-                system block. Defaults to CORTEX_ENABLE_PROMPT_CACHING.
+                system block. Defaults to True.
             transport: Injected transport callable. Defaults to requests.
 
         Raises:
@@ -81,7 +77,7 @@ class CortexClient:
         """
         self.account = account or os.getenv("SNOWFLAKE_ACCOUNT", "")
         self.pat = pat or os.getenv("SNOWFLAKE_PAT", "")
-        self.model = model or os.getenv("CORTEX_MODEL", CORTEX_MODEL)
+        self.model = model or os.getenv("CORTEX_MODEL", DEFAULT_CORTEX_MODEL)
         self.timeout_seconds = timeout_seconds
         self.enable_prompt_caching = enable_prompt_caching
         self.transport = transport or post_json
