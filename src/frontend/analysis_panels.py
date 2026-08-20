@@ -681,8 +681,10 @@ def render_decision_trail_panel():
 
     trail_df = session.sql(f"""
         SELECT SEQUENCE, PHASE, TOOL_NAME, STEP_STATUS, RESULT_SUMMARY,
-               STEP_DURATION_MS, RUN_ID, RUN_STATUS, MODEL_ID, STARTED_AT
+               STEP_DURATION_MS, RUN_ID, RUN_STATUS, MODEL_ID, STARTED_AT,
+               SUMMARY AS RUN_SUMMARY, RUN_DURATION_MS
         FROM {TRAIL_TABLE}
+        WHERE RUN_STATUS = 'completed'
         ORDER BY SEQUENCE
     """).to_pandas()
 
@@ -692,17 +694,27 @@ def render_decision_trail_panel():
             "`python scripts/run_agent.py && python scripts/export_trail.py`"
         )
     else:
+        run_summary = trail_df.iloc[0]["RUN_SUMMARY"]
+        run_duration = trail_df.iloc[0]["RUN_DURATION_MS"]
+        model_id = trail_df.iloc[0]["MODEL_ID"] or "unknown"
+
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total Steps", len(trail_df))
         col2.metric(
             "Tool Calls", len(trail_df[trail_df["TOOL_NAME"].notna()])
         )
         col3.metric(
-            "Act Steps", len(trail_df[trail_df["PHASE"] == "act"])
+            "Failed Steps", len(trail_df[trail_df["STEP_STATUS"] == "failed"])
         )
         col4.metric(
-            "Model", trail_df.iloc[0]["MODEL_ID"] or "unknown"
+            "Duration", f"{run_duration / 1000:.0f}s" if run_duration else "unknown"
         )
+
+        st.markdown(f"**Model:** {model_id}")
+
+        if run_summary:
+            with st.expander("Agent Summary (LLM conclusion)", expanded=True):
+                st.markdown(run_summary)
 
         st.dataframe(
             trail_df[["SEQUENCE", "PHASE", "TOOL_NAME", "STEP_STATUS", "RESULT_SUMMARY"]],

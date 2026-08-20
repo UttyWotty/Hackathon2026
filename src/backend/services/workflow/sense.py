@@ -57,8 +57,12 @@ class SenseFinding:
 
 
 # The opening sweep. Uses only detectors whose backing tables exist in DEMO.PUBLIC.
+# Window aligned to last-30-days so numbers match the LLM's follow-up analyses.
 DEFAULT_SENSE_TASKS: List[SenseTask] = [
-    SenseTask(tool_name="run_deviation_analysis", arguments={}),
+    SenseTask(
+        tool_name="run_deviation_analysis",
+        arguments={"start_date": "2026-07-01", "end_date": "2026-08-20"},
+    ),
 ]
 
 DEVIATION_TOOL = "run_deviation_analysis"

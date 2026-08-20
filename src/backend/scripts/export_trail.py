@@ -91,11 +91,12 @@ def main() -> int:
     if args.run_id:
         run_id = args.run_id
     else:
-        runs = list_runs(limit=1)
-        if not runs:
-            print("No runs found in the decision trail database.", flush=True)
+        runs = list_runs(limit=10)
+        completed = [r for r in runs if r.get("status") == "completed"]
+        if not completed:
+            print("No completed runs found in the decision trail database.", flush=True)
             return 1
-        run_id = runs[0]["run_id"]
+        run_id = completed[0]["run_id"]
 
     trail = load_trail(run_id)
     if not trail:
