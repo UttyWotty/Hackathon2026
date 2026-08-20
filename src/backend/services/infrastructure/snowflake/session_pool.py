@@ -294,12 +294,12 @@ class SnowflakeSessionPool:
             ValueError: If query is not read-only
             Exception: If query execution fails
         """
-        # Validate read-only
-        if not self._validate_read_only(query):
-            raise ValueError(
-                "Only read-only queries (SELECT/WITH) are allowed. "
-                "Query contains write operations."
-            )
+        from utils.sql_validation import SQLValidationError, validate_sql_query
+
+        try:
+            validate_sql_query(query)
+        except SQLValidationError as exc:
+            raise ValueError(str(exc)) from exc
 
         schema_info = f".{schema}" if schema else ""
         logger.info(f"Executing query on {database or 'Main'}{schema_info} database")
