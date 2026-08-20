@@ -10,11 +10,11 @@ import os
 from snowflake.snowpark import Session
 from snowflake.snowpark.context import get_active_session
 
-SNOWFLAKE_ACCOUNT = "xy12345.us-east-1"
-SNOWFLAKE_USER = "utku"
-SNOWFLAKE_WAREHOUSE = "COMPUTE_WH"
-DATABASE = "DEMO"
-SCHEMA = "PUBLIC"
+SNOWFLAKE_ACCOUNT = os.getenv("SNOWFLAKE_ACCOUNT", "")
+SNOWFLAKE_USER = os.getenv("SNOWFLAKE_USER", "")
+SNOWFLAKE_WAREHOUSE = os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH")
+DATABASE = os.getenv("SNOWFLAKE_DATABASE", "DEMO")
+SCHEMA = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")
 
 _local_session = None
 
