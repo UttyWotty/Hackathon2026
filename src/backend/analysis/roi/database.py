@@ -92,11 +92,9 @@ class ROIDatabase:
             self.session = Session.builder.configs(self.connection_parameters).create()
 
             # CRITICAL: Set statement timeout via ALTER SESSION (Snowpark requires this)
-            # Default is often 60 seconds, which causes failures around 71 seconds
-            # This must be set AFTER session creation via ALTER SESSION command
-            statement_timeout = int(
-                os.getenv("SNOWFLAKE_STATEMENT_TIMEOUT", "7200")
-            )  # 2 hours default
+            from analysis.shared.constants import AnalysisConfig
+
+            statement_timeout = AnalysisConfig.STATEMENT_TIMEOUT_SECONDS
             try:
                 self.session.sql(
                     f"ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS = {statement_timeout}"
@@ -278,9 +276,9 @@ class ROIDatabase:
                     cursor = self.sf_conn.cursor()
 
                     # Set statement timeout for this connection
-                    statement_timeout = int(
-                        os.getenv("SNOWFLAKE_STATEMENT_TIMEOUT", "7200")
-                    )
+                    from analysis.shared.constants import AnalysisConfig
+
+                    statement_timeout = AnalysisConfig.STATEMENT_TIMEOUT_SECONDS
                     try:
                         cursor.execute(
                             f"ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS = {statement_timeout}"

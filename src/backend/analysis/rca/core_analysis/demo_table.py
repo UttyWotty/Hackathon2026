@@ -57,11 +57,9 @@ def get_session():
 
         # CRITICAL: Set statement timeout via ALTER SESSION (Snowpark requires this)
         # Default is often 60 seconds, which causes failures around 71 seconds
-        import os
+        from analysis.shared.constants import AnalysisConfig
 
-        statement_timeout = int(
-            os.getenv("SNOWFLAKE_STATEMENT_TIMEOUT", "7200")
-        )  # 2 hours default
+        statement_timeout = AnalysisConfig.STATEMENT_TIMEOUT_SECONDS
         try:
             session.sql(
                 f"ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS = {statement_timeout}"
