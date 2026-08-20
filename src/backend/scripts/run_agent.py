@@ -121,8 +121,13 @@ def _print_score(run_id: str, summary: str) -> None:
         print(f"  UNBACKED CLAIMS: {report.claimed_only}", flush=True)
 
 
-# Tools to exclude from demo runs: broken imports or missing backing tables.
-EXCLUDED_TOOLS = {"run_rca_analysis", "get_plant_health_snapshot", "generate_presentation"}
+# Tools to exclude from demo runs: broken imports, missing tables, or local-only artifacts.
+EXCLUDED_TOOLS = {
+    "run_rca_analysis",
+    "get_plant_health_snapshot",
+    "generate_presentation",
+    "create_chart",
+}
 
 
 async def _run(args: argparse.Namespace) -> int:
