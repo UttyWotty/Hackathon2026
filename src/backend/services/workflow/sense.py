@@ -56,10 +56,9 @@ class SenseFinding:
         return self.status == STATUS_SUCCESS
 
 
-# The opening sweep. Multiple detectors provide cross-signal coverage.
+# The opening sweep. Uses only detectors whose backing tables exist in DEMO.PUBLIC.
 DEFAULT_SENSE_TASKS: List[SenseTask] = [
     SenseTask(tool_name="run_deviation_analysis", arguments={}),
-    SenseTask(tool_name="run_efficiency_analysis", arguments={}),
 ]
 
 DEVIATION_TOOL = "run_deviation_analysis"
