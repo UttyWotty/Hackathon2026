@@ -761,6 +761,8 @@ def render_insights_panel():
         """)
         if not notes.empty:
             st.dataframe(notes, use_container_width=True)
+        else:
+            st.info("No shift notes recorded yet.")
 
     with tab_patterns:
         patterns = _cached_query(f"""
@@ -807,3 +809,5 @@ def render_insights_panel():
                 .properties(height=250, title="Issue Mentions by Machine")
             )
             st.altair_chart(chart, use_container_width=True)
+        else:
+            st.info("No pattern data available.")

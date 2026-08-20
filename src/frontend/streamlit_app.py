@@ -164,6 +164,10 @@ def render_drift_tab(deviation_df):
 
     st.subheader("Duration Drift Detection")
 
+    if deviation_df.empty:
+        st.info("No deviation data available for the selected period.")
+        return
+
     col1, col2 = st.columns([2, 1])
     with col1:
         st.write(
@@ -431,8 +435,10 @@ def render_stability_tab(stability_df, deviation_df):
 
 def render_fleet_tab(summary_df):
     """Render fleet overview tab."""
-
     st.subheader("Fleet Health Summary")
+    if summary_df.empty:
+        st.info("No fleet data available.")
+        return
     st.dataframe(summary_df, use_container_width=True)
 
 
