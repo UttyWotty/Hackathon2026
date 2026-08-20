@@ -429,6 +429,7 @@ def render_fleet_tab(summary_df):
 def main():
     """Main app layout with interactive sidebar."""
     st.set_page_config(page_title=PAGE_TITLE, layout="wide")
+    st.set_option("client.showErrorDetails", False)
 
     # Sidebar - interactive controls
     st.sidebar.title("Controls")

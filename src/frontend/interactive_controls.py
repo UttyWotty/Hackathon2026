@@ -157,8 +157,8 @@ def _ingest_csv(df: pd.DataFrame):
         st.session_state["ingest_trigger_sweep"] = True
         if "uploaded_preview" in st.session_state:
             del st.session_state["uploaded_preview"]
-    except Exception as exc:
-        st.sidebar.error(f"Upload failed: {exc}")
+    except Exception:
+        st.sidebar.error("Upload failed. Please check the CSV format and try again.")
 
 
 def render_upload_preview():
@@ -226,8 +226,8 @@ def render_upload_preview():
                 st.session_state["show_csv_paste"] = False
                 if "csv_text_input" in st.session_state:
                     del st.session_state["csv_text_input"]
-        except Exception as exc:
-            st.error(f"Failed to parse CSV: {exc}")
+        except Exception:
+            st.error("Failed to parse CSV. Please check the format and try again.")
 
 
 def render_rca_selector():
