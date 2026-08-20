@@ -496,6 +496,18 @@ def main():
         from interactive_controls import _clear_data_caches
         _clear_data_caches()
 
+    col_alert, col_wo = st.sidebar.columns(2)
+    with col_alert:
+        if st.button("Send Alert", key="manual_alert", use_container_width=True):
+            from action_loop import trigger_alert
+            trigger_alert("MX-7103", "WARNING", "Manual test alert dispatched from dashboard.")
+            st.sidebar.success("Alert sent.")
+    with col_wo:
+        if st.button("Log Work Order", key="manual_wo", use_container_width=True):
+            from action_loop import log_work_order
+            log_work_order("MX-7103", "WARNING", "Manual work order logged from dashboard.")
+            st.sidebar.success("Work order logged.")
+
     render_help_chat()
 
     # Main area
