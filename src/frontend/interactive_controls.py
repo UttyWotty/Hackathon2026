@@ -230,9 +230,9 @@ def render_upload_preview():
 
 
 def render_rca_selector():
-    """Render equipment selector for root cause investigation."""
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Investigate Equipment")
+    """Render machine selector for root cause investigation."""
+    st.sidebar.subheader("Investigate Machine")
+    st.sidebar.caption("Drill into a single machine after sweeping the fleet")
 
     session = get_session()
     machines = (
@@ -241,7 +241,7 @@ def render_rca_selector():
         .tolist()
     )
 
-    selected = st.sidebar.selectbox("Select Machine", [""] + machines, index=0)
+    selected = st.sidebar.selectbox("Machine", [""] + machines, index=0, key="rca_select")
     if selected == "":
         selected = None
 

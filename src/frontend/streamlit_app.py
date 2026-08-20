@@ -12,6 +12,7 @@ from action_loop import (
     render_audit_trail,
     render_skill_log,
 )
+from help_chat import render_help_chat
 from analysis_panels import (
     render_decision_trail_panel,
     render_efficiency_panel,
@@ -474,6 +475,16 @@ def main():
     st.sidebar.caption("Searches operator notes to explain WHY a machine is abnormal.")
     st.sidebar.markdown("**$report-and-act**")
     st.sidebar.caption("Records decision, evidence, and actions to audit trail.")
+
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Data Management")
+    if st.sidebar.button("Reset Audit Log", key="reset_audit_log", use_container_width=True):
+        session = get_session()
+        session.sql("TRUNCATE TABLE DEMO.PUBLIC.AUDIT_LOG").collect()
+        st.sidebar.success("Audit log cleared.")
+        st.cache_data.clear()
+
+    render_help_chat()
 
     # Main area
     st.title(PAGE_TITLE)

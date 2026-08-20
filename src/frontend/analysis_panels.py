@@ -98,13 +98,16 @@ def render_pareto_panel():
         f"{df.iloc[0]['CONTRIBUTION_PCT']:.1f}% of total deviation"
     )
 
+    st.divider()
+    render_dimensional_drilldown()
 
-def render_five_whys_panel():
-    """5 Whys temporal breakdown for a selected machine."""
+
+def render_dimensional_drilldown():
+    """Dimensional drill-down: break deviation by time, shift, and product."""
     session = get_session()
 
-    st.subheader("5 Whys - Temporal Root Cause Drill-Down")
-    st.caption("Drill through 5 layers of WHY to isolate the root cause")
+    st.subheader("Dimensional Drill-Down")
+    st.caption("Break down deviation by time pattern, shift, and product for a single machine")
 
     machines = (
         session.sql(f"SELECT DISTINCT MACHINE_ID FROM {FULL_TABLE} ORDER BY MACHINE_ID")
@@ -125,8 +128,7 @@ def render_five_whys_panel():
     trunc_unit = GRANULARITY_MAP[granularity]
     base_where = f"MACHINE_ID = '{selected}' AND DURATION < {HARD_STOP} AND VOLUME > 0 AND {date_clause}"
 
-    # Why 1: Time trend
-    st.markdown(f"**Why 1: Is there a {granularity.lower()} trend?**")
+    st.markdown(f"**Time Trend ({granularity})**")
     trend = session.sql(f"""
         SELECT DATE_TRUNC('{trunc_unit}', SHOT_TIME) AS PERIOD,
                ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
@@ -160,9 +162,8 @@ def render_five_whys_panel():
 
     col1, col2 = st.columns(2)
 
-    # Why 2: Hour of day
     with col1:
-        st.markdown("**Why 2: Which hours of day are worst?**")
+        st.markdown("**Hour of Day**")
         hourly = session.sql(f"""
             SELECT HOUR(SHOT_TIME) AS HOUR_OF_DAY,
                    ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION
@@ -193,9 +194,8 @@ def render_five_whys_panel():
             )
             st.altair_chart(chart, use_container_width=True)
 
-    # Why 3: Day of week
     with col2:
-        st.markdown("**Why 3: Is there a day-of-week pattern?**")
+        st.markdown("**Day of Week**")
         dow = session.sql(f"""
             SELECT DAYOFWEEK(SHOT_TIME) AS DOW,
                    ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
@@ -229,9 +229,8 @@ def render_five_whys_panel():
 
     col3, col4 = st.columns(2)
 
-    # Why 4: By shift (morning/afternoon/night)
     with col3:
-        st.markdown("**Why 4: Which shift is responsible?**")
+        st.markdown("**By Shift**")
         shift = session.sql(f"""
             SELECT
                 CASE
@@ -268,9 +267,8 @@ def render_five_whys_panel():
             )
             st.altair_chart(chart, use_container_width=True)
 
-    # Why 5: By product
     with col4:
-        st.markdown("**Why 5: Is a specific product causing it?**")
+        st.markdown("**By Product**")
         product = session.sql(f"""
             SELECT PRODUCT_NAME,
                    ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
@@ -301,6 +299,174 @@ def render_five_whys_panel():
                 .properties(height=180)
             )
             st.altair_chart(chart, use_container_width=True)
+
+
+FIVE_WHYS_MODEL = "mistral-large2"
+FIVE_WHYS_SESSION_KEY = "five_whys_result"
+
+
+def _gather_machine_context(session, machine_id: str, date_clause: str) -> str:
+    """Gather data context for a machine to feed the 5 Whys LLM prompt."""
+    base_where = (
+        f"MACHINE_ID = '{machine_id}' AND DURATION < {HARD_STOP} "
+        f"AND VOLUME > 0 AND {date_clause}"
+    )
+
+    overview = session.sql(f"""
+        SELECT
+            ROUND(AVG(DURATION), 2) AS AVG_DURATION,
+            ROUND(AVG(TARGET_DURATION), 2) AS AVG_TARGET,
+            ROUND(((AVG(DURATION) - AVG(TARGET_DURATION))
+                / NULLIF(AVG(TARGET_DURATION), 0)) * 100, 2) AS DEVIATION_PCT,
+            ROUND(STDDEV(DURATION), 3) AS STD_DURATION,
+            COUNT(*) AS TOTAL_SHOTS
+        FROM {FULL_TABLE}
+        WHERE {base_where}
+    """).to_pandas()
+
+    shift_data = session.sql(f"""
+        SELECT
+            CASE
+                WHEN HOUR(SHOT_TIME) BETWEEN 6 AND 13 THEN 'Morning'
+                WHEN HOUR(SHOT_TIME) BETWEEN 14 AND 21 THEN 'Afternoon'
+                ELSE 'Night'
+            END AS SHIFT,
+            ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
+            COUNT(*) AS SHOTS
+        FROM {FULL_TABLE}
+        WHERE {base_where}
+        GROUP BY 1 ORDER BY AVG_DEVIATION DESC
+    """).to_pandas()
+
+    product_data = session.sql(f"""
+        SELECT PRODUCT_NAME,
+               ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
+               COUNT(*) AS SHOTS
+        FROM {FULL_TABLE}
+        WHERE {base_where}
+        GROUP BY 1 ORDER BY AVG_DEVIATION DESC
+        LIMIT 5
+    """).to_pandas()
+
+    weekly_trend = session.sql(f"""
+        SELECT DATE_TRUNC('WEEK', SHOT_TIME) AS WEEK,
+               ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION
+        FROM {FULL_TABLE}
+        WHERE {base_where}
+        GROUP BY 1 ORDER BY 1
+    """).to_pandas()
+
+    context_parts = [
+        f"Machine: {machine_id}",
+        f"Overall: avg_duration={overview.iloc[0]['AVG_DURATION']}s, "
+        f"target={overview.iloc[0]['AVG_TARGET']}s, "
+        f"deviation={overview.iloc[0]['DEVIATION_PCT']}%, "
+        f"std_dev={overview.iloc[0]['STD_DURATION']}s, "
+        f"total_shots={overview.iloc[0]['TOTAL_SHOTS']}",
+        "",
+        "Weekly trend (deviation from target):",
+        weekly_trend.to_string(index=False) if not weekly_trend.empty else "No data",
+        "",
+        "Deviation by shift:",
+        shift_data.to_string(index=False) if not shift_data.empty else "No data",
+        "",
+        "Top products by deviation:",
+        product_data.to_string(index=False) if not product_data.empty else "No data",
+    ]
+    return "\n".join(context_parts)
+
+
+def _run_five_whys_llm(session, machine_id: str, context: str) -> str:
+    """Call Cortex Complete to generate a 5 Whys causal chain."""
+    prompt = f"""You are a manufacturing root cause analysis expert. Perform a 5 Whys analysis
+for the machine below. Each "Why" must dig deeper into the previous answer, forming a causal
+chain from symptom to root cause.
+
+DATA CONTEXT:
+{context}
+
+INSTRUCTIONS:
+- Start with the observed problem (duration deviation from target)
+- Each Why should be a specific question about WHY the previous answer is happening
+- Each answer should reference the data provided where possible
+- The 5th Why should identify the most likely root cause
+- Be specific and data-driven, not generic
+- Format exactly as shown below
+
+FORMAT:
+Problem: [State the observed problem in one sentence]
+
+Why 1: [Question about why the problem exists]
+Answer: [Data-driven answer]
+
+Why 2: [Deeper question based on Answer 1]
+Answer: [Data-driven answer]
+
+Why 3: [Deeper question based on Answer 2]
+Answer: [Data-driven answer]
+
+Why 4: [Deeper question based on Answer 3]
+Answer: [Data-driven answer]
+
+Why 5: [Deepest question - gets to root cause]
+Answer: [Root cause conclusion]
+
+Root Cause: [One-sentence summary of the root cause]
+Recommended Action: [One concrete action to address it]
+"""
+    escaped = prompt.replace("\\", "\\\\").replace("'", "\\'")
+    result = session.sql(
+        f"SELECT SNOWFLAKE.CORTEX.COMPLETE('{FIVE_WHYS_MODEL}', '{escaped}') AS RESPONSE"
+    ).collect()
+    if result and len(result) > 0:
+        return str(result[0]["RESPONSE"]).strip()
+    return "Unable to generate analysis. Please try again."
+
+
+def render_five_whys_panel():
+    """LLM-driven iterative 5 Whys root cause analysis."""
+    session = get_session()
+
+    st.subheader("5 Whys - Root Cause Analysis")
+    st.caption(
+        "Select a machine and run an AI-driven 5 Whys analysis that iteratively "
+        "drills from symptom to root cause"
+    )
+
+    machines = (
+        session.sql(f"SELECT DISTINCT MACHINE_ID FROM {FULL_TABLE} ORDER BY MACHINE_ID")
+        .to_pandas()["MACHINE_ID"]
+        .tolist()
+    )
+
+    col_machine, col_btn = st.columns([2, 1])
+    with col_machine:
+        selected = st.selectbox(
+            "Machine", machines, index=2, key="5whys_llm_machine"
+        )
+    with col_btn:
+        st.write("")
+        run_clicked = st.button(
+            "Run 5 Whys", key="5whys_run", use_container_width=True
+        )
+
+    start, end = _render_date_range("5whys_llm")
+    date_clause = _date_filter(start, end)
+
+    if run_clicked:
+        with st.spinner("Running 5 Whys analysis with Cortex AI..."):
+            context = _gather_machine_context(session, selected, date_clause)
+            result = _run_five_whys_llm(session, selected, context)
+            st.session_state[FIVE_WHYS_SESSION_KEY] = {
+                "machine": selected,
+                "result": result,
+            }
+
+    stored = st.session_state.get(FIVE_WHYS_SESSION_KEY)
+    if stored:
+        st.markdown(f"**Analysis for {stored['machine']}:**")
+        st.markdown("---")
+        st.markdown(stored["result"])
 
 
 def render_efficiency_panel():
