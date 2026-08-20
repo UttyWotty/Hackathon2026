@@ -108,64 +108,59 @@ def get_snowflake_connection_params(include_private_key: bool = True) -> Dict[st
     # Load environment variables
     load_dotenv()
 
+    from analysis.shared.snowflake_config import (
+        SNOWFLAKE_ACCOUNT,
+        SNOWFLAKE_DATABASE,
+        SNOWFLAKE_INSECURE_MODE,
+        SNOWFLAKE_LOGIN_TIMEOUT,
+        SNOWFLAKE_NETWORK_TIMEOUT,
+        SNOWFLAKE_OCSP_FAIL_OPEN,
+        SNOWFLAKE_PASSWORD,
+        SNOWFLAKE_PRIVATE_KEY_PASSWORD,
+        SNOWFLAKE_PRIVATE_KEY_PATH,
+        SNOWFLAKE_ROLE,
+        SNOWFLAKE_SCHEMA,
+        SNOWFLAKE_USER,
+        SNOWFLAKE_WAREHOUSE,
+    )
+
     # Build base connection parameters
     params = {
-        "user": os.getenv("SNOWFLAKE_USER"),
-        "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-        "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
-        "database": os.getenv("SNOWFLAKE_DATABASE"),
-        "schema": os.getenv("SNOWFLAKE_SCHEMA"),
-        "role": os.getenv("SNOWFLAKE_ROLE"),
+        "user": SNOWFLAKE_USER,
+        "account": SNOWFLAKE_ACCOUNT,
+        "warehouse": SNOWFLAKE_WAREHOUSE,
+        "database": SNOWFLAKE_DATABASE,
+        "schema": SNOWFLAKE_SCHEMA,
+        "role": SNOWFLAKE_ROLE,
     }
 
-    # Add timeout settings for long-running queries
-    # network_timeout: Timeout for network operations (default: 600 seconds = 10 minutes)
-    # login_timeout: Timeout for login (default: 60 seconds)
-    # ocsp_fail_open: Allow connection even if OCSP certificate validation fails (for long queries)
-    params["network_timeout"] = int(
-        os.getenv("SNOWFLAKE_NETWORK_TIMEOUT", "3600")
-    )  # 1 hour default
-    params["login_timeout"] = int(
-        os.getenv("SNOWFLAKE_LOGIN_TIMEOUT", "60")
-    )  # 1 minute default
-    ocsp_fail_open = (
-        os.getenv("SNOWFLAKE_OCSP_FAIL_OPEN", "True").lower() == "true"
-    )  # Default: True
-    params["ocsp_fail_open"] = ocsp_fail_open
+    # Timeout and security settings
+    params["network_timeout"] = SNOWFLAKE_NETWORK_TIMEOUT
+    params["login_timeout"] = SNOWFLAKE_LOGIN_TIMEOUT
+    params["ocsp_fail_open"] = SNOWFLAKE_OCSP_FAIL_OPEN
+    params["insecure_mode"] = SNOWFLAKE_INSECURE_MODE
 
-    # Insecure mode: Completely disable SSL/TLS certificate verification
-    # Use with caution - bypasses all certificate validation
-    # Useful when corporate firewalls/proxies interfere with SSL handshakes
-    insecure_mode = os.getenv("SNOWFLAKE_INSECURE_MODE", "False").lower() == "true"
-    params["insecure_mode"] = insecure_mode
-
-    # CRITICAL: Set OCSP fail-open as environment variable for Python connector
-    # This ensures it's respected during S3 result fetching (where certificate errors occur)
-    os.environ["SF_OCSP_FAIL_OPEN"] = str(ocsp_fail_open).lower()
+    os.environ["SF_OCSP_FAIL_OPEN"] = str(SNOWFLAKE_OCSP_FAIL_OPEN).lower()
 
     # Try private key authentication first, fall back to password
     if include_private_key:
-        key_path = os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
+        key_path = SNOWFLAKE_PRIVATE_KEY_PATH
         if key_path and os.path.exists(key_path):
             try:
-                key_password = os.getenv("SNOWFLAKE_PRIVATE_KEY_PASSWORD")
-                params["private_key"] = load_private_key(key_path, key_password)
-                logger.info("✅ Using private key authentication")
+                params["private_key"] = load_private_key(key_path, SNOWFLAKE_PRIVATE_KEY_PASSWORD)
+                logger.info("Using private key authentication")
             except Exception as e:
                 logger.warning(
-                    f"⚠️  Could not load private key: {e}, falling back to password"
+                    "Could not load private key: %s, falling back to password", e
                 )
-                password = os.getenv("SNOWFLAKE_PASSWORD")
-                if password:
-                    params["password"] = password
+                if SNOWFLAKE_PASSWORD:
+                    params["password"] = SNOWFLAKE_PASSWORD
         else:
-            password = os.getenv("SNOWFLAKE_PASSWORD")
-            if password:
-                params["password"] = password
+            if SNOWFLAKE_PASSWORD:
+                params["password"] = SNOWFLAKE_PASSWORD
     else:
-        password = os.getenv("SNOWFLAKE_PASSWORD")
-        if password:
-            params["password"] = password
+        if SNOWFLAKE_PASSWORD:
+            params["password"] = SNOWFLAKE_PASSWORD
 
     # Validate required parameters
     required_keys = ["account", "user", "warehouse", "database", "schema", "role"]
@@ -308,7 +303,9 @@ def get_schema_name() -> str:
         >>> print(f"Using schema: {schema}")
     """
     load_dotenv()
-    return os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")
+    from analysis.shared.snowflake_config import SNOWFLAKE_SCHEMA
+
+    return SNOWFLAKE_SCHEMA or "PUBLIC"
 
 
 def create_snowpark_session(schema: Optional[str] = None):
@@ -336,32 +333,42 @@ def create_snowpark_session(schema: Optional[str] = None):
 
     load_dotenv()
 
+    from analysis.shared.snowflake_config import (
+        SNOWFLAKE_ACCOUNT,
+        SNOWFLAKE_DATABASE,
+        SNOWFLAKE_PASSWORD,
+        SNOWFLAKE_PRIVATE_KEY_PASSWORD,
+        SNOWFLAKE_PRIVATE_KEY_PATH,
+        SNOWFLAKE_ROLE,
+        SNOWFLAKE_SCHEMA,
+        SNOWFLAKE_USER,
+        SNOWFLAKE_WAREHOUSE,
+    )
+
     # Build connection parameters for Snowpark
     connection_params = {
-        "user": os.getenv("SNOWFLAKE_USER"),
-        "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-        "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
-        "database": os.getenv("SNOWFLAKE_DATABASE"),
-        "schema": schema or os.getenv("SNOWFLAKE_SCHEMA"),
-        "role": os.getenv("SNOWFLAKE_ROLE"),
+        "user": SNOWFLAKE_USER,
+        "account": SNOWFLAKE_ACCOUNT,
+        "warehouse": SNOWFLAKE_WAREHOUSE,
+        "database": SNOWFLAKE_DATABASE,
+        "schema": schema or SNOWFLAKE_SCHEMA,
+        "role": SNOWFLAKE_ROLE,
     }
 
     # Try private key authentication first
-    key_path = os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
-    if key_path and os.path.exists(key_path):
+    if SNOWFLAKE_PRIVATE_KEY_PATH and os.path.exists(SNOWFLAKE_PRIVATE_KEY_PATH):
         try:
-            key_password = os.getenv("SNOWFLAKE_PRIVATE_KEY_PASSWORD")
-            connection_params["private_key"] = load_private_key(key_path, key_password)
+            connection_params["private_key"] = load_private_key(
+                SNOWFLAKE_PRIVATE_KEY_PATH, SNOWFLAKE_PRIVATE_KEY_PASSWORD
+            )
             logger.info("Using private key authentication for Snowpark session")
         except Exception as e:
-            logger.warning(f"Could not load private key: {e}, falling back to password")
-            password = os.getenv("SNOWFLAKE_PASSWORD")
-            if password:
-                connection_params["password"] = password
+            logger.warning("Could not load private key: %s, falling back to password", e)
+            if SNOWFLAKE_PASSWORD:
+                connection_params["password"] = SNOWFLAKE_PASSWORD
     else:
-        password = os.getenv("SNOWFLAKE_PASSWORD")
-        if password:
-            connection_params["password"] = password
+        if SNOWFLAKE_PASSWORD:
+            connection_params["password"] = SNOWFLAKE_PASSWORD
 
     try:
         session = Session.builder.configs(connection_params).create()
