@@ -21,14 +21,12 @@ SEVERITY_MINOR = 5.0
 
 
 def _clear_data_caches():
-    """Clear only data-related caches, preserving session/resource caches."""
-    from analysis_panels import _cached_query
-    from streamlit_app import load_fleet_deviation, load_fleet_summary, load_stability_trend
+    """Clear all data caches after ingest/sweep/reset.
 
-    _cached_query.clear()
-    load_fleet_deviation.clear()
-    load_fleet_summary.clear()
-    load_stability_trend.clear()
+    Uses st.cache_data.clear() which does not affect @st.cache_resource
+    (the Snowpark session persists).
+    """
+    st.cache_data.clear()
 
 
 def run_anomaly_sweep() -> pd.DataFrame:
