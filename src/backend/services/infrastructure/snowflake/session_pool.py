@@ -15,6 +15,7 @@ Date: 2025-10-22
 import logging
 import os
 import re
+import threading
 from contextlib import contextmanager
 from typing import Any, Dict, Literal, Optional
 
@@ -55,6 +56,7 @@ class SnowflakeSessionPool:
         # Initialize the pool first so close_all() is safe even if the
         # env-var validation below raises (e.g. missing credentials in CI).
         self._connections: Dict[str, snowflake.connector.SnowflakeConnection] = {}
+        self._lock = threading.Lock()
 
         # Validate required environment variables
         required_vars = [
@@ -196,26 +198,27 @@ class SnowflakeSessionPool:
         # Get or create connection (keyed by database+schema)
         conn_key = f"{target_db}.{target_schema}"
 
-        if conn_key not in self._connections or not self._is_connection_valid(
-            self._connections[conn_key]
-        ):
-            logger.info(f"Creating new connection to {target_db}.{target_schema}")
-            config = self.config.copy()
-            config["database"] = target_db
-            config["schema"] = target_schema
-            self._connections[conn_key] = snowflake.connector.connect(**config)
+        with self._lock:
+            if conn_key not in self._connections or not self._is_connection_valid(
+                self._connections[conn_key]
+            ):
+                logger.info(f"Creating new connection to {target_db}.{target_schema}")
+                config = self.config.copy()
+                config["database"] = target_db
+                config["schema"] = target_schema
+                self._connections[conn_key] = snowflake.connector.connect(**config)
 
         try:
             yield self._connections[conn_key]
         except Exception as e:
             logger.error(f"Connection error: {e}")
-            # Invalidate connection on error
-            if conn_key in self._connections:
-                try:
-                    self._connections[conn_key].close()
-                except (AttributeError, Exception) as e:
-                    logger.debug(f"Error closing invalid connection: {e}")
-                del self._connections[conn_key]
+            with self._lock:
+                if conn_key in self._connections:
+                    try:
+                        self._connections[conn_key].close()
+                    except (AttributeError, Exception) as e:
+                        logger.debug(f"Error closing invalid connection: {e}")
+                    del self._connections[conn_key]
             raise
 
     def _is_connection_valid(
@@ -482,6 +485,7 @@ class SnowflakeSessionPool:
 
 # Global session pool instance (singleton pattern)
 _global_pool: Optional[SnowflakeSessionPool] = None
+_global_pool_lock = threading.Lock()
 
 
 def get_session_pool() -> SnowflakeSessionPool:
@@ -492,9 +496,10 @@ def get_session_pool() -> SnowflakeSessionPool:
         SnowflakeSessionPool: Global pool instance
     """
     global _global_pool
-    if _global_pool is None:
-        _global_pool = SnowflakeSessionPool()
-    return _global_pool
+    with _global_pool_lock:
+        if _global_pool is None:
+            _global_pool = SnowflakeSessionPool()
+        return _global_pool
 
 
 if __name__ == "__main__":
