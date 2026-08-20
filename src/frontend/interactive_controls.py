@@ -230,7 +230,8 @@ def render_upload_preview():
             st.caption(f"{len(df)} rows parsed, {len(df.columns)} columns")
 
             if st.button("Ingest to Snowflake", type="primary"):
-                _ingest_csv(df)
+                with st.spinner("Ingesting data to Snowflake..."):
+                    _ingest_csv(df)
                 st.session_state["show_csv_paste"] = False
                 if "csv_text_input" in st.session_state:
                     del st.session_state["csv_text_input"]
