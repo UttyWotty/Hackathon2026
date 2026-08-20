@@ -12,7 +12,7 @@ Manufacturing lines generate millions of shots per week. Dashboards track single
 (duration, stop count) but subtle multi-signal anomalies slip through:
 
 - A machine drifting 2% per week looks healthy on any single-day view
-- High MTTR with normal MTBF means few faults but slow recovery -- invisible to stop-count alerts
+- High stability with rising deviation is invisible to threshold alerts
 - Declining week-over-week stability is the earliest warning, but no threshold catches a trend
 
 **This agent reasons across detectors the way an experienced engineer does** -- combining
@@ -94,15 +94,14 @@ SNOWFLAKE_WAREHOUSE=COMPUTE_WH
 SNOWFLAKE_DATABASE=DEMO
 SNOWFLAKE_SCHEMA=PUBLIC
 SNOWFLAKE_PAT=your-programmatic-access-token
-LLM_BACKEND=cortex
 ```
 
 ## What Makes This Different
 
 1. **Autonomous multi-step orchestration** -- the agent decides what tools to call next based
    on what it found, not a hardcoded DAG
-2. **Cross-signal reasoning** -- combines 4 independent detectors (duration deviation, MTBF, MTTR,
-   stability trend) that no single threshold can replicate
+2. **Cross-signal reasoning** -- combines duration deviation, stability scoring, maintenance
+   impact, and tooling EOL into a unified assessment no single threshold can replicate
 3. **Self-grading** -- every run is scored against a ground-truth contract declaring what
    defects are planted, so claims are verifiable
 4. **Minimal intervention** -- one trigger, zero human decisions, full decision trail
@@ -115,7 +114,7 @@ skills/                       3 CoCo CLI skills (sense, investigate, report)
 demo/                         Streamlit UI (trigger runs, browse trails, visualize drift)
 analysis/                     Analysis modules (deviation, rca, roi, efficiency, ...)
 services/workflow/            Autonomous controller, scoring, decision trail
-core/                         LLM clients (Cortex + MLX), tool definitions, prompts
+core/                         Cortex LLM client, tool definitions, prompts
 synthetic_data/               Reproducible dataset generator with planted defects
 tests/                        716 tests (684 application + 40 generator)
 ```

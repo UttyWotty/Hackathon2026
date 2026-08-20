@@ -1,8 +1,8 @@
 """
 Tool definitions and LLM-format adapters for the autonomous agent.
 
-Re-exports TOOLS from core/tools/definitions.py and provides get_tools_for_llm()
-which formats them for whichever backend (Cortex or MLX) is active.
+Re-exports TOOLS from core/tools/definitions and provides get_tools_for_llm()
+which formats them for the Cortex Messages API.
 """
 
 from typing import Any, Dict, List
@@ -18,11 +18,7 @@ __all__ = [
 
 
 def get_tools_for_llm() -> List[Dict[str, Any]]:
-    """Return tool definitions for the active LLM backend.
-
-    Both backends take Anthropic-format tools: Cortex natively, and the MLX
-    client converts them down to OpenAI function format on the way out.
-    """
+    """Return tool definitions formatted for Snowflake Cortex Messages API."""
     from core.tools.cortex_adapter import get_tools_for_cortex
 
     return get_tools_for_cortex()

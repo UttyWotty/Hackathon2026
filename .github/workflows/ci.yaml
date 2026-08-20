@@ -1,6 +1,6 @@
-# CI workflow for the manufacturing-api FastAPI project.
-# Runs linting (ruff), formatting checks (black, isort), and pytest on pull requests
-# and pushes to main, using a Python 3.10+ matrix strategy.
+# CI workflow for the Cortex Workflow Agent.
+# Runs linting (ruff), formatting checks (black, isort), and pytest.
+# Currently disabled (workflow_dispatch only) pending Actions minute reset.
 
 name: CI
 

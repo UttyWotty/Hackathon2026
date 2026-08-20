@@ -40,7 +40,7 @@ class TracedLLMClient:
     If Langfuse is unavailable, all calls pass through with zero overhead.
 
     Attributes:
-        _inner: The real client instance (Cortex or MLX).
+        _inner: The real client instance (CortexClient).
     """
 
     def __init__(self, inner: Any) -> None:

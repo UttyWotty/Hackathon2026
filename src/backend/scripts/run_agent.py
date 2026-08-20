@@ -6,8 +6,9 @@ backend and data source, then prints the resulting decision trail. This is the
 demo driver and the way to exercise a full run outside the scheduler.
 
 Usage:
-    LOCAL_DATA_DIR=./synthetic_out LLM_BACKEND=mlx python scripts/run_agent.py
-    python scripts/run_agent.py --tools 5     # trim the schema for local models
+    python scripts/run_agent.py
+    python scripts/run_agent.py --tools 5         # limit tool schema size
+    python scripts/run_agent.py --max-iterations 12  # more reasoning turns
 """
 
 import argparse
