@@ -7,6 +7,7 @@ environment variables when running locally.
 
 import os
 
+import streamlit as st
 from snowflake.snowpark import Session
 from snowflake.snowpark.context import get_active_session
 
@@ -16,24 +17,24 @@ SNOWFLAKE_WAREHOUSE = os.getenv("SNOWFLAKE_WAREHOUSE", "COMPUTE_WH")
 DATABASE = os.getenv("SNOWFLAKE_DATABASE", "DEMO")
 SCHEMA = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")
 
-_local_session = None
+
+@st.cache_resource
+def _create_local_session() -> Session:
+    """Create a local Snowpark session, cached across reruns."""
+    connection_params = {
+        "account": SNOWFLAKE_ACCOUNT,
+        "user": SNOWFLAKE_USER,
+        "password": os.environ.get("SNOWFLAKE_PASSWORD", ""),
+        "warehouse": SNOWFLAKE_WAREHOUSE,
+        "database": DATABASE,
+        "schema": SCHEMA,
+    }
+    return Session.builder.configs(connection_params).create()
 
 
 def get_session() -> Session:
-    """Get active Snowpark session, falling back to local connection."""
-    global _local_session
+    """Get active Snowpark session, falling back to cached local connection."""
     try:
         return get_active_session()
     except Exception:
-        if _local_session is not None:
-            return _local_session
-        connection_params = {
-            "account": SNOWFLAKE_ACCOUNT,
-            "user": SNOWFLAKE_USER,
-            "password": os.environ.get("SNOWFLAKE_PASSWORD", ""),
-            "warehouse": SNOWFLAKE_WAREHOUSE,
-            "database": DATABASE,
-            "schema": SCHEMA,
-        }
-        _local_session = Session.builder.configs(connection_params).create()
-        return _local_session
+        return _create_local_session()
