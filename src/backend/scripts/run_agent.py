@@ -12,12 +12,20 @@ Usage:
 
 import argparse
 import asyncio
+import logging
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+
+# Suppress noisy query-level errors from the connection pool during agent runs.
+# The agent handles these gracefully; they just pollute the demo terminal.
+logging.basicConfig(level=logging.WARNING, format="%(message)s")
+logging.getLogger("services.infrastructure.snowflake.session_pool").setLevel(logging.CRITICAL)
+logging.getLogger("services.config.features.insights.tools").setLevel(logging.CRITICAL)
+logging.getLogger("analysis").setLevel(logging.CRITICAL)
 
 from dotenv import load_dotenv  # noqa: E402
 
