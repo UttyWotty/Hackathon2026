@@ -553,54 +553,64 @@ def main():
 
     st.divider()
 
-    # Tab selection -- only the visible panel queries Snowflake
-    TAB_OPTIONS = [
-        "Drift Detection",
-        "Pareto",
-        "5 Whys",
-        "Efficiency",
-        "Tooling Life",
-        "Maintenance",
-        "Decision Trail",
-        "Insights",
-        "Stability",
-        "Fleet Overview",
-    ]
-    selected_tab = st.radio(
-        "Analysis", TAB_OPTIONS, horizontal=True, label_visibility="collapsed"
+    # Tabbed views -- only visible tab queries Snowflake (caching handles repeated loads)
+    (
+        tab_drift,
+        tab_pareto,
+        tab_whys,
+        tab_efficiency,
+        tab_eol,
+        tab_maint,
+        tab_trail,
+        tab_insights,
+        tab_stability,
+        tab_fleet,
+    ) = st.tabs(
+        [
+            "Drift Detection",
+            "Pareto",
+            "5 Whys",
+            "Efficiency",
+            "Tooling Life",
+            "Maintenance",
+            "Decision Trail",
+            "Insights",
+            "Stability",
+            "Fleet Overview",
+        ]
     )
 
-    if selected_tab == "Drift Detection":
+    with tab_drift:
         deviation_df = load_fleet_deviation()
         render_drift_tab(deviation_df)
 
-    elif selected_tab == "Pareto":
+    with tab_pareto:
         render_pareto_panel()
 
-    elif selected_tab == "5 Whys":
+    with tab_whys:
         render_five_whys_panel()
 
-    elif selected_tab == "Efficiency":
+    with tab_efficiency:
         render_efficiency_panel()
 
-    elif selected_tab == "Tooling Life":
+    with tab_eol:
         render_tooling_eol_panel()
 
-    elif selected_tab == "Maintenance":
+    with tab_maint:
         render_maintenance_panel()
 
-    elif selected_tab == "Decision Trail":
+    with tab_trail:
         render_decision_trail_panel()
 
-    elif selected_tab == "Insights":
+    with tab_insights:
         render_insights_panel()
 
-    elif selected_tab == "Stability":
+    with tab_stability:
         deviation_df = load_fleet_deviation()
         stability_df = load_stability_trend()
         render_stability_tab(stability_df, deviation_df)
 
-    elif selected_tab == "Fleet Overview":
+    with tab_fleet:
         render_fleet_tab(summary_df)
 
     st.divider()
