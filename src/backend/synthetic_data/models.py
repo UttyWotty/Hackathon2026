@@ -73,7 +73,7 @@ class Part:
 class Mold:
     """A tool/mold row for the TOOL dimension table and the grain of shot generation.
 
-    target_duration is stored in deci-seconds exactly as the production table does;
+    target_duration_ds is stored in deci-seconds exactly as the production table does;
     target_duration in SHOT_DATA is this value divided by ten.
     """
 
@@ -85,7 +85,7 @@ class Mold:
     location_id: int
     product_id: int
     process_type: str
-    target_duration: int
+    target_duration_ds: int
     total_cavities: int
     designed_shot: int
     max_daily_output: int
@@ -95,7 +95,7 @@ class Mold:
     @property
     def target_duration(self) -> float:
         """Approved duration in seconds, matching the pipeline's /10.0 derivation."""
-        return self.target_duration / 10.0
+        return self.target_duration_ds / 10.0
 
 
 @dataclass(frozen=True)

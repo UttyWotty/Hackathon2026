@@ -195,7 +195,6 @@ def build_molds(
             _,
             _,
         ) = entry
-        target_duration = target_duration / 10.0
         sensor_id = SENSOR_ID_BASE + index
         molds.append(
             Mold(
@@ -207,11 +206,11 @@ def build_molds(
                 location_id=LOCATION_ID_BASE + (index % len(PLANT_SPECS)),
                 product_id=product_id_by_code[product_code],
                 process_type=process_type,
-                target_duration=target_duration,
+                target_duration_ds=target_duration,
                 total_cavities=cavities,
                 designed_shot=DESIGN_LIFE_BY_TYPE[process_type],
                 max_daily_output=_max_daily_output(
-                    target_duration, cavities, shift_hours, 1
+                    target_duration / 10.0, cavities, shift_hours, 1
                 ),
                 production_days=production_days_per_week,
                 shifts_per_day=1,
