@@ -16,3 +16,4 @@ entities:
       - "help_chat.py"
       - "session_helper.py"
       - "sample_telemetry_MX9201.csv"
+      - "environment.yml"
