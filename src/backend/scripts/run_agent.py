@@ -131,7 +131,7 @@ async def _run(args: argparse.Namespace) -> int:
     client = get_traced_llm_client()
 
     full = get_tools_for_llm()
-    filtered = [t for t in full if t["toolSpec"]["name"] not in EXCLUDED_TOOLS]
+    filtered = [t for t in full if t["name"] not in EXCLUDED_TOOLS]
 
     tools_provider = None
     if args.tools:
