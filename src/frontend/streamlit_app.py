@@ -12,7 +12,6 @@ from action_loop import (
     render_audit_trail,
     render_skill_log,
 )
-from help_chat import render_help_chat
 from analysis_panels import (
     render_decision_trail_panel,
     render_efficiency_panel,
@@ -22,15 +21,31 @@ from analysis_panels import (
     render_pareto_panel,
     render_tooling_eol_panel,
 )
+from charts import padded_domain, threshold_rule, time_x
 from interactive_controls import (
-    render_csv_upload,
+    classify_severity,
     render_rca_results,
-    render_rca_selector,
-    render_sweep_panel,
     render_sweep_results,
     render_upload_preview,
 )
 from session_helper import get_session
+from sidebar import render_sidebar
+from tables import render_table
+from theme import (
+    ACCENT_PRIMARY,
+    BAND_FILL,
+    BAND_OPACITY,
+    CHART_HEIGHT_HERO,
+    CHART_HEIGHT_STANDARD,
+    RULE_DASH,
+    RULE_NEUTRAL,
+    SEVERITY_COLORS,
+    SEVERITY_CRITICAL,
+    SEVERITY_WARNING,
+    categorical_scale,
+    inject_css,
+    severity_scale,
+)
 
 PAGE_TITLE = "Autonomous Manufacturing Workflow Agent"
 DATABASE = "DEMO"
@@ -150,11 +165,19 @@ def render_kpi_cards(summary_df):
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Shots", f"{total_shots:,.0f}")
     col2.metric("Fleet Size", f"{num_machines} machines")
-    col3.metric("Worst Deviation", f"{worst_deviation:.1f}%", delta=f"{worst_machine}")
+    # delta_color="off" suppresses the up/down arrow and green/red tint: these
+    # deltas carry a machine name, not a change, and rendered as improvements.
+    col3.metric(
+        "Worst Deviation",
+        f"{worst_deviation:.1f}%",
+        delta=worst_machine,
+        delta_color="off",
+    )
     col4.metric(
         "Lowest Stability",
         f"{worst_stability:.1f}%",
-        delta=f"{worst_stability_machine}",
+        delta=worst_stability_machine,
+        delta_color="off",
     )
 
 
@@ -168,24 +191,15 @@ def render_drift_tab(deviation_df):
         st.info("No deviation data available for the selected period.")
         return
 
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.write(
-            "This chart shows each machine's duration deviation from target over time. "
-            "Machines with consistent drift that maintain high stability are the "
-            "'invisible anomalies' that single-metric alerts miss."
+    max_dev = deviation_df["DEVIATION_PCT"].max()
+    max_machine = deviation_df.loc[
+        deviation_df["DEVIATION_PCT"].idxmax(), "MACHINE_ID"
+    ]
+    if max_dev > WARNING_DEVIATION_PCT:
+        st.warning(
+            f"**{max_machine}** shows {max_dev:.1f}% peak deviation "
+            f"(threshold: {WARNING_DEVIATION_PCT}%)"
         )
-    with col2:
-        if not deviation_df.empty:
-            max_dev = deviation_df["DEVIATION_PCT"].max()
-            max_machine = deviation_df.loc[
-                deviation_df["DEVIATION_PCT"].idxmax(), "MACHINE_ID"
-            ]
-            if max_dev > WARNING_DEVIATION_PCT:
-                st.warning(
-                    f"**{max_machine}** shows {max_dev:.1f}% peak deviation "
-                    f"(threshold: {WARNING_DEVIATION_PCT}%)"
-                )
 
     chart_data = deviation_df.copy()
     chart_data["IS_HEADLINE"] = chart_data["MACHINE_ID"] == DRIFT_EQUIPMENT
@@ -196,33 +210,43 @@ def render_drift_tab(deviation_df):
         alt.Chart(chart_data)
         .mark_line(point=True)
         .encode(
-            x=alt.X("WEEK_START:T", title="Week"),
+            x=time_x("WEEK_START", "Week"),
             y=alt.Y("DEVIATION_PCT:Q", title="Duration Deviation (%)"),
-            color=alt.Color("MACHINE_ID:N", title="Equipment"),
+            color=alt.Color(
+                "MACHINE_ID:N", title="Equipment", scale=categorical_scale()
+            ),
             opacity=alt.condition(highlight, alt.value(1.0), alt.value(0.2)),
             strokeWidth=alt.condition(
                 alt.datum.IS_HEADLINE, alt.value(3), alt.value(1)
             ),
+            tooltip=[
+                alt.Tooltip("MACHINE_ID:N", title="Machine"),
+                alt.Tooltip("WEEK_START:T", title="Week", format="%b %d"),
+                alt.Tooltip("DEVIATION_PCT:Q", title="Deviation %", format=".1f"),
+                alt.Tooltip("SHOT_COUNT:Q", title="Shots", format=","),
+            ],
         )
         .add_selection(highlight)
-        .properties(height=400, title="Fleet-Wide Duration Deviation Over Time")
+        .properties(height=CHART_HEIGHT_HERO)
     )
 
-    rule_warning = (
-        alt.Chart()
-        .mark_rule(strokeDash=[5, 5], color="orange")
-        .encode(y=alt.datum(WARNING_DEVIATION_PCT))
+    rule_warning = threshold_rule(
+        WARNING_DEVIATION_PCT,
+        f"Warning ({WARNING_DEVIATION_PCT:.0f}%)",
+        SEVERITY_COLORS[SEVERITY_WARNING],
     )
-    rule_critical = (
-        alt.Chart()
-        .mark_rule(strokeDash=[5, 5], color="red")
-        .encode(y=alt.datum(CRITICAL_DEVIATION_PCT))
+    rule_critical = threshold_rule(
+        CRITICAL_DEVIATION_PCT,
+        f"Critical ({CRITICAL_DEVIATION_PCT:.0f}%)",
+        SEVERITY_COLORS[SEVERITY_CRITICAL],
     )
 
     st.altair_chart(chart + rule_warning + rule_critical, use_container_width=True)
     st.caption(
-        "Orange dashed = Warning (10%) | Red dashed = Critical (15%) | "
-        "Click legend to isolate"
+        "Each line is one machine's duration deviation from target over time. "
+        "Machines that drift steadily while holding high stability are the "
+        "'invisible anomalies' single-metric alerts miss. "
+        "Click a legend entry to isolate a machine."
     )
 
     st.divider()
@@ -230,6 +254,9 @@ def render_drift_tab(deviation_df):
 
     drift_detail = load_drift_detail()
     if not drift_detail.empty:
+        drift_detail["SEVERITY"] = drift_detail["DEVIATION_PCT"].apply(
+            classify_severity
+        )
         col1, col2 = st.columns(2)
         with col1:
             bar_chart = (
@@ -239,49 +266,46 @@ def render_drift_tab(deviation_df):
                     x=alt.X("WEEK_START:T", title="Week"),
                     y=alt.Y("DEVIATION_PCT:Q", title="Deviation %"),
                     color=alt.Color(
-                        "DEVIATION_PCT:Q",
-                        scale=alt.Scale(scheme="redyellowgreen", reverse=True),
+                        "SEVERITY:N", scale=severity_scale(), legend=None
                     ),
                 )
-                .properties(height=250, title="Deviation Severity by Week")
+                .properties(height=CHART_HEIGHT_STANDARD, title="Deviation Severity by Week")
             )
             st.altair_chart(bar_chart, use_container_width=True)
 
         with col2:
             area = (
                 alt.Chart(drift_detail)
-                .mark_area(opacity=0.3, color="#ff6b6b")
+                .mark_area(opacity=BAND_OPACITY, color=BAND_FILL)
                 .encode(
                     x=alt.X("WEEK_START:T", title="Week"),
                     y=alt.Y("MIN_DURATION:Q", title="Duration (s)"),
                     y2="MAX_DURATION:Q",
                 )
-                .properties(height=250, title="Duration Range (min/max band)")
+                .properties(height=CHART_HEIGHT_STANDARD, title="Duration Range (min/max band)")
             )
             line = (
                 alt.Chart(drift_detail)
-                .mark_line(color="#dc3545", point=True)
+                .mark_line(color=ACCENT_PRIMARY, point=True)
                 .encode(x="WEEK_START:T", y="AVG_DURATION:Q")
             )
             target_line = (
                 alt.Chart(drift_detail)
-                .mark_rule(strokeDash=[4, 4], color="green")
+                .mark_rule(strokeDash=RULE_DASH, color=RULE_NEUTRAL)
                 .encode(y="TARGET_DURATION:Q")
             )
             st.altair_chart(area + line + target_line, use_container_width=True)
 
-        st.dataframe(
-            drift_detail[
-                [
-                    "WEEK_START",
-                    "SHOT_COUNT",
-                    "AVG_DURATION",
-                    "TARGET_DURATION",
-                    "DEVIATION_PCT",
-                    "STD_DURATION",
-                ]
+        render_table(
+            drift_detail,
+            columns=[
+                "WEEK_START",
+                "SHOT_COUNT",
+                "AVG_DURATION",
+                "TARGET_DURATION",
+                "DEVIATION_PCT",
+                "STD_DURATION",
             ],
-            use_container_width=True,
         )
 
     st.divider()
@@ -300,62 +324,44 @@ def render_drift_tab(deviation_df):
     """).to_pandas()
 
     if not notes.empty and not drift_detail.empty:
-        col_chart, col_notes = st.columns([1, 1])
-        with col_chart:
-            st.markdown("**Deviation Trend**")
-            bar_inline = (
-                alt.Chart(drift_detail)
-                .mark_bar()
-                .encode(
-                    x=alt.X("WEEK_START:T", title="Week"),
-                    y=alt.Y("DEVIATION_PCT:Q", title="Deviation %"),
-                    color=alt.Color(
-                        "DEVIATION_PCT:Q",
-                        scale=alt.Scale(scheme="redyellowgreen", reverse=True),
-                        legend=None,
-                    ),
+        # The deviation trend chart is deliberately not repeated here -- the same
+        # chart is already rendered above in this tab.
+        st.markdown("**Corroborating Operator Notes**")
+        corroboration_keywords = [
+            "drift",
+            "creep",
+            "slow",
+            "over standard",
+            "compensation",
+            "sluggish",
+            "cooling",
+            "ejection",
+            "drag",
+            "recommend pulling",
+            "significantly long",
+            "well over",
+        ]
+
+        week_starts = pd.to_datetime(drift_detail["WEEK_START"])
+        deviations = drift_detail["DEVIATION_PCT"].values
+
+        for _, note_row in notes.iterrows():
+            note_text = str(note_row["NOTE_TEXT"]).lower()
+            is_corroborating = any(kw in note_text for kw in corroboration_keywords)
+            if is_corroborating:
+                note_date = pd.to_datetime(note_row["SHIFT_DATE"])
+                diffs = abs(week_starts - note_date)
+                nearest_idx = diffs.argmin()
+                matched_week = week_starts.iloc[nearest_idx].strftime("%Y-%m-%d")
+                matched_dev = deviations[nearest_idx]
+                st.warning(
+                    f"**{note_row['SHIFT_DATE']}** | {note_row['AUTHOR_ROLE']}\n\n"
+                    f"{note_row['NOTE_TEXT']}\n\n"
+                    f"--- Corroborates **{matched_dev:.1f}% deviation spike** "
+                    f"(week of {matched_week})"
                 )
-                .properties(height=200)
-            )
-            st.altair_chart(bar_inline, use_container_width=True)
-
-        with col_notes:
-            st.markdown("**Corroborating Operator Notes**")
-            corroboration_keywords = [
-                "drift",
-                "creep",
-                "slow",
-                "over standard",
-                "compensation",
-                "sluggish",
-                "cooling",
-                "ejection",
-                "drag",
-                "recommend pulling",
-                "significantly long",
-                "well over",
-            ]
-
-            week_starts = pd.to_datetime(drift_detail["WEEK_START"])
-            deviations = drift_detail["DEVIATION_PCT"].values
-
-            for _, note_row in notes.iterrows():
-                note_text = str(note_row["NOTE_TEXT"]).lower()
-                is_corroborating = any(kw in note_text for kw in corroboration_keywords)
-                if is_corroborating:
-                    note_date = pd.to_datetime(note_row["SHIFT_DATE"])
-                    diffs = abs(week_starts - note_date)
-                    nearest_idx = diffs.argmin()
-                    matched_week = week_starts.iloc[nearest_idx].strftime("%Y-%m-%d")
-                    matched_dev = deviations[nearest_idx]
-                    st.warning(
-                        f"**{note_row['SHIFT_DATE']}** | {note_row['AUTHOR_ROLE']}\n\n"
-                        f"{note_row['NOTE_TEXT']}\n\n"
-                        f"--- Corroborates **{matched_dev:.1f}% deviation spike** "
-                        f"(week of {matched_week})"
-                    )
-                else:
-                    st.text(f"[{note_row['SHIFT_DATE']}] {note_row['NOTE_TEXT']}")
+            else:
+                st.text(f"[{note_row['SHIFT_DATE']}] {note_row['NOTE_TEXT']}")
 
         st.markdown("---")
         st.markdown(
@@ -382,17 +388,27 @@ def render_stability_tab(stability_df, deviation_df):
         alt.Chart(stability_df)
         .mark_line(point=True)
         .encode(
-            x=alt.X("WEEK_START:T", title="Week"),
+            x=time_x("WEEK_START", "Week"),
             y=alt.Y(
                 "STABILITY_SCORE:Q",
                 title="Stability Score (%)",
-                scale=alt.Scale(domain=[40, 100]),
+                scale=alt.Scale(
+                    domain=list(padded_domain(stability_df["STABILITY_SCORE"]))
+                ),
             ),
-            color=alt.Color("MACHINE_ID:N", title="Equipment"),
+            color=alt.Color(
+                "MACHINE_ID:N", title="Equipment", scale=categorical_scale()
+            ),
             opacity=alt.condition(highlight, alt.value(1.0), alt.value(0.2)),
+            tooltip=[
+                alt.Tooltip("MACHINE_ID:N", title="Machine"),
+                alt.Tooltip("WEEK_START:T", title="Week", format="%b %d"),
+                alt.Tooltip("STABILITY_SCORE:Q", title="Stability %", format=".1f"),
+                alt.Tooltip("SHOT_COUNT:Q", title="Shots", format=","),
+            ],
         )
         .add_selection(highlight)
-        .properties(height=350, title="Fleet Stability Trends")
+        .properties(height=CHART_HEIGHT_HERO)
     )
     st.altair_chart(chart, use_container_width=True)
 
@@ -418,13 +434,19 @@ def render_stability_tab(stability_df, deviation_df):
             x=alt.X(
                 "AVG_STABILITY:Q",
                 title="Avg Stability (%)",
-                scale=alt.Scale(domain=[50, 100]),
+                scale=alt.Scale(
+                    domain=list(padded_domain(scatter_data["AVG_STABILITY"]))
+                ),
             ),
             y=alt.Y("AVG_DEVIATION:Q", title="Avg Duration Deviation (%)"),
-            color=alt.Color("MACHINE_ID:N"),
-            tooltip=["MACHINE_ID", "AVG_STABILITY", "AVG_DEVIATION"],
+            color=alt.Color("MACHINE_ID:N", scale=categorical_scale()),
+            tooltip=[
+                alt.Tooltip("MACHINE_ID:N", title="Machine"),
+                alt.Tooltip("AVG_STABILITY:Q", title="Avg Stability %", format=".1f"),
+                alt.Tooltip("AVG_DEVIATION:Q", title="Avg Deviation %", format=".1f"),
+            ],
         )
-        .properties(height=300, title="Stability vs Deviation (per machine)")
+        .properties(height=CHART_HEIGHT_STANDARD)
     )
     st.altair_chart(scatter, use_container_width=True)
     st.caption(
@@ -439,99 +461,30 @@ def render_fleet_tab(summary_df):
     if summary_df.empty:
         st.info("No fleet data available.")
         return
-    st.dataframe(summary_df, use_container_width=True)
+    render_table(summary_df)
 
 
 def main():
     """Main app layout with interactive sidebar."""
     st.set_page_config(page_title=PAGE_TITLE, layout="wide")
     st.set_option("client.showErrorDetails", False)
+    inject_css()
 
-    # Sidebar - interactive controls
-    st.sidebar.title("Controls")
-    st.sidebar.caption("Interact with the fleet in real-time")
-    render_sweep_panel()
-    render_rca_selector()
-    render_csv_upload()
-
-    st.sidebar.markdown("---")
-    with st.sidebar.expander("Agent Architecture", expanded=False):
-        st.code(
-            "[TRIGGER] Schedule / command / button\n"
-            "     |\n"
-            "     v\n"
-            "[SENSE] Multi-signal fleet sweep\n"
-            "  - Duration deviation from target\n"
-            "  - Week-over-week stability decline\n"
-            "  - Efficiency degradation\n"
-            "  - Tooling wear (shot accumulation)\n"
-            "     |\n"
-            "     v\n"
-            "[REASON] Snowflake Cortex LLM\n"
-            "  - Cross-signal correlation\n"
-            "  - Prioritize by severity\n"
-            "  - Decide investigation targets\n"
-            "     |\n"
-            "     v\n"
-            "[ACT] Investigate + Respond\n"
-            "  - Temporal root cause breakdown\n"
-            "  - Corroborate with operator notes\n"
-            "  - Log work orders / send alerts\n"
-            "  - Update equipment status\n"
-            "     |\n"
-            "     v\n"
-            "[RECORD] Audit + Self-evaluate\n"
-            "  - Full decision trail to AUDIT_LOG\n"
-            "  - Evidence + severity recorded\n"
-            "  - Self-grade against ground truth",
-            language=None,
-        )
-        st.markdown("**$sense-equipment-anomalies**")
-        st.caption("Sweeps fleet for duration drift and stability decline.")
-        st.markdown("**$investigate-shift-notes**")
-        st.caption("Searches operator notes to explain WHY a machine is abnormal.")
-        st.markdown("**$report-and-act**")
-        st.caption("Records decision, evidence, and actions to audit trail.")
-
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Data Management")
-    if st.sidebar.button("Reset Audit Log", key="reset_audit_log", use_container_width=True):
-        session = get_session()
-        session.sql("TRUNCATE TABLE DEMO.PUBLIC.AUDIT_LOG").collect()
-        st.sidebar.success("Audit log cleared.")
-        from interactive_controls import _clear_data_caches
-        _clear_data_caches()
-
-    col_alert, col_wo = st.sidebar.columns(2)
-    with col_alert:
-        if st.button("Send Alert", key="manual_alert", use_container_width=True):
-            from action_loop import trigger_alert
-            trigger_alert("MX-7103", "WARNING", "Manual test alert dispatched from dashboard.")
-            st.sidebar.success("Alert sent.")
-    with col_wo:
-        if st.button("Log Work Order", key="manual_wo", use_container_width=True):
-            from action_loop import log_work_order
-            log_work_order("MX-7103", "WARNING", "Manual work order logged from dashboard.")
-            st.sidebar.success("Work order logged.")
-
-    render_help_chat()
+    render_sidebar()
 
     # Main area
     st.title(PAGE_TITLE)
-    st.caption(
-        "Hackathon 2026 | Team: emoldinounited | "
-        "Track: Intelligent Workflow Automation Agent"
-    )
 
     # Post-ingest: auto-sweep BEFORE rendering results
     if st.session_state.pop("ingest_trigger_sweep", False):
-        from interactive_controls import run_anomaly_sweep, classify_severity
+        from interactive_controls import classify_severity, run_anomaly_sweep
 
         results = run_anomaly_sweep()
         results["SEVERITY"] = results["DEVIATION_PCT"].apply(classify_severity)
         st.session_state["sweep_results"] = results
         st.session_state["sweep_just_completed"] = True
         from interactive_controls import _clear_data_caches
+
         _clear_data_caches()
 
     if st.session_state.pop("ingest_success", None):
@@ -560,69 +513,68 @@ def main():
     st.divider()
 
     # Tabbed views -- only visible tab queries Snowflake (caching handles repeated loads)
+    # Ten flat tabs overflowed the tab bar at 1080p. Grouped into five, with
+    # sub-tabs inside each. Drift Detection stays first and standalone: it is
+    # the headline finding.
     (
         tab_drift,
-        tab_pareto,
-        tab_whys,
-        tab_efficiency,
-        tab_eol,
-        tab_maint,
-        tab_trail,
-        tab_insights,
-        tab_stability,
+        tab_root_cause,
+        tab_health,
+        tab_actions,
         tab_fleet,
     ) = st.tabs(
         [
             "Drift Detection",
-            "Pareto",
-            "5 Whys",
-            "Efficiency",
-            "Tooling Life",
-            "Maintenance",
-            "Decision Trail",
-            "Insights",
-            "Stability",
-            "Fleet Overview",
+            "Root Cause",
+            "Health",
+            "Actions",
+            "Fleet",
         ]
     )
 
     with tab_drift:
-        deviation_df = load_fleet_deviation()
-        render_drift_tab(deviation_df)
+        render_drift_tab(load_fleet_deviation())
 
-    with tab_pareto:
-        render_pareto_panel()
+    with tab_root_cause:
+        sub_pareto, sub_whys = st.tabs(["Pareto", "5 Whys"])
+        with sub_pareto:
+            render_pareto_panel()
+        with sub_whys:
+            render_five_whys_panel()
 
-    with tab_whys:
-        render_five_whys_panel()
+    with tab_health:
+        sub_efficiency, sub_stability, sub_eol = st.tabs(
+            ["Efficiency", "Stability", "Tooling Life"]
+        )
+        with sub_efficiency:
+            render_efficiency_panel()
+        with sub_stability:
+            render_stability_tab(load_stability_trend(), load_fleet_deviation())
+        with sub_eol:
+            render_tooling_eol_panel()
 
-    with tab_efficiency:
-        render_efficiency_panel()
-
-    with tab_eol:
-        render_tooling_eol_panel()
-
-    with tab_maint:
-        render_maintenance_panel()
-
-    with tab_trail:
-        render_decision_trail_panel()
-
-    with tab_insights:
-        render_insights_panel()
-
-    with tab_stability:
-        deviation_df = load_fleet_deviation()
-        stability_df = load_stability_trend()
-        render_stability_tab(stability_df, deviation_df)
+    with tab_actions:
+        sub_maint, sub_trail = st.tabs(["Maintenance", "Decision Trail"])
+        with sub_maint:
+            render_maintenance_panel()
+        with sub_trail:
+            render_decision_trail_panel()
 
     with tab_fleet:
-        render_fleet_tab(summary_df)
+        sub_overview, sub_insights = st.tabs(["Overview", "Insights"])
+        with sub_overview:
+            render_fleet_tab(summary_df)
+        with sub_insights:
+            render_insights_panel()
 
     st.divider()
     st.caption(
         "Agent sweeps fleet, reasons over anomalies, investigates root causes, "
         "and records decisions autonomously."
+    )
+    st.caption(
+        "Hackathon 2026 | Team: emoldinounited | "
+        "Track: Intelligent Workflow Automation Agent"
     )
 
 

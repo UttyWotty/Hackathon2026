@@ -8,11 +8,15 @@ retrieval -- purely grounded in a static system prompt describing the app.
 import re
 
 import streamlit as st
+from frontend_constants import CORTEX_COMPLETE_MODEL
 from session_helper import get_session
 
-HELP_CHAT_MODEL = "mistral-large2"
 HELP_CHAT_SESSION_KEY = "help_chat_messages"
 HELP_CHAT_MAX_HISTORY = 20
+# Only the most recent exchanges are rendered; the full history still feeds
+# the prompt. An uncapped transcript pushed every other sidebar control
+# off screen.
+HELP_CHAT_MAX_VISIBLE = 6
 MACHINE_ID_PATTERN = re.compile(r"M[XxLl]-?\d{4}", re.IGNORECASE)
 
 HELP_SYSTEM_PROMPT = """You are a help assistant embedded in the Autonomous Manufacturing Workflow Agent dashboard.
@@ -196,7 +200,7 @@ def _fetch_machine_summary(machine_id: str) -> str:
                     f"({int(w['SHOTS'])} shots)"
                 )
 
-        pareto = session.sql(f"""
+        pareto = session.sql("""
             SELECT
                 MACHINE_ID,
                 SUM(ABS(DURATION - TARGET_DURATION)) AS TOTAL_DEV
@@ -208,9 +212,9 @@ def _fetch_machine_summary(machine_id: str) -> str:
 
         if not pareto.empty:
             total_dev = pareto["TOTAL_DEV"].sum()
-            pareto["CONTRIBUTION_PCT"] = (
-                pareto["TOTAL_DEV"] / total_dev * 100
-            ).round(1)
+            pareto["CONTRIBUTION_PCT"] = (pareto["TOTAL_DEV"] / total_dev * 100).round(
+                1
+            )
             rank_row = pareto[pareto["MACHINE_ID"] == mid]
             if not rank_row.empty:
                 rank_idx = rank_row.index[0] + 1
@@ -292,7 +296,7 @@ def _get_help_response(user_message: str) -> str:
     session = get_session()
     escaped_prompt = prompt.replace("\\", "\\\\").replace("'", "\\'")
     result = session.sql(
-        f"SELECT SNOWFLAKE.CORTEX.COMPLETE('{HELP_CHAT_MODEL}', '{escaped_prompt}') AS RESPONSE"
+        f"SELECT SNOWFLAKE.CORTEX.COMPLETE('{CORTEX_COMPLETE_MODEL}', '{escaped_prompt}') AS RESPONSE"
     ).collect()
     if result and len(result) > 0:
         return str(result[0]["RESPONSE"]).strip()
@@ -309,43 +313,62 @@ def _append_message(role: str, content: str) -> None:
     if HELP_CHAT_SESSION_KEY not in st.session_state:
         st.session_state[HELP_CHAT_SESSION_KEY] = []
 
-    st.session_state[HELP_CHAT_SESSION_KEY].append(
-        {"role": role, "content": content}
-    )
+    st.session_state[HELP_CHAT_SESSION_KEY].append({"role": role, "content": content})
 
     if len(st.session_state[HELP_CHAT_SESSION_KEY]) > HELP_CHAT_MAX_HISTORY:
-        st.session_state[HELP_CHAT_SESSION_KEY] = (
-            st.session_state[HELP_CHAT_SESSION_KEY][-HELP_CHAT_MAX_HISTORY:]
-        )
+        st.session_state[HELP_CHAT_SESSION_KEY] = st.session_state[
+            HELP_CHAT_SESSION_KEY
+        ][-HELP_CHAT_MAX_HISTORY:]
+
+
+def _render_message(role: str, content: str) -> None:
+    """Render one chat message, preferring native chat bubbles when available.
+
+    `st.chat_message` landed in Streamlit 1.24. The Streamlit-in-Snowflake
+    runtime version is not pinned, so fall back to labelled markdown rather than
+    risk an AttributeError taking down the sidebar.
+
+    Args:
+        role: Either "user" or "assistant".
+        content: The message text.
+    """
+    if hasattr(st, "chat_message"):
+        with st.chat_message(role):
+            st.markdown(content)
+        return
+    label = "You" if role == "user" else "Help"
+    st.markdown(f"**{label}:** {content}")
 
 
 def render_help_chat() -> None:
     """Render the help-chat interface in the Streamlit sidebar."""
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Help Chat")
-    st.sidebar.caption("Ask questions about this system")
+    st.caption("Ask questions about this system")
 
     if HELP_CHAT_SESSION_KEY not in st.session_state:
         st.session_state[HELP_CHAT_SESSION_KEY] = []
 
-    with st.sidebar.container():
-        for msg in st.session_state[HELP_CHAT_SESSION_KEY]:
-            if msg["role"] == "user":
-                st.markdown(f"**You:** {msg['content']}")
-            else:
-                st.markdown(f"**Help:** {msg['content']}")
+    history = st.session_state[HELP_CHAT_SESSION_KEY]
+    hidden = max(0, len(history) - HELP_CHAT_MAX_VISIBLE)
 
-        if not st.session_state[HELP_CHAT_SESSION_KEY]:
+    with st.container():
+        if not history:
             st.caption("No messages yet. Type a question below.")
+        else:
+            if hidden:
+                st.caption(f"{hidden} earlier message(s) hidden.")
+            for msg in history[-HELP_CHAT_MAX_VISIBLE:]:
+                _render_message(msg["role"], msg["content"])
 
-    user_input = st.sidebar.text_input(
+    user_input = st.text_input(
         "Your question",
         key="help_chat_input",
         placeholder="e.g. What does the Drift tab show?",
         label_visibility="collapsed",
     )
 
-    if st.sidebar.button("Ask", key="help_chat_send", use_container_width=True):
+    if st.button(
+        "Ask", key="help_chat_send", type="primary", use_container_width=True
+    ):
         if user_input and user_input.strip():
             _append_message("user", user_input.strip())
             with st.spinner("Thinking..."):

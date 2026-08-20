@@ -6,7 +6,8 @@ This document tracks the build plan for the Snowflake CoCo (Cortex Code) CLI Hac
 
 - Track: Intelligent Workflow Automation Agent (sense anomalies, reason over them, autonomously trigger multi-step workflows).
 - LLM: Snowflake Cortex -- Claude Sonnet 4.5 via REST Messages API (backend agent),
-  mistral-large2 via SNOWFLAKE.CORTEX.COMPLETE() SQL (frontend help chat and 5 Whys).
+  claude-sonnet-4-5 via SNOWFLAKE.CORTEX.COMPLETE() SQL (frontend help chat and 5 Whys);
+  mistral-large2 was retired by Snowflake into legacy state on 2026-08-21.
 - Data: Synthetic manufacturing dataset (243K shots, 8 machines, 6 weeks) in Snowflake.
 - Frontend: Streamlit-in-Snowflake interactive dashboard.
 - Backend: FastAPI server with autonomous agent loop.

@@ -8,6 +8,14 @@ import pandas as pd
 import streamlit as st
 from action_loop import _log_skill
 from session_helper import get_session
+from tables import TABLE_HEIGHT_COMPACT, render_table
+from theme import (
+    SEVERITY_CRITICAL,
+    SEVERITY_MINOR,
+    SEVERITY_NOMINAL,
+    SEVERITY_WARNING,
+    severity_badge,
+)
 
 DATABASE = "DEMO"
 SCHEMA = "PUBLIC"
@@ -15,9 +23,9 @@ SHOTS_TABLE = "SHOT_DATA"
 FULL_TABLE = f"{DATABASE}.{SCHEMA}.{SHOTS_TABLE}"
 SHIFT_NOTE_TABLE = f"{DATABASE}.{SCHEMA}.SHIFT_NOTE"
 
-SEVERITY_CRITICAL = 15.0
-SEVERITY_WARNING = 10.0
-SEVERITY_MINOR = 5.0
+CRITICAL_THRESHOLD_PCT = 15.0
+WARNING_THRESHOLD_PCT = 10.0
+MINOR_THRESHOLD_PCT = 5.0
 
 
 def _clear_data_caches():
@@ -56,28 +64,27 @@ def run_anomaly_sweep() -> pd.DataFrame:
 
 def classify_severity(deviation_pct: float) -> str:
     """Classify deviation into severity category."""
-    if abs(deviation_pct) >= SEVERITY_CRITICAL:
-        return "CRITICAL"
-    if abs(deviation_pct) >= SEVERITY_WARNING:
-        return "WARNING"
-    if abs(deviation_pct) >= SEVERITY_MINOR:
-        return "MINOR"
-    return "NOMINAL"
+    if abs(deviation_pct) >= CRITICAL_THRESHOLD_PCT:
+        return SEVERITY_CRITICAL
+    if abs(deviation_pct) >= WARNING_THRESHOLD_PCT:
+        return SEVERITY_WARNING
+    if abs(deviation_pct) >= MINOR_THRESHOLD_PCT:
+        return SEVERITY_MINOR
+    return SEVERITY_NOMINAL
 
 
 def render_sweep_panel():
     """Render the on-demand anomaly sweep panel in the sidebar."""
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Anomaly Sweep")
+    st.subheader("Anomaly Sweep")
 
-    if st.sidebar.button("Run Fleet Sweep", type="primary", use_container_width=True):
+    if st.button("Run Fleet Sweep", type="primary", use_container_width=True):
         with st.spinner("Sweeping fleet for anomalies..."):
             _log_skill("$sense-equipment-anomalies", "Fleet sweep initiated")
             results = run_anomaly_sweep()
             results["SEVERITY"] = results["DEVIATION_PCT"].apply(classify_severity)
             st.session_state["sweep_results"] = results
             st.session_state["sweep_just_completed"] = True
-            critical = len(results[results["SEVERITY"] == "CRITICAL"])
+            critical = len(results[results["SEVERITY"] == SEVERITY_CRITICAL])
             _log_skill(
                 "$sense-equipment-anomalies",
                 f"Sweep complete: {len(results)} machines, {critical} critical",
@@ -86,15 +93,15 @@ def render_sweep_panel():
 
     if "sweep_results" in st.session_state:
         results = st.session_state["sweep_results"]
-        critical_count = len(results[results["SEVERITY"] == "CRITICAL"])
-        warning_count = len(results[results["SEVERITY"] == "WARNING"])
+        critical_count = len(results[results["SEVERITY"] == SEVERITY_CRITICAL])
+        warning_count = len(results[results["SEVERITY"] == SEVERITY_WARNING])
 
         if critical_count > 0:
-            st.sidebar.error(f"{critical_count} machine(s) CRITICAL")
+            st.error(f"{critical_count} machine(s) CRITICAL")
         if warning_count > 0:
-            st.sidebar.warning(f"{warning_count} machine(s) WARNING")
+            st.warning(f"{warning_count} machine(s) WARNING")
         if critical_count == 0 and warning_count == 0:
-            st.sidebar.success("Fleet nominal")
+            st.success("Fleet nominal")
 
 
 def render_sweep_results():
@@ -106,30 +113,29 @@ def render_sweep_results():
 
     st.subheader("On-Demand Sweep Results")
 
-    st.dataframe(
-        results[
-            [
-                "MACHINE_ID",
-                "SHOT_COUNT",
-                "AVG_DURATION",
-                "TARGET_DURATION",
-                "DEVIATION_PCT",
-                "STABILITY_SCORE",
-                "SEVERITY",
-            ]
+    render_table(
+        results,
+        columns=[
+            "MACHINE_ID",
+            "SHOT_COUNT",
+            "AVG_DURATION",
+            "TARGET_DURATION",
+            "DEVIATION_PCT",
+            "STABILITY_SCORE",
+            "SEVERITY",
         ],
-        use_container_width=True,
     )
 
-    flagged = results[results["SEVERITY"].isin(["CRITICAL", "WARNING"])]
+    flagged = results[results["SEVERITY"].isin([SEVERITY_CRITICAL, SEVERITY_WARNING])]
     if not flagged.empty:
         st.markdown("**Flagged machines requiring investigation:**")
         for _, row in flagged.iterrows():
-            severity_icon = "!!!" if row["SEVERITY"] == "CRITICAL" else "!!"
             st.markdown(
-                f"- {severity_icon} **{row['MACHINE_ID']}**: "
+                f"{severity_badge(row['SEVERITY'])} &nbsp; "
+                f"**{row['MACHINE_ID']}** &mdash; "
                 f"{row['DEVIATION_PCT']:.1f}% deviation, "
-                f"stability {row['STABILITY_SCORE']:.1f}% [{row['SEVERITY']}]"
+                f"stability {row['STABILITY_SCORE']:.1f}%",
+                unsafe_allow_html=True,
             )
     else:
         st.success("All machines within nominal range.")
@@ -141,11 +147,10 @@ def render_csv_upload():
     SiS runtime runs Streamlit 1.22 which lacks st.file_uploader.
     Uses text_area paste approach as the supported alternative.
     """
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Upload Telemetry")
-    st.sidebar.caption("Paste CSV content below to ingest new data")
+    st.subheader("Upload Telemetry")
+    st.caption("Paste CSV content below to ingest new data")
 
-    if st.sidebar.button("Open CSV Paste Dialog", use_container_width=True):
+    if st.button("Open CSV Paste Dialog", use_container_width=True):
         st.session_state["show_csv_paste"] = True
 
 
@@ -165,7 +170,7 @@ def _ingest_csv(df: pd.DataFrame):
         st.session_state["ingest_success"] = len(df)
         st.session_state["ingest_trigger_sweep"] = True
     except Exception:
-        st.sidebar.error("Upload failed. Please check the CSV format and try again.")
+        st.error("Upload failed. Please check the CSV format and try again.")
 
 
 def render_upload_preview():
@@ -194,12 +199,12 @@ def render_upload_preview():
         "88202,4102,702,4,2026-08-01 09:00:00,2026-08-01\n"
     )
 
-    col_sample, col_demo, col_clear = st.columns(3)
+    col_sample, col_demo, _col_gap, col_clear = st.columns([2, 2, 3, 2])
     with col_sample:
-        if st.button("Load Sample (3 rows)"):
+        if st.button("Load Sample (3 rows)", use_container_width=True):
             st.session_state["csv_text_input"] = SAMPLE_CSV
     with col_demo:
-        if st.button("Load MX-9201 (3K rows)"):
+        if st.button("Load MX-9201 (3K rows)", use_container_width=True):
             import os
 
             csv_path = os.path.join(
@@ -208,7 +213,7 @@ def render_upload_preview():
             with open(csv_path, "r") as f:
                 st.session_state["csv_text_input"] = f.read()
     with col_clear:
-        if st.button("Cancel Upload"):
+        if st.button("Cancel Upload", use_container_width=True):
             st.session_state["show_csv_paste"] = False
             if "csv_text_input" in st.session_state:
                 del st.session_state["csv_text_input"]
@@ -226,10 +231,12 @@ def render_upload_preview():
 
         try:
             df = pd.read_csv(io.StringIO(csv_text))
-            st.dataframe(df, use_container_width=True)
+            render_table(df, height=TABLE_HEIGHT_COMPACT)
             st.caption(f"{len(df)} rows parsed, {len(df.columns)} columns")
 
-            if st.button("Ingest to Snowflake", type="primary"):
+            if st.button(
+                "Ingest to Snowflake", type="primary", use_container_width=True
+            ):
                 with st.spinner("Ingesting data to Snowflake..."):
                     _ingest_csv(df)
                 st.session_state["show_csv_paste"] = False
@@ -241,8 +248,8 @@ def render_upload_preview():
 
 def render_rca_selector():
     """Render machine selector for root cause investigation."""
-    st.sidebar.subheader("Investigate Machine")
-    st.sidebar.caption("Drill into a single machine after sweeping the fleet")
+    st.subheader("Investigate Machine")
+    st.caption("Drill into a single machine after sweeping the fleet")
 
     session = get_session()
     machines = (
@@ -251,11 +258,15 @@ def render_rca_selector():
         .tolist()
     )
 
-    selected = st.sidebar.selectbox("Machine", [""] + machines, index=0, key="rca_select")
+    selected = st.selectbox(
+        "Machine", [""] + machines, index=0, key="rca_select"
+    )
     if selected == "":
         selected = None
 
-    if selected and st.sidebar.button("Run Investigation", use_container_width=True):
+    if selected and st.button(
+        "Run Investigation", type="primary", use_container_width=True
+    ):
         st.session_state["rca_machine"] = selected
         _log_skill("$investigate-shift-notes", f"Investigation started for {selected}")
 
@@ -288,7 +299,7 @@ def render_rca_results():
             GROUP BY DATE_TRUNC('WEEK', SHOT_TIME)
             ORDER BY WEEK_START
         """).to_pandas()
-        st.dataframe(trend, use_container_width=True)
+        render_table(trend, height=TABLE_HEIGHT_COMPACT)
 
     with col2:
         st.markdown("**Operator Shift Notes**")
@@ -303,18 +314,21 @@ def render_rca_results():
         if notes.empty:
             st.info("No shift notes found for this machine.")
         else:
-            st.dataframe(notes, use_container_width=True)
+            render_table(notes, height=TABLE_HEIGHT_COMPACT)
 
-    col_clear, col_resolve = st.columns(2)
+    col_resolve, col_clear, _col_gap = st.columns([2, 1, 3])
     with col_clear:
-        if st.button("Close panel", key=f"close_{machine}"):
+        if st.button("Close", key=f"close_{machine}", use_container_width=True):
             del st.session_state["rca_machine"]
             st.experimental_rerun()
     with col_resolve:
         if st.button(
-            f"Mark {machine} resolved", key=f"resolve_{machine}", type="primary"
+            f"Mark {machine} resolved",
+            key=f"resolve_{machine}",
+            type="primary",
+            use_container_width=True,
         ):
-            from action_loop import update_equipment_status, _log_skill
+            from action_loop import _log_skill, update_equipment_status
 
             update_equipment_status(machine, "active")
             _log_skill(

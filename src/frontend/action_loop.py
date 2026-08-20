@@ -12,6 +12,8 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 from session_helper import get_session
+from tables import TABLE_HEIGHT_COMPACT, render_table
+from theme import SEVERITY_CRITICAL, SEVERITY_WARNING, severity_badge
 
 DATABASE = "DEMO"
 SCHEMA = "PUBLIC"
@@ -116,43 +118,57 @@ def _build_webhook_payload(machine_id: str, severity: str, message: str) -> dict
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
     return {
-        "cardsV2": [{
-            "cardId": "alertCard",
-            "card": {
-                "header": {
-                    "title": f"Manufacturing Alert: {machine_id}",
-                    "subtitle": f"{severity.upper()} | autonomous-agent",
-                    "imageUrl": "",
-                    "imageType": "CIRCLE",
-                },
-                "sections": [{
-                    "header": "Alert Details",
-                    "collapsible": False,
-                    "widgets": [
-                        {"decoratedText": {
-                            "topLabel": "Severity",
-                            "text": severity.upper(),
-                        }},
-                        {"decoratedText": {
-                            "topLabel": "Source",
-                            "text": "autonomous-agent",
-                        }},
-                        {"decoratedText": {
-                            "topLabel": "Timestamp",
-                            "text": timestamp,
-                        }},
-                        {"textParagraph": {
-                            "text": message[:2000],
-                        }},
-                        {"decoratedText": {
-                            "topLabel": "Machine",
-                            "text": machine_id,
-                        }},
+        "cardsV2": [
+            {
+                "cardId": "alertCard",
+                "card": {
+                    "header": {
+                        "title": f"Manufacturing Alert: {machine_id}",
+                        "subtitle": f"{severity.upper()} | autonomous-agent",
+                        "imageUrl": "",
+                        "imageType": "CIRCLE",
+                    },
+                    "sections": [
+                        {
+                            "header": "Alert Details",
+                            "collapsible": False,
+                            "widgets": [
+                                {
+                                    "decoratedText": {
+                                        "topLabel": "Severity",
+                                        "text": severity.upper(),
+                                    }
+                                },
+                                {
+                                    "decoratedText": {
+                                        "topLabel": "Source",
+                                        "text": "autonomous-agent",
+                                    }
+                                },
+                                {
+                                    "decoratedText": {
+                                        "topLabel": "Timestamp",
+                                        "text": timestamp,
+                                    }
+                                },
+                                {
+                                    "textParagraph": {
+                                        "text": message[:2000],
+                                    }
+                                },
+                                {
+                                    "decoratedText": {
+                                        "topLabel": "Machine",
+                                        "text": machine_id,
+                                    }
+                                },
+                            ],
+                        }
                     ],
-                }],
-                "cardActions": [],
-            },
-        }]
+                    "cardActions": [],
+                },
+            }
+        ]
     }
 
 
@@ -198,7 +214,7 @@ def update_equipment_status(machine_id: str, new_status: str):
     """).collect()
     _log_skill(
         "$report-and-act",
-        f"Equipment status: {mid} -> {new_status}",
+        f"Equipment status for {mid} set to {new_status}",
     )
 
 
@@ -214,9 +230,7 @@ def run_autonomous_actions(results: pd.DataFrame):
     resolved = st.session_state.get("resolved_machines", set())
     critical = results[results["DEVIATION_PCT"] >= AUTO_TRIGGER_THRESHOLD]
     new_machines = critical[
-        ~critical["MACHINE_ID"].isin(
-            st.session_state["actioned_machines"] | resolved
-        )
+        ~critical["MACHINE_ID"].isin(st.session_state["actioned_machines"] | resolved)
     ]
     if new_machines.empty:
         return
@@ -229,7 +243,7 @@ def run_autonomous_actions(results: pd.DataFrame):
     for _, row in new_machines.iterrows():
         machine = row["MACHINE_ID"]
         deviation = row["DEVIATION_PCT"]
-        severity = row.get("SEVERITY", "WARNING")
+        severity = row.get("SEVERITY", SEVERITY_WARNING)
 
         desc = (
             f"[AUTO] Corrective maintenance required. "
@@ -254,7 +268,7 @@ def render_action_buttons():
         return
 
     results = st.session_state["sweep_results"]
-    flagged = results[results["SEVERITY"].isin(["CRITICAL", "WARNING"])]
+    flagged = results[results["SEVERITY"].isin([SEVERITY_CRITICAL, SEVERITY_WARNING])]
 
     if flagged.empty:
         return
@@ -271,15 +285,15 @@ def render_action_buttons():
         if not new_to_action.empty:
             run_autonomous_actions(results)
 
-    all_actioned = critical[critical["MACHINE_ID"].isin(
-        st.session_state.get("actioned_machines", set())
-    )]
+    all_actioned = critical[
+        critical["MACHINE_ID"].isin(st.session_state.get("actioned_machines", set()))
+    ]
     if not all_actioned.empty:
         st.subheader("Autonomous Actions (Agent-Initiated)")
         st.info(
             f"The agent automatically acted on {len(all_actioned)} machine(s) "
-            f"exceeding the {AUTO_TRIGGER_THRESHOLD}% autonomous threshold -- "
-            "no human click required."
+            f"exceeding the {AUTO_TRIGGER_THRESHOLD}% autonomous threshold. "
+            "No human click required."
         )
         for _, row in all_actioned.iterrows():
             st.markdown(
@@ -302,31 +316,40 @@ def render_action_buttons():
         severity = row["SEVERITY"]
         deviation = row["DEVIATION_PCT"]
 
-        col1, col2, col3, col4 = st.columns(4)
+        st.markdown(
+            f"{severity_badge(severity)} &nbsp; **{machine}** &mdash; "
+            f"{deviation:.1f}% deviation",
+            unsafe_allow_html=True,
+        )
+        col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown(f"**{machine}** - {deviation:.1f}% [{severity}]")
-        with col2:
-            if st.button("Log Work Order", key=f"wo_{machine}"):
+            if st.button(
+                "Log Work Order", key=f"wo_{machine}", use_container_width=True
+            ):
                 desc = (
                     f"Corrective maintenance required. "
                     f"Duration deviation {deviation:.1f}% exceeds threshold."
                 )
                 log_work_order(machine, severity, desc)
                 st.success(f"Work order #{machine[-4:]}-WO logged")
-        with col3:
-            if st.button("Send Alert", key=f"alert_{machine}"):
+        with col2:
+            if st.button(
+                "Send Alert", key=f"alert_{machine}", use_container_width=True
+            ):
                 msg = (
                     f"ALERT: {machine} operating at {deviation:.1f}% "
                     f"above target duration. Attention required."
                 )
                 trigger_alert(machine, severity, msg)
                 payload = _build_webhook_payload(machine, severity, msg)
-                st.success("Alert dispatched -- webhook payload stored")
+                st.success("Alert dispatched. Webhook payload stored.")
                 _render_payload_card(payload)
-        with col4:
-            if st.button("Flag for Review", key=f"status_{machine}"):
+        with col3:
+            if st.button(
+                "Flag for Review", key=f"status_{machine}", use_container_width=True
+            ):
                 update_equipment_status(machine, "under_review")
-                st.success(f"{machine} -> UNDER_REVIEW")
+                st.success(f"{machine} status set to UNDER_REVIEW.")
 
 
 def render_audit_trail():
@@ -347,10 +370,14 @@ def render_audit_trail():
         return
 
     display_cols = [
-        "TIMESTAMP", "MACHINE_ID", "ACTION_TYPE", "SEVERITY",
-        "DESCRIPTION", "INITIATED_BY",
+        "TIMESTAMP",
+        "MACHINE_ID",
+        "ACTION_TYPE",
+        "SEVERITY",
+        "DESCRIPTION",
+        "INITIATED_BY",
     ]
-    st.dataframe(audit_df[display_cols], use_container_width=True)
+    render_table(audit_df, columns=display_cols, height=TABLE_HEIGHT_COMPACT)
 
     payloads = audit_df[audit_df["WEBHOOK_PAYLOAD"].notna()]
     if not payloads.empty:
@@ -367,8 +394,6 @@ def render_skill_log():
         )
         return
 
-    for entry in reversed(st.session_state["skill_log"]):
-        st.code(
-            f"[{entry['timestamp']}] {entry['skill']} -- {entry['detail']}",
-            language=None,
-        )
+    log_df = pd.DataFrame(reversed(st.session_state["skill_log"]))
+    log_df.columns = ["Time", "Skill", "Detail"]
+    render_table(log_df, height=TABLE_HEIGHT_COMPACT)
