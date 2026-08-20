@@ -201,21 +201,15 @@ async def health_check():
 # Routers
 # ============================================================================
 
-try:
-    from routers.scheduler_router import router as scheduler_router
+from routers.scheduler_router import router as scheduler_router
 
-    app.include_router(scheduler_router, prefix="/scheduler", tags=["Scheduler"])
-    logger.info("Scheduler router registered")
-except ImportError as e:
-    logger.warning("Scheduler router not found: %s", e)
+app.include_router(scheduler_router, prefix="/scheduler", tags=["Scheduler"])
+logger.info("Scheduler router registered")
 
-try:
-    from routers.mcp_router import router as mcp_router
+from routers.mcp_router import router as mcp_router
 
-    app.include_router(mcp_router, prefix="/mcp", tags=["MCP Protocol"])
-    logger.info("MCP router registered")
-except ImportError as e:
-    logger.warning("MCP router not found: %s", e)
+app.include_router(mcp_router, prefix="/mcp", tags=["MCP Protocol"])
+logger.info("MCP router registered")
 
 
 # ============================================================================
