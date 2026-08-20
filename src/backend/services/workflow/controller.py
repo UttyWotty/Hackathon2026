@@ -6,6 +6,7 @@ through the existing dispatcher, and records every step to the decision trail.
 Triggered by a schedule or an event rather than a human chat turn.
 """
 
+import asyncio
 import json
 import logging
 import time
@@ -186,8 +187,9 @@ class WorkflowController:
         actions: List[str] = []
 
         for iteration in range(self.max_iterations):
-            response = self.llm_client.get_response(
-                messages=messages, tools=tools, session_id=self.recorder.run_id
+            response = await asyncio.to_thread(
+                self.llm_client.get_response,
+                messages=messages, tools=tools, session_id=self.recorder.run_id,
             )
             if response is None:
                 raise WorkflowControllerError(
