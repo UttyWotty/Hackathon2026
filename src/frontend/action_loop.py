@@ -6,6 +6,7 @@ Includes auto-trigger logic for fully autonomous operation.
 """
 
 import json
+import re
 from datetime import datetime
 
 import pandas as pd
@@ -22,6 +23,28 @@ ACTION_ALERT = "ALERT"
 ACTION_STATUS_CHANGE = "STATUS_CHANGE"
 
 AUTO_TRIGGER_THRESHOLD = 10.0
+
+MACHINE_ID_RE = re.compile(r"^[A-Z]{2}-\d{4}$")
+
+
+def _escape_sql_str(value: str) -> str:
+    """Escape a string value for safe inclusion in a Snowflake SQL literal.
+
+    Handles both backslash and single-quote characters.
+    """
+    return value.replace("\\", "\\\\").replace("'", "''")
+
+
+def _validate_machine_id(machine_id: str) -> str:
+    """Validate and return a sanitized machine ID.
+
+    Raises:
+        ValueError: If the machine_id does not match expected format.
+    """
+    mid = machine_id.strip().upper()
+    if not MACHINE_ID_RE.match(mid):
+        raise ValueError(f"Invalid machine ID format: {machine_id!r}")
+    return mid
 
 
 def _render_payload_card(payload):
@@ -73,14 +96,16 @@ def _log_skill(skill_name: str, detail: str):
 def log_work_order(machine_id: str, severity: str, description: str):
     """Insert a maintenance work order into AUDIT_LOG."""
     session = get_session()
-    safe_desc = description.replace("'", "''")
+    mid = _validate_machine_id(machine_id)
+    safe_desc = _escape_sql_str(description)
+    safe_severity = _escape_sql_str(severity)
     session.sql(f"""
         INSERT INTO {AUDIT_TABLE} (MACHINE_ID, ACTION_TYPE, SEVERITY, DESCRIPTION)
-        VALUES ('{machine_id}', '{ACTION_WORK_ORDER}', '{severity}', '{safe_desc}')
+        VALUES ('{mid}', '{ACTION_WORK_ORDER}', '{safe_severity}', '{safe_desc}')
     """).collect()
     _log_skill(
         "$report-and-act",
-        f"Work order logged for {machine_id} [{severity}]",
+        f"Work order logged for {mid} [{severity}]",
     )
 
 
@@ -136,42 +161,44 @@ def trigger_alert(machine_id: str, severity: str, message: str):
 
     Constructs the exact Google Chat Cards v2 JSON payload (same schema
     as backend alert_sender._build_card_payload). Stored in WEBHOOK_PAYLOAD
-    column for audit proof. In production, the backend POSTs this same
-    payload structure via google_chat/client.py when GOOGLE_CHAT_WEBHOOK_URL
-    is configured.
+    column for audit proof.
     """
     session = get_session()
-    safe_msg = message.replace("'", "''")
-    payload = _build_webhook_payload(machine_id, severity, message)
-    payload_json = json.dumps(payload).replace("'", "''")
+    mid = _validate_machine_id(machine_id)
+    safe_msg = _escape_sql_str(message)
+    safe_severity = _escape_sql_str(severity)
+    payload = _build_webhook_payload(mid, severity, message)
+    payload_json = _escape_sql_str(json.dumps(payload))
     session.sql(f"""
         INSERT INTO {AUDIT_TABLE}
             (MACHINE_ID, ACTION_TYPE, SEVERITY, DESCRIPTION, WEBHOOK_PAYLOAD)
-        SELECT '{machine_id}', '{ACTION_ALERT}', '{severity}', '{safe_msg}',
+        SELECT '{mid}', '{ACTION_ALERT}', '{safe_severity}', '{safe_msg}',
             PARSE_JSON('{payload_json}')
     """).collect()
     _log_skill(
         "$report-and-act",
-        f"Alert dispatched for {machine_id}: {message[:50]}",
+        f"Alert dispatched for {mid}: {message[:50]}",
     )
 
 
 def update_equipment_status(machine_id: str, new_status: str):
     """Update the operating status for a machine in SHOT_DATA."""
     session = get_session()
+    mid = _validate_machine_id(machine_id)
+    safe_status = _escape_sql_str(new_status)
     session.sql(f"""
         UPDATE {SHOTS_TABLE}
-        SET STATUS = '{new_status}'
-        WHERE MACHINE_ID = '{machine_id}'
+        SET STATUS = '{safe_status}'
+        WHERE MACHINE_ID = '{mid}'
     """).collect()
     session.sql(f"""
         INSERT INTO {AUDIT_TABLE} (MACHINE_ID, ACTION_TYPE, SEVERITY, DESCRIPTION)
-        VALUES ('{machine_id}', '{ACTION_STATUS_CHANGE}', 'INFO',
-                'Status changed to {new_status}')
+        VALUES ('{mid}', '{ACTION_STATUS_CHANGE}', 'INFO',
+                'Status changed to {safe_status}')
     """).collect()
     _log_skill(
         "$report-and-act",
-        f"Equipment status: {machine_id} -> {new_status}",
+        f"Equipment status: {mid} -> {new_status}",
     )
 
 
