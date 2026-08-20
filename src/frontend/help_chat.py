@@ -13,7 +13,7 @@ from session_helper import get_session
 HELP_CHAT_MODEL = "mistral-large2"
 HELP_CHAT_SESSION_KEY = "help_chat_messages"
 HELP_CHAT_MAX_HISTORY = 20
-MACHINE_ID_PATTERN = re.compile(r"MX-\d{4}", re.IGNORECASE)
+MACHINE_ID_PATTERN = re.compile(r"M[XxLl]-?\d{4}", re.IGNORECASE)
 
 HELP_SYSTEM_PROMPT = """You are a help assistant embedded in the Autonomous Manufacturing Workflow Agent dashboard.
 Your role is to answer user questions about what this system does, how it works, and what they are looking at.
@@ -225,6 +225,20 @@ def _fetch_machine_summary(machine_id: str) -> str:
         return ""
 
 
+def _normalize_machine_id(raw: str) -> str:
+    """Normalize a fuzzy machine ID match to canonical MX-NNNN format."""
+    digits = re.search(r"\d{4}", raw)
+    if digits:
+        return f"MX-{digits.group()}"
+    return raw.upper()
+
+
+def _extract_machine_ids(text: str) -> set:
+    """Extract and normalize all machine IDs from text."""
+    matches = MACHINE_ID_PATTERN.findall(text)
+    return {_normalize_machine_id(m) for m in matches}
+
+
 def _build_prompt_with_history(user_message: str) -> str:
     """Build a single prompt string combining system context, history, and new message.
 
@@ -243,8 +257,17 @@ def _build_prompt_with_history(user_message: str) -> str:
 
     parts.append(f"User: {user_message}")
 
-    machine_matches = MACHINE_ID_PATTERN.findall(user_message)
-    for mid in set(machine_matches):
+    # Extract machine IDs from current message
+    machine_ids = _extract_machine_ids(user_message)
+
+    # If no machine ID in current message, check recent history for context
+    if not machine_ids:
+        for msg in reversed(messages[-4:]):
+            machine_ids = _extract_machine_ids(msg["content"])
+            if machine_ids:
+                break
+
+    for mid in machine_ids:
         live_data = _fetch_machine_summary(mid)
         if live_data:
             parts.append(live_data)
