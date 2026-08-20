@@ -59,67 +59,66 @@ class SnowflakeSessionPool:
         self._lock = threading.Lock()
 
         # Validate required environment variables
-        required_vars = [
-            "SNOWFLAKE_ACCOUNT",
-            "SNOWFLAKE_WAREHOUSE",
-            "SNOWFLAKE_DATABASE",
-            "SNOWFLAKE_SCHEMA",
-        ]
+        from analysis.shared.snowflake_config import (
+            SNOWFLAKE_ACCOUNT,
+            SNOWFLAKE_DATABASE,
+            SNOWFLAKE_LOGIN_TIMEOUT,
+            SNOWFLAKE_NETWORK_TIMEOUT,
+            SNOWFLAKE_OCSP_FAIL_OPEN,
+            SNOWFLAKE_PASSWORD,
+            SNOWFLAKE_PRIVATE_KEY_PASSWORD,
+            SNOWFLAKE_PRIVATE_KEY_PATH,
+            SNOWFLAKE_ROLE,
+            SNOWFLAKE_SCHEMA,
+            SNOWFLAKE_USER,
+            SNOWFLAKE_WAREHOUSE,
+        )
 
-        missing_vars = [var for var in required_vars if not os.getenv(var)]
-        if missing_vars:
+        if not SNOWFLAKE_ACCOUNT or not SNOWFLAKE_WAREHOUSE or not SNOWFLAKE_DATABASE:
+            missing = [k for k, v in {
+                "SNOWFLAKE_ACCOUNT": SNOWFLAKE_ACCOUNT,
+                "SNOWFLAKE_WAREHOUSE": SNOWFLAKE_WAREHOUSE,
+                "SNOWFLAKE_DATABASE": SNOWFLAKE_DATABASE,
+                "SNOWFLAKE_SCHEMA": SNOWFLAKE_SCHEMA,
+            }.items() if not v]
             raise ValueError(
-                f"Missing required environment variables: {', '.join(missing_vars)}"
+                f"Missing required environment variables: {', '.join(missing)}"
             )
 
-        # Require either password OR private key
-        has_password = bool(os.getenv("SNOWFLAKE_PASSWORD"))
-        has_private_key = bool(os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH"))
-
-        if not has_password and not has_private_key:
+        if not SNOWFLAKE_PASSWORD and not SNOWFLAKE_PRIVATE_KEY_PATH:
             raise ValueError(
                 "Either SNOWFLAKE_PASSWORD or SNOWFLAKE_PRIVATE_KEY_PATH must be set"
             )
 
-        # Connection configuration
+        # Connection configuration from central config
         self.config = {
-            "account": os.getenv("SNOWFLAKE_ACCOUNT"),
-            "user": os.getenv("SNOWFLAKE_USER") or os.getenv("SNOWFLAKE_USERNAME"),
-            "warehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
-            "database": os.getenv("SNOWFLAKE_DATABASE"),  # Main database
-            "schema": os.getenv("SNOWFLAKE_SCHEMA"),
-            "role": os.getenv("SNOWFLAKE_ROLE"),
+            "account": SNOWFLAKE_ACCOUNT,
+            "user": SNOWFLAKE_USER,
+            "warehouse": SNOWFLAKE_WAREHOUSE,
+            "database": SNOWFLAKE_DATABASE,
+            "schema": SNOWFLAKE_SCHEMA,
+            "role": SNOWFLAKE_ROLE,
+            "network_timeout": SNOWFLAKE_NETWORK_TIMEOUT,
+            "login_timeout": SNOWFLAKE_LOGIN_TIMEOUT,
+            "ocsp_fail_open": SNOWFLAKE_OCSP_FAIL_OPEN,
         }
 
-        # Add timeout settings for long-running queries
-        # network_timeout: Timeout for network operations (default: 3600 seconds = 1 hour)
-        # login_timeout: Timeout for login (default: 60 seconds)
-        # ocsp_fail_open: Allow connection even if OCSP certificate validation fails
-        self.config["network_timeout"] = int(
-            os.getenv("SNOWFLAKE_NETWORK_TIMEOUT", "3600")
-        )
-        self.config["login_timeout"] = int(os.getenv("SNOWFLAKE_LOGIN_TIMEOUT", "60"))
-        self.config["ocsp_fail_open"] = (
-            os.getenv("SNOWFLAKE_OCSP_FAIL_OPEN", "True").lower() == "true"
-        )
-
         # Add authentication (password or private key)
-        password = os.getenv("SNOWFLAKE_PASSWORD")
-        private_key_path = os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
-
-        if private_key_path:
+        if SNOWFLAKE_PRIVATE_KEY_PATH:
             # Use private key authentication
             try:
                 from cryptography.hazmat.backends import default_backend
                 from cryptography.hazmat.primitives import serialization
 
                 # Read private key
-                with open(private_key_path, "rb") as key_file:
+                with open(SNOWFLAKE_PRIVATE_KEY_PATH, "rb") as key_file:
                     p_key = key_file.read()
 
                 # Decode private key (with optional password)
-                key_password = os.getenv("SNOWFLAKE_PRIVATE_KEY_PASSWORD")
-                password_bytes = key_password.encode() if key_password else None
+                password_bytes = (
+                    SNOWFLAKE_PRIVATE_KEY_PASSWORD.encode()
+                    if SNOWFLAKE_PRIVATE_KEY_PASSWORD else None
+                )
 
                 private_key = serialization.load_pem_private_key(
                     p_key, password=password_bytes, backend=default_backend()
@@ -136,35 +135,20 @@ class SnowflakeSessionPool:
                 logger.info("✅ Using private key authentication")
 
             except Exception as e:
-                logger.warning(f"⚠️  Could not load private key: {e}")
-                if password:
-                    self.config["password"] = password
+                logger.warning("Could not load private key: %s", e)
+                if SNOWFLAKE_PASSWORD:
+                    self.config["password"] = SNOWFLAKE_PASSWORD
                     logger.info("Falling back to password authentication")
                 else:
                     raise ValueError(
                         f"Failed to load private key and no password provided: {e}"
                     )
-        elif password:
-            # Use password authentication
-            self.config["password"] = password
+        elif SNOWFLAKE_PASSWORD:
+            self.config["password"] = SNOWFLAKE_PASSWORD
             logger.info("Using password authentication")
 
-        # Add timeout settings for long-running queries
-        # network_timeout: Timeout for network operations (default: 3600 seconds = 1 hour)
-        # login_timeout: Timeout for login (default: 60 seconds)
-        # ocsp_fail_open: Allow connection even if OCSP certificate validation fails
-        self.config["network_timeout"] = int(
-            os.getenv("SNOWFLAKE_NETWORK_TIMEOUT", "3600")
-        )
-        self.config["login_timeout"] = int(os.getenv("SNOWFLAKE_LOGIN_TIMEOUT", "60"))
-        self.config["ocsp_fail_open"] = (
-            os.getenv("SNOWFLAKE_OCSP_FAIL_OPEN", "True").lower() == "true"
-        )
-
         # Secondary database (Raw) - optional
-        self.raw_database = os.getenv(
-            "SNOWFLAKE_RAW_DATABASE", os.getenv("SNOWFLAKE_DATABASE")
-        )
+        self.raw_database = SNOWFLAKE_DATABASE
 
         logger.info("✅ Snowflake Session Pool initialized")
         logger.info(f"   Main Database: {self.config['database']}")
