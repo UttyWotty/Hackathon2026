@@ -16,6 +16,7 @@ if str(FRONTEND) not in sys.path:
     sys.path.insert(0, str(FRONTEND))
 
 import charts  # noqa: E402
+import styles  # noqa: E402
 import theme  # noqa: E402
 
 
@@ -171,4 +172,12 @@ class TestSeverityBadge:
 
     def test_stylesheet_defines_a_rule_for_every_level(self):
         for level in theme.SEVERITY_ORDER:
-            assert f".sev-{level.lower()}" in theme._PRIMARY_BUTTON_CSS
+            assert f".sev-{level.lower()}" in styles._STYLESHEET
+
+    def test_stylesheet_uses_each_severity_colour(self):
+        for level in theme.SEVERITY_ORDER:
+            assert theme.SEVERITY_COLORS[level] in styles._STYLESHEET
+
+    def test_stylesheet_defines_a_banner_rule_for_every_level(self):
+        for level in theme.SEVERITY_ORDER:
+            assert f".banner-{level.lower()}" in styles._STYLESHEET

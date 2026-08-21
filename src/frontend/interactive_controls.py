@@ -62,6 +62,21 @@ def run_anomaly_sweep() -> pd.DataFrame:
     return session.sql(query).to_pandas()
 
 
+@st.cache_data(ttl=600)
+def load_machine_ids() -> list:
+    """Load the distinct machine identifiers present in SHOT_DATA.
+
+    Returns:
+        Sorted MACHINE_ID values.
+    """
+    session = get_session()
+    return (
+        session.sql(f"SELECT DISTINCT MACHINE_ID FROM {FULL_TABLE} ORDER BY MACHINE_ID")
+        .to_pandas()["MACHINE_ID"]
+        .tolist()
+    )
+
+
 def classify_severity(deviation_pct: float) -> str:
     """Classify deviation into severity category."""
     if abs(deviation_pct) >= CRITICAL_THRESHOLD_PCT:
@@ -251,12 +266,7 @@ def render_rca_selector():
     st.subheader("Investigate Machine")
     st.caption("Drill into a single machine after sweeping the fleet")
 
-    session = get_session()
-    machines = (
-        session.sql(f"SELECT DISTINCT MACHINE_ID FROM {FULL_TABLE} ORDER BY MACHINE_ID")
-        .to_pandas()["MACHINE_ID"]
-        .tolist()
-    )
+    machines = load_machine_ids()
 
     selected = st.selectbox(
         "Machine", [""] + machines, index=0, key="rca_select"

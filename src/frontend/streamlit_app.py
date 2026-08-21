@@ -5,7 +5,6 @@ with interactive controls for on-demand anomaly sweeps, CSV uploads,
 and per-equipment root cause investigations.
 """
 
-import pandas as pd
 import streamlit as st
 from action_loop import (
     render_action_buttons,
@@ -22,14 +21,20 @@ from analysis_panels import (
     render_tooling_eol_panel,
 )
 from charts import padded_domain, threshold_rule, time_x
+from evidence import render_corroboration_panel
+from header import render_fleet_status, render_header, render_kpi_cards
 from interactive_controls import (
+    _clear_data_caches,
     classify_severity,
+    load_machine_ids,
     render_rca_results,
     render_sweep_results,
     render_upload_preview,
+    run_anomaly_sweep,
 )
 from session_helper import get_session
 from sidebar import render_sidebar
+from styles import inject_css
 from tables import render_table
 from theme import (
     ACCENT_PRIMARY,
@@ -43,7 +48,6 @@ from theme import (
     SEVERITY_CRITICAL,
     SEVERITY_WARNING,
     categorical_scale,
-    inject_css,
     severity_scale,
 )
 
@@ -123,8 +127,12 @@ def load_stability_trend():
 
 
 @st.cache_data(ttl=600)
-def load_drift_detail():
-    """Load detailed weekly progression for the drifting machine."""
+def load_drift_detail(machine: str):
+    """Load detailed weekly progression for one machine.
+
+    Args:
+        machine: The MACHINE_ID to profile.
+    """
     session = get_session()
     query = f"""
     SELECT
@@ -138,47 +146,12 @@ def load_drift_detail():
             / NULLIF(ANY_VALUE(TARGET_DURATION), 0)) * 100, 2) AS DEVIATION_PCT,
         ROUND(STDDEV(DURATION), 3) AS STD_DURATION
     FROM {FULL_TABLE}
-    WHERE MACHINE_ID = '{DRIFT_EQUIPMENT}'
+    WHERE MACHINE_ID = '{machine}'
         AND DURATION < 999.9 AND VOLUME > 0 AND TARGET_DURATION > 0
     GROUP BY DATE_TRUNC('WEEK', SHOT_TIME)
     ORDER BY WEEK_START
     """
     return session.sql(query).to_pandas()
-
-
-def render_kpi_cards(summary_df):
-    """Render fleet KPI cards."""
-    if summary_df.empty:
-        st.info("No fleet data available yet.")
-        return
-
-    total_shots = summary_df["TOTAL_SHOTS"].sum()
-    num_machines = len(summary_df)
-    worst_deviation = summary_df["DEVIATION_PCT"].max()
-    worst_machine = summary_df.loc[summary_df["DEVIATION_PCT"].idxmax(), "MACHINE_ID"]
-
-    stability_col = 100.0 - summary_df["CV_PCT"]
-    worst_stability_idx = stability_col.idxmin()
-    worst_stability = stability_col.loc[worst_stability_idx]
-    worst_stability_machine = summary_df.loc[worst_stability_idx, "MACHINE_ID"]
-
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Shots", f"{total_shots:,.0f}")
-    col2.metric("Fleet Size", f"{num_machines} machines")
-    # delta_color="off" suppresses the up/down arrow and green/red tint: these
-    # deltas carry a machine name, not a change, and rendered as improvements.
-    col3.metric(
-        "Worst Deviation",
-        f"{worst_deviation:.1f}%",
-        delta=worst_machine,
-        delta_color="off",
-    )
-    col4.metric(
-        "Lowest Stability",
-        f"{worst_stability:.1f}%",
-        delta=worst_stability_machine,
-        delta_color="off",
-    )
 
 
 def render_drift_tab(deviation_df):
@@ -250,9 +223,20 @@ def render_drift_tab(deviation_df):
     )
 
     st.divider()
-    st.subheader(f"Weekly Progression: {DRIFT_EQUIPMENT}")
 
-    drift_detail = load_drift_detail()
+    machines = load_machine_ids()
+    default_index = (
+        machines.index(DRIFT_EQUIPMENT) if DRIFT_EQUIPMENT in machines else 0
+    )
+    col_pick, _col_rest = st.columns([1, 3])
+    with col_pick:
+        machine = st.selectbox(
+            "Machine", machines, index=default_index, key="drift_machine"
+        )
+
+    st.subheader(f"Weekly Progression: {machine}")
+
+    drift_detail = load_drift_detail(machine)
     if not drift_detail.empty:
         drift_detail["SEVERITY"] = drift_detail["DEVIATION_PCT"].apply(
             classify_severity
@@ -309,66 +293,32 @@ def render_drift_tab(deviation_df):
         )
 
     st.divider()
-    st.subheader("Corroborating Evidence: Telemetry + Operator Notes")
-    st.caption(
-        f"Numeric drift for {DRIFT_EQUIPMENT} matched against unstructured operator "
-        "shift notes. Highlighted notes directly corroborate the statistical anomaly."
-    )
+    with st.expander(
+        "Corroborating Evidence: Telemetry and Operator Notes", expanded=False
+    ):
+        st.caption(
+            f"Numeric drift for {machine} matched against unstructured "
+            "operator shift notes. Operators described this failure in their own "
+            "words before the deviation crossed the critical threshold."
+        )
 
-    session = get_session()
-    notes = session.sql(f"""
-        SELECT SHIFT_DATE, AUTHOR_ROLE, NOTE_TEXT
-        FROM {DATABASE}.{SCHEMA}.SHIFT_NOTE
-        WHERE MACHINE_ID = '{DRIFT_EQUIPMENT}'
-        ORDER BY SHIFT_DATE
-    """).to_pandas()
+        session = get_session()
+        notes = session.sql(f"""
+            SELECT SHIFT_DATE, AUTHOR_ROLE, NOTE_TEXT
+            FROM {DATABASE}.{SCHEMA}.SHIFT_NOTE
+            WHERE MACHINE_ID = '{machine}'
+            ORDER BY SHIFT_DATE
+        """).to_pandas()
 
-    if not notes.empty and not drift_detail.empty:
-        # The deviation trend chart is deliberately not repeated here -- the same
-        # chart is already rendered above in this tab.
-        st.markdown("**Corroborating Operator Notes**")
-        corroboration_keywords = [
-            "drift",
-            "creep",
-            "slow",
-            "over standard",
-            "compensation",
-            "sluggish",
-            "cooling",
-            "ejection",
-            "drag",
-            "recommend pulling",
-            "significantly long",
-            "well over",
-        ]
+        render_corroboration_panel(notes, drift_detail, machine)
 
-        week_starts = pd.to_datetime(drift_detail["WEEK_START"])
-        deviations = drift_detail["DEVIATION_PCT"].values
-
-        for _, note_row in notes.iterrows():
-            note_text = str(note_row["NOTE_TEXT"]).lower()
-            is_corroborating = any(kw in note_text for kw in corroboration_keywords)
-            if is_corroborating:
-                note_date = pd.to_datetime(note_row["SHIFT_DATE"])
-                diffs = abs(week_starts - note_date)
-                nearest_idx = diffs.argmin()
-                matched_week = week_starts.iloc[nearest_idx].strftime("%Y-%m-%d")
-                matched_dev = deviations[nearest_idx]
-                st.warning(
-                    f"**{note_row['SHIFT_DATE']}** | {note_row['AUTHOR_ROLE']}\n\n"
-                    f"{note_row['NOTE_TEXT']}\n\n"
-                    f"--- Corroborates **{matched_dev:.1f}% deviation spike** "
-                    f"(week of {matched_week})"
-                )
-            else:
-                st.text(f"[{note_row['SHIFT_DATE']}] {note_row['NOTE_TEXT']}")
-
-        st.markdown("---")
+        st.divider()
         st.markdown(
-            "**Key insight:** Operators noted 'cycle drifting further from standard' "
-            "and 'ejection sluggish on the B half' weeks before the deviation crossed "
-            "the critical 10% threshold. The agent correlates these unstructured signals "
-            "with the quantitative drift to build a complete picture."
+            "**How this works:** the agent scans operator notes for wear-related "
+            "language and matches each hit to the nearest weekly deviation figure. "
+            "Where operators describe a machine slowing down before the numbers "
+            "cross a threshold, the unstructured and quantitative signals "
+            "corroborate each other."
         )
 
 
@@ -464,59 +414,97 @@ def render_fleet_tab(summary_df):
     render_table(summary_df)
 
 
+SWEEP_TAB_BASE_LABEL = "Sweep"
+
+
+def _sweep_tab_label() -> str:
+    """Build the sweep tab label, carrying a flagged count when one exists.
+
+    `st.tabs` offers no way to select a tab programmatically, so a sweep cannot
+    focus its own tab. Surfacing the count in the label is what makes a fresh
+    result noticeable from whichever tab the operator is on.
+
+    Returns:
+        Either "Sweep" or "Sweep (N flagged)".
+    """
+    results = st.session_state.get("sweep_results")
+    if results is None or results.empty:
+        return SWEEP_TAB_BASE_LABEL
+    flagged = results[
+        results["SEVERITY"].isin([SEVERITY_CRITICAL, SEVERITY_WARNING])
+    ]
+    if flagged.empty:
+        return SWEEP_TAB_BASE_LABEL
+    return f"{SWEEP_TAB_BASE_LABEL} ({len(flagged)} flagged)"
+
+
+def render_sweep_tab() -> None:
+    """Render everything triggered from the sidebar Run and Data controls.
+
+    Sweep results, agent and operator actions, investigation output, and the CSV
+    paste form all land here so that none of them can push the KPI row or the
+    charts down the page.
+    """
+    has_sweep = "sweep_results" in st.session_state
+    has_rca = "rca_machine" in st.session_state
+    has_upload = bool(st.session_state.get("show_csv_paste"))
+
+    if not (has_sweep or has_rca or has_upload):
+        st.info(
+            "Nothing to show yet. Open **Controls > Run** in the sidebar and "
+            "choose **Run Fleet Sweep** to scan the fleet for anomalies."
+        )
+        return
+
+    render_sweep_results()
+    render_action_buttons()
+
+    if has_rca and has_sweep:
+        st.divider()
+    render_rca_results()
+
+    if has_upload and (has_sweep or has_rca):
+        st.divider()
+    render_upload_preview()
+
+
 def main():
     """Main app layout with interactive sidebar."""
-    st.set_page_config(page_title=PAGE_TITLE, layout="wide")
+    st.set_page_config(
+        page_title=PAGE_TITLE,
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
     st.set_option("client.showErrorDetails", False)
     inject_css()
 
     render_sidebar()
 
     # Main area
-    st.title(PAGE_TITLE)
+    render_header()
 
     # Post-ingest: auto-sweep BEFORE rendering results
     if st.session_state.pop("ingest_trigger_sweep", False):
-        from interactive_controls import classify_severity, run_anomaly_sweep
-
         results = run_anomaly_sweep()
         results["SEVERITY"] = results["DEVIATION_PCT"].apply(classify_severity)
         st.session_state["sweep_results"] = results
         st.session_state["sweep_just_completed"] = True
-        from interactive_controls import _clear_data_caches
-
         _clear_data_caches()
 
     if st.session_state.pop("ingest_success", None):
         st.success("Telemetry ingested. Fleet sweep re-run with new data.")
 
-    # Show interactive results if triggered
-    render_sweep_results()
-    render_action_buttons()
-    render_rca_results()
-    render_upload_preview()
-
-    # Agent Activity Log (collapsed by default to reduce clutter)
-    with st.expander("Agent Activity Log (CoCo Skill Invocations)", expanded=False):
-        render_skill_log()
-
-    # Audit Trail (collapsed by default)
-    with st.expander("Audit Trail (Work Orders and Alerts)", expanded=False):
-        render_audit_trail()
-
-    st.divider()
-
-    # Fleet KPIs
+    # Fleet KPIs sit directly under the title and never move: everything that
+    # used to render above them (sweep results, action buttons, activity logs)
+    # now lives in a tab.
     summary_df = load_fleet_summary()
+    render_fleet_status(summary_df)
     render_kpi_cards(summary_df)
 
     st.divider()
 
-    # Tabbed views -- only visible tab queries Snowflake (caching handles repeated loads)
-    # Ten flat tabs overflowed the tab bar at 1080p. Grouped into five, with
-    # sub-tabs inside each. Drift Detection stays first and standalone: it is
-    # the headline finding.
     (
+        tab_sweep,
         tab_drift,
         tab_root_cause,
         tab_health,
@@ -524,6 +512,7 @@ def main():
         tab_fleet,
     ) = st.tabs(
         [
+            _sweep_tab_label(),
             "Drift Detection",
             "Root Cause",
             "Health",
@@ -531,6 +520,9 @@ def main():
             "Fleet",
         ]
     )
+
+    with tab_sweep:
+        render_sweep_tab()
 
     with tab_drift:
         render_drift_tab(load_fleet_deviation())
@@ -554,11 +546,21 @@ def main():
             render_tooling_eol_panel()
 
     with tab_actions:
-        sub_maint, sub_trail = st.tabs(["Maintenance", "Decision Trail"])
+        sub_maint, sub_trail, sub_activity, sub_audit = st.tabs(
+            ["Maintenance", "Decision Trail", "Activity Log", "Audit Trail"]
+        )
         with sub_maint:
             render_maintenance_panel()
         with sub_trail:
             render_decision_trail_panel()
+        with sub_activity:
+            st.subheader("Agent Activity Log")
+            st.caption("Skill invocations recorded during this session.")
+            render_skill_log()
+        with sub_audit:
+            st.subheader("Audit Trail")
+            st.caption("Work orders, alerts, and status changes written to AUDIT_LOG.")
+            render_audit_trail()
 
     with tab_fleet:
         sub_overview, sub_insights = st.tabs(["Overview", "Insights"])

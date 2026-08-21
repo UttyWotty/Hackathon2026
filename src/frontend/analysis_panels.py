@@ -164,6 +164,12 @@ def render_dimensional_drilldown():
     trunc_unit = GRANULARITY_MAP[granularity]
     base_where = f"MACHINE_ID = '{selected}' AND DURATION < {HARD_STOP} AND VOLUME > 0 AND {date_clause}"
 
+    st.caption(
+        f"Every chart below aggregates all shots from {start} to {end}. "
+        "The granularity selector applies to the Time Trend only; the hour, "
+        "day, shift, and product charts summarise the whole range."
+    )
+
     st.markdown(f"**Time Trend ({granularity})**")
     trend = session.sql(f"""
         SELECT DATE_TRUNC('{trunc_unit}', SHOT_TIME) AS PERIOD,
@@ -191,6 +197,7 @@ def render_dimensional_drilldown():
 
     with col1:
         st.markdown("**Hour of Day**")
+        hour_note = st.empty()
         hourly = session.sql(f"""
             SELECT HOUR(SHOT_TIME) AS HOUR_OF_DAY,
                    ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION
@@ -211,27 +218,34 @@ def render_dimensional_drilldown():
                 height=CHART_HEIGHT_SPARK,
             )
             st.altair_chart(chart, use_container_width=True)
+            hour_note.caption(
+                f"{selected} recorded shots between "
+                f"{int(hourly['HOUR_OF_DAY'].min()):02d}:00 and "
+                f"{int(hourly['HOUR_OF_DAY'].max()):02d}:00 in this range."
+            )
 
     with col2:
         st.markdown("**Day of Week**")
         dow = session.sql(f"""
-            SELECT DAYOFWEEK(SHOT_TIME) AS DOW,
+            SELECT DAYNAME(SHOT_TIME) AS DAY_NAME,
+                   DAYOFWEEK(SHOT_TIME) AS DOW,
                    ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION,
                    COUNT(*) AS SHOTS
             FROM {FULL_TABLE}
             WHERE {base_where}
-            GROUP BY 1 ORDER BY 1
+            GROUP BY 1, 2 ORDER BY 2
         """).to_pandas()
         if not dow.empty:
             dow["STATUS"] = dow["AVG_DEVIATION"].apply(
                 lambda v: SEVERITY_WARNING if v > DEVIATION_THRESHOLD else SEVERITY_NOMINAL
             )
+            day_order = dow.sort_values("DOW")["DAY_NAME"].tolist()
             chart = status_bar_chart(
                 dow,
-                x=alt.X("DOW:O", title="Day of Week (0=Mon)"),
+                x=alt.X("DAY_NAME:N", title="Day of Week", sort=day_order),
                 y_field="AVG_DEVIATION",
                 y_title="Avg Deviation (s)",
-                tooltip=["DOW", "AVG_DEVIATION", "SHOTS"],
+                tooltip=["DAY_NAME", "AVG_DEVIATION", "SHOTS"],
                 height=CHART_HEIGHT_SPARK,
             )
             st.altair_chart(chart, use_container_width=True)
@@ -240,6 +254,10 @@ def render_dimensional_drilldown():
 
     with col3:
         st.markdown("**By Shift**")
+        st.caption(
+            "Standard plant shift windows. Only shifts with recorded shots "
+            "appear, so a missing shift means the machine did not run then."
+        )
         shift = session.sql(f"""
             SELECT
                 CASE
@@ -687,11 +705,15 @@ def render_decision_trail_panel():
             "Duration", f"{run_duration / 1000:.0f}s" if run_duration else "unknown"
         )
 
-        st.markdown(f"**Model:** {model_id}")
-
         if run_summary:
-            with st.expander("Agent Summary (LLM conclusion)", expanded=True):
+            with st.expander("Agent Summary", expanded=False):
+                st.caption(
+                    f"Written by the agent at the end of its run. "
+                    f"Model: {model_id}."
+                )
                 st.markdown(run_summary)
+        else:
+            st.caption(f"Model: {model_id}. No run summary recorded.")
 
         render_table(
             trail_df,

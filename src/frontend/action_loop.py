@@ -5,6 +5,7 @@ that write to the AUDIT_LOG table in Snowflake, completing the sense-reason-act 
 Includes auto-trigger logic for fully autonomous operation.
 """
 
+import html
 import json
 import re
 from datetime import datetime
@@ -26,7 +27,15 @@ ACTION_STATUS_CHANGE = "STATUS_CHANGE"
 
 AUTO_TRIGGER_THRESHOLD = 10.0
 
+# Rows pulled for the audit trail before client-side filtering.
+AUDIT_TRAIL_LIMIT = 200
+ALL_MACHINES_OPTION = "All machines"
+
 MACHINE_ID_RE = re.compile(r"^[A-Z]{2}-\d{4}$")
+
+
+class WebhookPayloadError(ValueError):
+    """Raised when a stored webhook payload does not match the Cards v2 shape."""
 
 
 def _escape_sql_str(value: str) -> str:
@@ -49,37 +58,80 @@ def _validate_machine_id(machine_id: str) -> str:
     return mid
 
 
-def _render_payload_card(payload):
-    """Render a webhook payload as a formatted notification card."""
+def _parse_payload(payload) -> dict:
+    """Normalise a stored webhook payload into title, source, message, fields.
+
+    Args:
+        payload: The Cards v2 payload, as a dict or a JSON string.
+
+    Returns:
+        A dict with "title", "source", "message", and "fields" keys.
+
+    Raises:
+        WebhookPayloadError: If the payload does not match the Cards v2 shape.
+    """
     try:
         if isinstance(payload, str):
             payload = json.loads(payload)
-        card_data = payload["cardsV2"][0]["card"]
-        header = card_data["header"]
-        widgets = card_data["sections"][0]["widgets"]
+        card = payload["cardsV2"][0]["card"]
+        widgets = card["sections"][0]["widgets"]
+    except (KeyError, TypeError, IndexError, ValueError) as exc:
+        raise WebhookPayloadError("Unrecognised webhook payload shape") from exc
 
-        title = header.get("title", "Alert")
-        subtitle = header.get("subtitle", "")
+    fields, message = [], ""
+    for widget in widgets:
+        if "decoratedText" in widget:
+            decorated = widget["decoratedText"]
+            fields.append(
+                (decorated.get("topLabel", ""), decorated.get("text", ""))
+            )
+        elif "textParagraph" in widget:
+            message = widget["textParagraph"].get("text", "")
 
-        fields = []
-        message_text = ""
-        for widget in widgets:
-            if "decoratedText" in widget:
-                dt = widget["decoratedText"]
-                fields.append((dt.get("topLabel", ""), dt.get("text", "")))
-            elif "textParagraph" in widget:
-                message_text = widget["textParagraph"].get("text", "")
+    return {
+        "title": card.get("header", {}).get("title", "Alert"),
+        "source": card.get("header", {}).get("subtitle", ""),
+        "message": message,
+        "fields": fields,
+    }
 
-        st.error(f"**{title}**")
-        st.caption(subtitle)
-        if message_text:
-            st.markdown(f"> {message_text}")
-        cols = st.columns(len(fields))
-        for i, (label, value) in enumerate(fields):
-            with cols[i]:
-                st.metric(label=label, value=value)
-    except (KeyError, TypeError, IndexError):
+
+def _render_payload_card(payload):
+    """Render a webhook payload as a notification card.
+
+    Previously used `st.metric` for every field, which set text values such as a
+    timestamp and a source name in the large metric display font.
+
+    Args:
+        payload: The Cards v2 payload, as a dict or a JSON string.
+    """
+    try:
+        parsed = _parse_payload(payload)
+    except WebhookPayloadError:
+        st.caption("Could not parse the stored webhook payload. Raw value:")
         st.code(str(payload), language="json")
+        return
+
+    fields = "".join(
+        '<div class="wh-field">'
+        f'<div class="wh-flabel">{html.escape(str(label))}</div>'
+        f'<div class="wh-fvalue">{html.escape(str(value))}</div>'
+        "</div>"
+        for label, value in parsed["fields"]
+        if label or value
+    )
+    message = (
+        f'<div class="wh-message">{html.escape(parsed["message"])}</div>'
+        if parsed["message"]
+        else ""
+    )
+    st.markdown(
+        '<div class="wh-card">'
+        f'<div class="wh-title">{html.escape(parsed["title"])}</div>'
+        f'<div class="wh-source">{html.escape(parsed["source"])}</div>'
+        f'{message}<div class="wh-fields">{fields}</div></div>',
+        unsafe_allow_html=True,
+    )
 
 
 def _log_skill(skill_name: str, detail: str):
@@ -353,20 +405,36 @@ def render_action_buttons():
 
 
 def render_audit_trail():
-    """Display recent entries from the AUDIT_LOG table."""
+    """Display recent AUDIT_LOG entries, with an optional machine filter."""
     session = get_session()
     audit_df = session.sql(f"""
         SELECT TIMESTAMP, MACHINE_ID, ACTION_TYPE, SEVERITY, DESCRIPTION,
                INITIATED_BY, WEBHOOK_PAYLOAD
         FROM {AUDIT_TABLE}
         ORDER BY TIMESTAMP DESC
-        LIMIT 20
+        LIMIT {AUDIT_TRAIL_LIMIT}
     """).to_pandas()
 
     if audit_df.empty:
         st.caption(
             "No actions recorded yet. Run a sweep to trigger autonomous actions."
         )
+        return
+
+    machines = sorted(audit_df["MACHINE_ID"].dropna().unique().tolist())
+    col_filter, _col_rest = st.columns([1, 3])
+    with col_filter:
+        choice = st.selectbox(
+            "Machine", [ALL_MACHINES_OPTION] + machines, key="audit_machine_filter"
+        )
+
+    filtered = (
+        audit_df
+        if choice == ALL_MACHINES_OPTION
+        else audit_df[audit_df["MACHINE_ID"] == choice]
+    )
+    if filtered.empty:
+        st.info(f"No recorded actions for {choice}.")
         return
 
     display_cols = [
@@ -377,13 +445,23 @@ def render_audit_trail():
         "DESCRIPTION",
         "INITIATED_BY",
     ]
-    render_table(audit_df, columns=display_cols, height=TABLE_HEIGHT_COMPACT)
+    render_table(filtered, columns=display_cols, height=TABLE_HEIGHT_COMPACT)
 
-    payloads = audit_df[audit_df["WEBHOOK_PAYLOAD"].notna()]
-    if not payloads.empty:
-        row = payloads.iloc[0]
-        st.markdown("**Latest Webhook Dispatch:**")
-        _render_payload_card(row["WEBHOOK_PAYLOAD"])
+    payloads = filtered[filtered["WEBHOOK_PAYLOAD"].notna()]
+    if payloads.empty:
+        st.caption("No alert payloads recorded for this selection.")
+        return
+
+    row = payloads.iloc[0]
+    recorded = pd.to_datetime(row["TIMESTAMP"]).strftime("%d %b %Y %H:%M")
+    scope = "across the fleet" if choice == ALL_MACHINES_OPTION else f"for {choice}"
+    st.markdown(f"**Most recent alert payload: {row['MACHINE_ID']}**")
+    st.caption(
+        f"Recorded {recorded}. This is the newest alert {scope} held in the audit "
+        "log, which persists between sessions. It is not tied to the machine "
+        "currently selected elsewhere in the app."
+    )
+    _render_payload_card(row["WEBHOOK_PAYLOAD"])
 
 
 def render_skill_log():

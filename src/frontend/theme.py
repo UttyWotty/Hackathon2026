@@ -74,44 +74,6 @@ PERCENT_AXIS_FORMAT: str = ".0f"
 # rather than hardcoded, so points never sit on the axis line.
 DOMAIN_PADDING: float = 0.08
 
-_BADGE_CSS = "".join(
-    f"""
-    .sev-badge.sev-{level.lower()} {{ background-color: {SEVERITY_COLORS[level]}; }}
-    """
-    for level in SEVERITY_ORDER
-)
-
-_PRIMARY_BUTTON_CSS = f"""
-<style>
-    .sev-badge {{
-        display: inline-block;
-        padding: 1px 9px;
-        border-radius: 10px;
-        font-size: 0.72rem;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        color: #FFFFFF;
-        vertical-align: middle;
-    }}
-    {_BADGE_CSS}
-    div.stButton > button[kind="primary"] {{
-        background-color: {ACCENT_PRIMARY};
-        border-color: {ACCENT_PRIMARY};
-        color: #FFFFFF;
-    }}
-    div.stButton > button[kind="primary"]:hover {{
-        background-color: #3D77BC;
-        border-color: #3D77BC;
-        color: #FFFFFF;
-    }}
-    div.stButton > button[kind="secondary"]:hover {{
-        border-color: {ACCENT_PRIMARY};
-        color: {ACCENT_PRIMARY};
-    }}
-</style>
-"""
-
-
 def severity_scale() -> alt.Scale:
     """Return the Altair colour scale for the canonical severity vocabulary.
 
@@ -161,16 +123,3 @@ def severity_badge(severity: str) -> str:
     if level not in SEVERITY_COLORS:
         return level
     return f'<span class="sev-badge sev-{level.lower()}">{level}</span>'
-
-
-def inject_css() -> None:
-    """Apply widget accent styling that Snowflake's Streamlit runtime cannot.
-
-    Streamlit-in-Snowflake does not read `.streamlit/config.toml`, so the
-    primary-button accent is set with a scoped stylesheet instead. Imported
-    lazily to keep this module free of a hard Streamlit import at definition
-    time.
-    """
-    import streamlit as st
-
-    st.markdown(_PRIMARY_BUTTON_CSS, unsafe_allow_html=True)
