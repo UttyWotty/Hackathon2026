@@ -33,6 +33,9 @@ ATTENTION_DEVIATION_PCT = 10.0
 # DEFAULT_MIN_SHOTS in backend analysis/insights/target_validation.py.
 MIN_SHOTS_FOR_RANKING = 100
 
+# Deviation at or above which the fleet verdict escalates from warning.
+CRITICAL_DEVIATION_PCT = 15.0
+
 
 def render_header() -> None:
     """Render the centred title block."""
@@ -79,6 +82,54 @@ def _needs_attention(summary_df: pd.DataFrame) -> pd.DataFrame:
     return eligible[eligible["DEVIATION_PCT"].abs() >= ATTENTION_DEVIATION_PCT]
 
 
+def build_status_message(summary_df: pd.DataFrame) -> Tuple[str, str]:
+    """Compose the fleet verdict and its severity level.
+
+    Reports counts against the assessed subset rather than the whole fleet, and
+    states the holdout explicitly: a bare "2 of 9" alongside a "10 machines"
+    KPI reads as an inconsistency with no explanation.
+
+    Args:
+        summary_df: Per-machine fleet summary.
+
+    Returns:
+        A (severity_level, html_message) pair.
+    """
+    flagged = _needs_attention(summary_df)
+    assessed = len(rankable(summary_df))
+    excluded = excluded_count(summary_df)
+    total = len(summary_df)
+
+    if flagged.empty:
+        level = SEVERITY_NOMINAL
+        message = (
+            f"<strong>Fleet nominal.</strong> All {assessed} assessed machines "
+            f"are within {ATTENTION_DEVIATION_PCT:.0f}% of target duration."
+        )
+    else:
+        worst = flagged.loc[flagged["DEVIATION_PCT"].abs().idxmax()]
+        level = (
+            SEVERITY_CRITICAL
+            if abs(worst["DEVIATION_PCT"]) >= CRITICAL_DEVIATION_PCT
+            else SEVERITY_WARNING
+        )
+        machine = html.escape(str(worst["MACHINE_ID"]))
+        message = (
+            f"<strong>{len(flagged)} of {assessed} assessed machines need "
+            f"attention.</strong> Worst is {machine} at "
+            f"{worst['DEVIATION_PCT']:.1f}% above target."
+        )
+
+    if excluded:
+        message += (
+            f'<span class="banner-note">Assessed {assessed} of {total} '
+            f"machines. {excluded} held out with fewer than "
+            f"{MIN_SHOTS_FOR_RANKING} shots recorded, too little data to rank "
+            "fairly.</span>"
+        )
+    return level, message
+
+
 def render_fleet_status(summary_df: pd.DataFrame) -> None:
     """Render a one-line verdict on whether the fleet needs attention.
 
@@ -87,29 +138,7 @@ def render_fleet_status(summary_df: pd.DataFrame) -> None:
     """
     if summary_df.empty:
         return
-
-    flagged = _needs_attention(summary_df)
-    total = len(rankable(summary_df))
-
-    if flagged.empty:
-        level, message = (
-            SEVERITY_NOMINAL,
-            f"<strong>Fleet nominal.</strong> All {total} machines are within "
-            f"{ATTENTION_DEVIATION_PCT:.0f}% of target duration.",
-        )
-    else:
-        worst = flagged.loc[flagged["DEVIATION_PCT"].abs().idxmax()]
-        level = (
-            SEVERITY_CRITICAL
-            if abs(worst["DEVIATION_PCT"]) >= 15.0
-            else SEVERITY_WARNING
-        )
-        machine = html.escape(str(worst["MACHINE_ID"]))
-        message = (
-            f"<strong>{len(flagged)} of {total} machines need attention.</strong> "
-            f"Worst is {machine} at {worst['DEVIATION_PCT']:.1f}% above target."
-        )
-
+    level, message = build_status_message(summary_df)
     st.markdown(
         f'<div class="fleet-banner banner-{level.lower()}">{message}</div>',
         unsafe_allow_html=True,
@@ -157,7 +186,6 @@ def build_kpis(summary_df: pd.DataFrame) -> List[Tuple[str, str, Optional[str]]]
     flagged = len(_needs_attention(summary_df))
 
     eligible = rankable(summary_df)
-    excluded = excluded_count(summary_df)
 
     worst_idx = eligible["DEVIATION_PCT"].abs().idxmax()
     worst_dev = eligible.loc[worst_idx, "DEVIATION_PCT"]
@@ -169,12 +197,9 @@ def build_kpis(summary_df: pd.DataFrame) -> List[Tuple[str, str, Optional[str]]]
     weakest_machine = str(eligible.loc[weakest_idx, "MACHINE_ID"])
 
     attention_note = (
-        f"at or above {ATTENTION_DEVIATION_PCT:.0f}% deviation from target"
+        f"at or above {ATTENTION_DEVIATION_PCT:.0f}% deviation from target, "
+        f"of {len(eligible)} assessed machines"
     )
-    if excluded:
-        attention_note += (
-            f"; {excluded} held out, under {MIN_SHOTS_FOR_RANKING} shots"
-        )
 
     latest = _latest_reading(summary_df)
 

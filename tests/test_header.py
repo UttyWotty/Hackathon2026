@@ -151,19 +151,23 @@ class TestRankableFiltering:
         )
         assert value == "2"
 
-    def test_attention_note_discloses_the_holdout(self):
+    def test_attention_note_states_the_assessed_denominator(self):
         _, _, note = _by_label(
             header.build_kpis(self._with_singleton()), "Needs Attention"
         )
-        assert "held out" in note
+        assert "of 2 assessed machines" in note
+
+    def test_holdout_is_disclosed_in_the_status_banner(self):
+        _, message = header.build_status_message(self._with_singleton())
+        assert "Assessed 2 of 3 machines" in message
 
     def test_fleet_card_still_counts_every_machine(self):
         _, value, _ = _by_label(header.build_kpis(self._with_singleton()), "Fleet")
         assert value == "3 machines"
 
     def test_no_exclusion_note_when_all_machines_qualify(self):
-        _, _, note = _by_label(header.build_kpis(_fleet()), "Needs Attention")
-        assert "held out" not in note
+        _, message = header.build_status_message(_fleet())
+        assert "held out" not in message
 
     def test_falls_back_to_full_frame_when_nothing_qualifies(self):
         sparse = self._with_singleton().assign(TOTAL_SHOTS=[1, 2, 3])
@@ -187,3 +191,73 @@ class TestCopyHygiene:
 
     def test_subtitle_explains_the_problem(self):
         assert "drift" in header.APP_SUBTITLE.lower()
+
+
+class TestStatusBanner:
+    """Tests for the fleet verdict line and its holdout disclaimer."""
+
+    @staticmethod
+    def _fleet_with_holdout():
+        return pd.DataFrame(
+            {
+                "MACHINE_ID": ["MX-7507", "MX-9201", "MX-7103", "MX-7101"],
+                "TOTAL_SHOTS": [1, 6000, 26364, 27144],
+                "DEVIATION_PCT": [21.3, 15.0, 12.6, 2.2],
+                "CV_PCT": [0.0, 14.6, 9.8, 5.0],
+                "LAST_SHOT": pd.to_datetime(["2026-08-01"] * 4),
+            }
+        )
+
+    def test_counts_are_stated_against_assessed_machines(self):
+        _, message = header.build_status_message(self._fleet_with_holdout())
+        assert "2 of 3 assessed machines" in message
+
+    def test_disclaimer_reconciles_assessed_against_total(self):
+        _, message = header.build_status_message(self._fleet_with_holdout())
+        assert "Assessed 3 of 4 machines" in message
+
+    def test_disclaimer_states_the_reason(self):
+        _, message = header.build_status_message(self._fleet_with_holdout())
+        assert "fewer than 100 shots" in message
+
+    def test_no_disclaimer_when_nothing_is_held_out(self):
+        _, message = header.build_status_message(_fleet())
+        assert "held out" not in message
+
+    def test_worst_machine_is_named(self):
+        _, message = header.build_status_message(self._fleet_with_holdout())
+        assert "MX-9201" in message
+
+    def test_low_shot_machine_is_never_named_as_worst(self):
+        _, message = header.build_status_message(self._fleet_with_holdout())
+        assert "MX-7507" not in message
+
+    def test_level_escalates_to_critical_at_threshold(self):
+        level, _ = header.build_status_message(self._fleet_with_holdout())
+        assert level == "CRITICAL"
+
+    def test_level_is_warning_below_the_critical_threshold(self):
+        frame = self._fleet_with_holdout().assign(
+            DEVIATION_PCT=[21.3, 12.0, 11.0, 2.2]
+        )
+        level, _ = header.build_status_message(frame)
+        assert level == "WARNING"
+
+    def test_nominal_fleet_reports_nominal(self):
+        frame = _fleet().assign(DEVIATION_PCT=[1.0, 2.0, 3.0])
+        level, message = header.build_status_message(frame)
+        assert level == "NOMINAL"
+        assert "Fleet nominal" in message
+
+    def test_machine_identifier_is_escaped(self):
+        frame = self._fleet_with_holdout()
+        frame.loc[1, "MACHINE_ID"] = "<script>x</script>"
+        _, message = header.build_status_message(frame)
+        assert "<script>" not in message
+
+    def test_kpi_note_agrees_with_the_banner_denominator(self):
+        frame = self._fleet_with_holdout()
+        _, banner = header.build_status_message(frame)
+        _, _, note = _by_label(header.build_kpis(frame), "Needs Attention")
+        assert "of 3 assessed machines" in note
+        assert "2 of 3 assessed machines" in banner

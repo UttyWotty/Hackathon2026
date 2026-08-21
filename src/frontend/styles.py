@@ -96,7 +96,14 @@ _STYLESHEET = f"""
         font-size: 0.95rem;
         line-height: 1.55;
     }}
-{_BANNER_RULES}
+{_BANNER_RULES}    .fleet-banner .banner-note {{
+        display: block;
+        font-size: 0.82rem;
+        opacity: 0.62;
+        margin-top: 3px;
+        font-weight: 400;
+    }}
+
     /* ---- ask bar: the agent's front door on the landing screen ---- */
     .ask-bar {{
         border: 1px solid rgba(76, 142, 218, 0.35);
