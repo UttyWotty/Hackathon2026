@@ -75,12 +75,16 @@ class SnowflakeSessionPool:
         )
 
         if not SNOWFLAKE_ACCOUNT or not SNOWFLAKE_WAREHOUSE or not SNOWFLAKE_DATABASE:
-            missing = [k for k, v in {
-                "SNOWFLAKE_ACCOUNT": SNOWFLAKE_ACCOUNT,
-                "SNOWFLAKE_WAREHOUSE": SNOWFLAKE_WAREHOUSE,
-                "SNOWFLAKE_DATABASE": SNOWFLAKE_DATABASE,
-                "SNOWFLAKE_SCHEMA": SNOWFLAKE_SCHEMA,
-            }.items() if not v]
+            missing = [
+                k
+                for k, v in {
+                    "SNOWFLAKE_ACCOUNT": SNOWFLAKE_ACCOUNT,
+                    "SNOWFLAKE_WAREHOUSE": SNOWFLAKE_WAREHOUSE,
+                    "SNOWFLAKE_DATABASE": SNOWFLAKE_DATABASE,
+                    "SNOWFLAKE_SCHEMA": SNOWFLAKE_SCHEMA,
+                }.items()
+                if not v
+            ]
             raise ValueError(
                 f"Missing required environment variables: {', '.join(missing)}"
             )
@@ -117,7 +121,8 @@ class SnowflakeSessionPool:
                 # Decode private key (with optional password)
                 password_bytes = (
                     SNOWFLAKE_PRIVATE_KEY_PASSWORD.encode()
-                    if SNOWFLAKE_PRIVATE_KEY_PASSWORD else None
+                    if SNOWFLAKE_PRIVATE_KEY_PASSWORD
+                    else None
                 )
 
                 private_key = serialization.load_pem_private_key(

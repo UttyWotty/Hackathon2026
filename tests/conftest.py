@@ -21,7 +21,6 @@ def initialize_database():
     # create_all runs (mirrors production, where main.py imports all routers
     # before the lifespan runs).
     import main  # noqa: F401
-
     from models.database import init_database
 
     init_database()

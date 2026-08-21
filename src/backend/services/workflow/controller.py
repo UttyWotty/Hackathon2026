@@ -183,7 +183,9 @@ class WorkflowController:
         for iteration in range(self.max_iterations):
             response = await asyncio.to_thread(
                 self.llm_client.get_response,
-                messages=messages, tools=tools, session_id=self.recorder.run_id,
+                messages=messages,
+                tools=tools,
+                session_id=self.recorder.run_id,
             )
             if response is None:
                 raise WorkflowControllerError(

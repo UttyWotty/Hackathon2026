@@ -8,8 +8,8 @@ Author: Utku Gulbardak
 Date: 2025-10-28
 """
 
-from enum import Enum
 import os
+from enum import Enum
 
 # ============================================================================
 # Analysis Thresholds
@@ -214,9 +214,7 @@ class AnalysisConfig:
     MAX_DATE_RANGE_DAYS = 365
 
     # Snowflake session
-    STATEMENT_TIMEOUT_SECONDS = int(
-        os.getenv("SNOWFLAKE_STATEMENT_TIMEOUT", "7200")
-    )
+    STATEMENT_TIMEOUT_SECONDS = int(os.getenv("SNOWFLAKE_STATEMENT_TIMEOUT", "7200"))
 
     # Retry configuration
     MAX_RETRIES = 3

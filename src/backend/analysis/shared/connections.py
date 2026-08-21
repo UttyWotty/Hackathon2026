@@ -147,7 +147,9 @@ def get_snowflake_connection_params(include_private_key: bool = True) -> Dict[st
         key_path = SNOWFLAKE_PRIVATE_KEY_PATH
         if key_path and os.path.exists(key_path):
             try:
-                params["private_key"] = load_private_key(key_path, SNOWFLAKE_PRIVATE_KEY_PASSWORD)
+                params["private_key"] = load_private_key(
+                    key_path, SNOWFLAKE_PRIVATE_KEY_PASSWORD
+                )
                 logger.info("Using private key authentication")
             except Exception as e:
                 logger.warning(
@@ -363,7 +365,9 @@ def create_snowpark_session(schema: Optional[str] = None):
             )
             logger.info("Using private key authentication for Snowpark session")
         except Exception as e:
-            logger.warning("Could not load private key: %s, falling back to password", e)
+            logger.warning(
+                "Could not load private key: %s, falling back to password", e
+            )
             if SNOWFLAKE_PASSWORD:
                 connection_params["password"] = SNOWFLAKE_PASSWORD
     else:

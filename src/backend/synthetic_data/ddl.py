@@ -1,13 +1,16 @@
-"""Snowflake DDL for the synthetic dataset's tables.
+"""Snowflake DDL for every table the application needs.
 
 Column names and types are copied from the authoritative production definitions so that the
-analysis modules run unmodified against the synthetic account. Functions here build SQL
-strings only; executing them is the loader's responsibility.
+analysis modules run unmodified against the synthetic account. TABLE_COLUMNS holds the
+generated dataset and RUNTIME_TABLE_COLUMNS holds tables the application writes at execution
+time; functions here build SQL strings only, and executing them is the caller's responsibility.
 """
 
 from typing import Dict, Final, List
 
 from .constants import (
+    TABLE_AGENT_DECISION_TRAIL,
+    TABLE_AUDIT_LOG,
     TABLE_LOCATION,
     TABLE_MASTER_SHOT,
     TABLE_PRODUCT,
@@ -24,11 +27,10 @@ TABLE_COLUMNS: Final[Dict[str, List[str]]] = {
         "VENDOR_NAME STRING",
         "MACHINE_ID STRING",
         "SENSOR_CODE STRING",
-        "CT FLOAT",
+        "DURATION FLOAT",
         "TARGET_DURATION FLOAT",
         "TEMPERATURE FLOAT",
         "PRODUCT_NAME STRING",
-        "TYPE STRING",
         "TYPE STRING",
         "STATUS STRING",
         "SHOT_TIME TIMESTAMP_NTZ(3)",
@@ -89,14 +91,54 @@ TABLE_COLUMNS: Final[Dict[str, List[str]]] = {
 }
 
 
+# Runtime tables the application writes at execution time. Held apart from TABLE_COLUMNS so the
+# loader's CSV and COPY paths, which iterate the generated dataset, never touch them.
+RUNTIME_TABLE_COLUMNS: Final[Dict[str, List[str]]] = {
+    TABLE_AUDIT_LOG: [
+        "TIMESTAMP TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()",
+        "MACHINE_ID STRING",
+        "ACTION_TYPE STRING",
+        "SEVERITY STRING",
+        "DESCRIPTION STRING",
+        "INITIATED_BY STRING DEFAULT 'autonomous-agent'",
+        "WEBHOOK_PAYLOAD VARIANT",
+    ],
+    TABLE_AGENT_DECISION_TRAIL: [
+        "RUN_ID STRING",
+        "RUN_TRIGGER STRING",
+        "RUN_STATUS STRING",
+        "LLM_BACKEND STRING",
+        "MODEL_ID STRING",
+        "STARTED_AT TIMESTAMP_NTZ",
+        "COMPLETED_AT TIMESTAMP_NTZ",
+        "RUN_DURATION_MS FLOAT",
+        "SUMMARY STRING",
+        "SEQUENCE NUMBER",
+        "PHASE STRING",
+        "TOOL_NAME STRING",
+        "STEP_STATUS STRING",
+        "RESULT_SUMMARY STRING",
+        "STEP_DURATION_MS FLOAT",
+        "STEP_CREATED_AT TIMESTAMP_NTZ",
+        "PAYLOAD STRING",
+    ],
+}
+
+# Every table the application needs, dataset and runtime alike.
+ALL_TABLE_COLUMNS: Final[Dict[str, List[str]]] = {
+    **TABLE_COLUMNS,
+    **RUNTIME_TABLE_COLUMNS,
+}
+
+
 def column_names(table: str) -> List[str]:
     """Return the bare column names for a table, in DDL order."""
-    return [definition.split(" ", 1)[0] for definition in TABLE_COLUMNS[table]]
+    return [definition.split(" ", 1)[0] for definition in ALL_TABLE_COLUMNS[table]]
 
 
 def create_table_statement(database: str, schema: str, table: str) -> str:
     """Build a CREATE TABLE IF NOT EXISTS statement for one synthetic table."""
-    body = ",\n    ".join(TABLE_COLUMNS[table])
+    body = ",\n    ".join(ALL_TABLE_COLUMNS[table])
     return f"CREATE TABLE IF NOT EXISTS {database}.{schema}.{table} (\n    {body}\n)"
 
 
@@ -109,7 +151,7 @@ def all_create_statements(database: str, schema: str) -> List[str]:
     """Return the schema statement followed by every table statement, in dependency order."""
     statements = [create_schema_statement(database, schema)]
     statements.extend(
-        create_table_statement(database, schema, table) for table in TABLE_COLUMNS
+        create_table_statement(database, schema, table) for table in ALL_TABLE_COLUMNS
     )
     return statements
 

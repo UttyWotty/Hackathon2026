@@ -22,8 +22,10 @@ load_dotenv(REPO_ROOT / ".env")
 
 from models.database import init_database  # noqa: E402
 from services.workflow.trail_recorder import list_runs, load_trail  # noqa: E402
+from synthetic_data.constants import TABLE_AGENT_DECISION_TRAIL  # noqa: E402
+from synthetic_data.ddl import create_table_statement  # noqa: E402
 
-TARGET_TABLE = "AGENT_DECISION_TRAIL"
+TARGET_TABLE = TABLE_AGENT_DECISION_TRAIL
 TARGET_DATABASE = "DEMO"
 TARGET_SCHEMA = "PUBLIC"
 
@@ -61,25 +63,29 @@ def _flatten_trail(trail: dict) -> pd.DataFrame:
     """Flatten a trail dict into a DataFrame with one row per step."""
     rows = []
     for step in trail.get("steps", []):
-        rows.append({
-            "RUN_ID": trail["run_id"],
-            "RUN_TRIGGER": trail.get("trigger", ""),
-            "RUN_STATUS": trail.get("status", ""),
-            "LLM_BACKEND": trail.get("llm_backend", ""),
-            "MODEL_ID": trail.get("model_id", ""),
-            "STARTED_AT": trail.get("started_at"),
-            "COMPLETED_AT": trail.get("completed_at"),
-            "RUN_DURATION_MS": trail.get("duration_ms"),
-            "SUMMARY": trail.get("summary", ""),
-            "SEQUENCE": step["sequence"],
-            "PHASE": step["phase"],
-            "TOOL_NAME": step.get("tool_name"),
-            "STEP_STATUS": step["status"],
-            "RESULT_SUMMARY": step.get("result_summary", ""),
-            "STEP_DURATION_MS": step.get("duration_ms"),
-            "STEP_CREATED_AT": step.get("created_at"),
-            "PAYLOAD": json.dumps(step.get("payload")) if step.get("payload") else None,
-        })
+        rows.append(
+            {
+                "RUN_ID": trail["run_id"],
+                "RUN_TRIGGER": trail.get("trigger", ""),
+                "RUN_STATUS": trail.get("status", ""),
+                "LLM_BACKEND": trail.get("llm_backend", ""),
+                "MODEL_ID": trail.get("model_id", ""),
+                "STARTED_AT": trail.get("started_at"),
+                "COMPLETED_AT": trail.get("completed_at"),
+                "RUN_DURATION_MS": trail.get("duration_ms"),
+                "SUMMARY": trail.get("summary", ""),
+                "SEQUENCE": step["sequence"],
+                "PHASE": step["phase"],
+                "TOOL_NAME": step.get("tool_name"),
+                "STEP_STATUS": step["status"],
+                "RESULT_SUMMARY": step.get("result_summary", ""),
+                "STEP_DURATION_MS": step.get("duration_ms"),
+                "STEP_CREATED_AT": step.get("created_at"),
+                "PAYLOAD": (
+                    json.dumps(step.get("payload")) if step.get("payload") else None
+                ),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -111,7 +117,14 @@ def main() -> int:
     print(f"Exporting run {run_id}: {len(df)} steps", flush=True)
 
     session = _get_snowpark_session()
-    session.sql(f"TRUNCATE TABLE {TARGET_DATABASE}.{TARGET_SCHEMA}.{TARGET_TABLE}").collect()
+    # Create before truncating: on a freshly rebuilt account the table does not exist yet,
+    # and TRUNCATE on a missing table aborts the export.
+    session.sql(
+        create_table_statement(TARGET_DATABASE, TARGET_SCHEMA, TARGET_TABLE)
+    ).collect()
+    session.sql(
+        f"TRUNCATE TABLE {TARGET_DATABASE}.{TARGET_SCHEMA}.{TARGET_TABLE}"
+    ).collect()
     session.write_pandas(
         df,
         table_name=TARGET_TABLE,

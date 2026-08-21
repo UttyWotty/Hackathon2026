@@ -91,6 +91,12 @@ TABLE_PRODUCT: Final[str] = "PRODUCT"
 TABLE_WORK_ORDER: Final[str] = "WORK_ORDER"
 TABLE_SHIFT_NOTE: Final[str] = "SHIFT_NOTE"
 
+# Runtime tables. Not part of the generated dataset: the dashboard writes AUDIT_LOG and
+# scripts/export_trail.py writes AGENT_DECISION_TRAIL. Declared here so one schema build
+# stands up every object the application needs.
+TABLE_AUDIT_LOG: Final[str] = "AUDIT_LOG"
+TABLE_AGENT_DECISION_TRAIL: Final[str] = "AGENT_DECISION_TRAIL"
+
 # --- Identifier bases, so ids are stable and collision-free across dimensions ---
 TOOL_ID_BASE: Final[int] = 4100
 VENDOR_ID_BASE: Final[int] = 700

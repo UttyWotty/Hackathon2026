@@ -30,7 +30,7 @@ ignore = [
 "__init__.py" = ["F401"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["core", "analysis", "services", "routers", "models", "middleware", "utils"]
+known-first-party = ["core", "analysis", "services", "routers", "models", "middleware", "utils", "synthetic_data", "main", "tests"]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 force-single-line = false
 combine-as-imports = true
@@ -38,7 +38,7 @@ combine-as-imports = true
 [tool.isort]
 profile = "black"
 line_length = 88
-known_first_party = ["core", "analysis", "services", "routers", "models", "middleware", "utils"]
+known_first_party = ["core", "analysis", "services", "routers", "models", "middleware", "utils", "synthetic_data", "main", "tests"]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 force_single_line = false
 combine_as_imports = true

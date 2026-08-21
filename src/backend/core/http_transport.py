@@ -43,7 +43,9 @@ class _RetryableRequestError(CortexRequestError):
     wait=wait_exponential(min=BACKOFF_MIN_SECONDS, max=BACKOFF_MAX_SECONDS),
     reraise=True,
     before_sleep=lambda rs: logger.warning(
-        "LLM request retry attempt %d after %s", rs.attempt_number, rs.outcome.exception()
+        "LLM request retry attempt %d after %s",
+        rs.attempt_number,
+        rs.outcome.exception(),
     ),
 )
 def post_json(
