@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from .cortex_errors import CortexConfigurationError, CortexRequestError
 from .cortex_wire import build_messages_payload
+from .data_coverage import get_data_coverage
 from .http_transport import Transport, post_json
 from .prompts import get_system_prompt
 from .token_tracker import get_token_tracker
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 # The model id is account- and region-specific. Confirm with
 # SHOW CORTEX BASE MODELS before the first run rather than trusting this default.
-DEFAULT_CORTEX_MODEL = "claude-sonnet-4-5"
+DEFAULT_CORTEX_MODEL = "claude-sonnet-4-6"
 
 DEFAULT_CORTEX_TIMEOUT_SECONDS = 60
 DEFAULT_ENABLE_PROMPT_CACHING = True
@@ -66,7 +67,7 @@ class CortexClient:
             account: Account identifier such as "myorg-myacct". Defaults to
                 the SNOWFLAKE_ACCOUNT environment variable.
             pat: Programmatic Access Token. Defaults to SNOWFLAKE_PAT.
-            model: Cortex model id. Defaults to CORTEX_MODEL env or claude-sonnet-4-5.
+            model: Cortex model id. Defaults to CORTEX_MODEL env or claude-sonnet-4-6.
             timeout_seconds: Per-request timeout. Defaults to 60.
             enable_prompt_caching: Attach an ephemeral cache breakpoint to the
                 system block. Defaults to True.
@@ -145,7 +146,7 @@ class CortexClient:
         """
         payload = build_messages_payload(
             messages=messages,
-            system_prompt=get_system_prompt(),
+            system_prompt=get_system_prompt(get_data_coverage()),
             tools=tools,
             model=self.model,
             max_tokens=max_tokens,

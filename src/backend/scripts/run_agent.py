@@ -14,8 +14,10 @@ Usage:
 import argparse
 import asyncio
 import logging
+import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -24,7 +26,9 @@ if str(REPO_ROOT) not in sys.path:
 # Suppress noisy query-level errors from the connection pool during agent runs.
 # The agent handles these gracefully; they just pollute the demo terminal.
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
-logging.getLogger("services.infrastructure.snowflake.session_pool").setLevel(logging.CRITICAL)
+logging.getLogger("services.infrastructure.snowflake.session_pool").setLevel(
+    logging.CRITICAL
+)
 logging.getLogger("services.config.features.insights.tools").setLevel(logging.CRITICAL)
 logging.getLogger("analysis").setLevel(logging.CRITICAL)
 
@@ -33,8 +37,8 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv(REPO_ROOT / ".env")
 
 from analysis.shared.local_source import (  # noqa: E402
+    GROUND_TRUTH_FILE,
     LocalDataError,
-    is_local_data_enabled,
     load_ground_truth,
 )
 from core.tools_config import get_tools_for_llm  # noqa: E402
@@ -92,14 +96,49 @@ def _print_trail(run_id: str) -> None:
         )
 
 
+# Scoring only needs the generator's ground_truth.json, not its CSVs, and the
+# contract is keyed on machine identity rather than dates. A run against
+# Snowflake can therefore be graded against a locally generated contract, as
+# long as both came from the same generator seed.
+GROUND_TRUTH_DIR_ENV = "GROUND_TRUTH_DIR"
+DEFAULT_GROUND_TRUTH_DIR = REPO_ROOT / "synthetic_out"
+
+
+def _resolve_ground_truth_dir() -> Optional[str]:
+    """Find a directory holding ground_truth.json.
+
+    Checks LOCAL_DATA_DIR, then GROUND_TRUTH_DIR, then the generator's default
+    output beside this package. The last one is resolved from the file's own
+    location, so scoring works regardless of the working directory the run was
+    launched from.
+
+    Returns:
+        A directory path, or None when no contract is available.
+    """
+    candidates = [
+        os.getenv("LOCAL_DATA_DIR", "").strip(),
+        os.getenv(GROUND_TRUTH_DIR_ENV, "").strip(),
+        str(DEFAULT_GROUND_TRUTH_DIR),
+    ]
+    for candidate in candidates:
+        if candidate and (Path(candidate) / GROUND_TRUTH_FILE).is_file():
+            return candidate
+    return None
+
+
 def _print_score(run_id: str, summary: str) -> None:
-    """Grade the run against ground truth, when a local dataset is configured."""
-    if not is_local_data_enabled():
-        print("score   : skipped (no LOCAL_DATA_DIR, so no ground truth)", flush=True)
+    """Grade the run against ground truth, when a contract can be found."""
+    directory = _resolve_ground_truth_dir()
+    if directory is None:
+        print(
+            "score   : skipped (no ground truth found). Generate it with "
+            "'python -m synthetic_data.generate'.",
+            flush=True,
+        )
         return
 
     try:
-        ground_truth = load_ground_truth()
+        ground_truth = load_ground_truth(directory)
     except LocalDataError as exc:
         print(f"score   : unavailable ({exc})", flush=True)
         return
@@ -147,7 +186,9 @@ async def _run(args: argparse.Namespace) -> int:
         def tools_provider() -> list:
             """Return the trimmed tool schema."""
             return trimmed
+
     else:
+
         def tools_provider() -> list:
             """Return filtered tool schema (excluded broken tools)."""
             return filtered

@@ -6,25 +6,70 @@ Prompts are designed to be >1024 tokens for Snowflake Cortex prompt caching.
 """
 
 from datetime import datetime
+from typing import Any, Optional
 
 
-def get_system_prompt() -> str:
+def _coverage_section(coverage: Optional[Any]) -> str:
+    """Describe the dataset's coverage window for the prompt.
+
+    Pure: the caller supplies the already-resolved coverage, so this module
+    performs no I/O.
+
+    Args:
+        coverage: A DataCoverage, or None when the window is unknown.
+
+    Returns:
+        A prompt fragment, empty when there is nothing useful to say.
+    """
+    if coverage is None:
+        return ""
+
+    lines = [
+        "",
+        "**Data Coverage (READ THIS BEFORE ANY TIME-WINDOWED ANALYSIS):**",
+        f"- Production data runs from {coverage.first_shot} to {coverage.last_shot}.",
+    ]
+    if coverage.is_stale:
+        lines += [
+            f"- The newest shot is {coverage.days_stale} days before today. The "
+            "dataset is historical, not live.",
+            "- Tools that window on the current date (\"last 30 days\", \"recent "
+            "period\") will therefore return little or no data for the most "
+            "recent stretch.",
+            "- A drop in shot count or active days at the end of such a window is "
+            "the dataset ending, NOT a production stoppage. Never report it as a "
+            "collapse, shutdown, or downtime event.",
+            "- When a windowed result looks sparse, say the window extends past "
+            "the end of the data and re-run against the covered period instead.",
+        ]
+    else:
+        lines.append("- The dataset is current through today.")
+    return "\n".join(lines) + "\n"
+
+
+def get_system_prompt(coverage: Optional[Any] = None) -> str:
     """
     Get the main system prompt for the manufacturing analytics AI assistant.
 
     This prompt is designed to be >1024 tokens for prompt caching efficiency.
+
+    Args:
+        coverage: Optional DataCoverage describing the span of available data.
+            When given, the agent is told how stale the dataset is so it does
+            not read an empty recent window as a production event.
 
     Returns:
         str: Complete system prompt with current date context
     """
     current_date = datetime.now().strftime("%Y-%m-%d")
     current_year = datetime.now().year
+    coverage_section = _coverage_section(coverage)
 
     return f"""You are a manufacturing analytics AI assistant with access to production data and analysis tools.
 
 **Current Date: {current_date}**
 **Current Year: {current_year}**
-
+{coverage_section}
 **Your Role:**
 - Help users analyze equipment performance, efficiency, and production metrics
 - Execute analyses using available tools when users ask questions
@@ -32,6 +77,18 @@ def get_system_prompt() -> str:
 - Uncover hidden patterns and actionable insights from the data
 - Be HONEST about data limitations and what we can/cannot conclude
 - Focus on TRENDS, comparisons, and changes over time
+
+**Closing Verdict (required when you summarise a fleet sweep):**
+End the summary with a single line naming only the equipment you are flagging
+for action:
+
+    FLAGGED: MX-7103
+
+List several separated by commas, or write `FLAGGED: NONE` when the fleet is
+healthy. Name only machines that need action. Machines you inspected and
+cleared must NOT appear on this line, even though you may discuss them above
+it. This line is read programmatically, so keep the exact prefix and put
+nothing else on it.
 
 **Available Tools:**
 1. **run_deviation_analysis**: For duration deviation, stability scoring, and fleet-wide anomaly detection

@@ -8,8 +8,10 @@ copy of the model name.
 """
 
 # Cortex model used by every SNOWFLAKE.CORTEX.COMPLETE() call in the frontend.
-# Verified available on this account 2026-08-21. The previous value,
+# Verified available on this account 2026-08-21. Matches CORTEX_MODEL in .env,
+# so the dashboard and the backend agent report the same model. The earlier
+# value,
 # "mistral-large2", was retired by Snowflake and now returns:
 #   "The model mistral-large2 has been in legacy state, please use other models."
 # Known-good alternatives on this account: llama3.1-70b, llama3.3-70b.
-CORTEX_COMPLETE_MODEL: str = "claude-sonnet-4-5"
+CORTEX_COMPLETE_MODEL: str = "claude-sonnet-4-6"

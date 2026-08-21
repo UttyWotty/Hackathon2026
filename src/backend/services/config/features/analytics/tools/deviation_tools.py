@@ -72,22 +72,6 @@ DEVIATION_TOOLS = [
                     "items": {"type": "string"},
                     "description": "List of supplier names to filter by. Optional.",
                 },
-                "output_dir": {
-                    "type": "string",
-                    "description": "Output directory for reports. Optional, defaults to 'deviation_results'.",
-                },
-                "save_csv": {
-                    "type": "boolean",
-                    "description": "Whether to save CSV results. Default: true.",
-                },
-                "save_html": {
-                    "type": "boolean",
-                    "description": "Whether to save HTML report with visualizations. Default: true.",
-                },
-                "create_charts": {
-                    "type": "boolean",
-                    "description": "Whether to create visualizations. Default: true.",
-                },
             },
             "required": [],
         },
@@ -108,9 +92,9 @@ def run_deviation_analysis(
     machine_ids: Optional[List[str]] = None,
     vendor_names: Optional[List[str]] = None,
     output_dir: Optional[str] = None,
-    save_csv: Optional[bool] = True,
-    save_html: Optional[bool] = True,
-    create_charts: Optional[bool] = True,
+    save_csv: Optional[bool] = False,
+    save_html: Optional[bool] = False,
+    create_charts: Optional[bool] = False,
 ) -> dict:
     """Execute duration deviation analysis.
 
@@ -120,9 +104,11 @@ def run_deviation_analysis(
         machine_ids: List of equipment codes
         vendor_names: List of supplier names
         output_dir: Output directory path
-        save_csv: Save CSV results
-        save_html: Save HTML report
-        create_charts: Create visualizations
+        save_csv: Save CSV results. Defaults to False: an autonomous run
+            analyses many machines and would otherwise leave a report file per
+            invocation on the host running the agent.
+        save_html: Save HTML report. Defaults to False, as above.
+        create_charts: Create visualizations. Defaults to False, as above.
 
     Returns:
         dict: Analysis results with metrics, summary, and file paths
@@ -137,7 +123,10 @@ def run_deviation_analysis(
         logger.info(
             "Running duration deviation analysis: "
             "date_range=%s to %s, equipment=%s, suppliers=%s",
-            start_date, end_date, machine_ids, vendor_names,
+            start_date,
+            end_date,
+            machine_ids,
+            vendor_names,
         )
 
         # Run analysis
@@ -147,9 +136,15 @@ def run_deviation_analysis(
             machine_ids=machine_ids,
             vendor_names=vendor_names,
             output_dir=output_dir,
-            save_csv=save_csv if save_csv is not None else True,
-            save_html=save_html if save_html is not None else True,
-            create_charts=create_charts if create_charts is not None else True,
+            # Report writing is forced off for agent-driven runs. A schema
+            # default is only advisory: the model asked for save_html=true
+            # anyway and then reported the file as an action it had taken.
+            # These arguments are no longer exposed in the tool schema, and
+            # anything passed is ignored. Programmatic callers that do want
+            # reports call analysis.deviation.api directly.
+            save_csv=False,
+            save_html=False,
+            create_charts=False,
         )
 
         logger.info(

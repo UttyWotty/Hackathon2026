@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 async def run_tooling_eol_analysis(
     type_category: Optional[str] = None,
     output_dir: Optional[str] = None,
-    save_csv: Optional[bool] = True,
+    save_csv: Optional[bool] = False,
     save_html: Optional[bool] = False,
     disable_maintenance: Optional[bool] = False,
 ) -> Dict[str, Any]:
@@ -63,8 +63,9 @@ async def run_tooling_eol_analysis(
         # Run analysis
         result = run_analysis_api(
             output_dir=output_dir,
-            save_csv=save_csv,
-            save_html=save_html,
+            # Forced off for agent-driven runs; see deviation_tools for why.
+            save_csv=False,
+            save_html=False,
             disable_maintenance=disable_maintenance,
             type_category=type_category,
         )
@@ -167,20 +168,6 @@ TOOLING_EOL_TOOLS = [
                         "Leave empty for default values."
                     ),
                     "enum": ["Injection Molding", "Die Casting", "Stamping"],
-                },
-                "output_dir": {
-                    "type": "string",
-                    "description": "Directory path to save output files (CSV/HTML reports). Optional.",
-                },
-                "save_csv": {
-                    "type": "boolean",
-                    "description": "Whether to save predictions as CSV file. Default: true.",
-                    "default": True,
-                },
-                "save_html": {
-                    "type": "boolean",
-                    "description": "Whether to save predictions as HTML report. Default: false.",
-                    "default": False,
                 },
                 "disable_maintenance": {
                     "type": "boolean",

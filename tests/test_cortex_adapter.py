@@ -11,7 +11,6 @@ import json
 
 import pytest
 
-from core import cortex_client
 from core.cortex_client import (
     ANTHROPIC_VERSION,
     TOKEN_TYPE_HEADER,

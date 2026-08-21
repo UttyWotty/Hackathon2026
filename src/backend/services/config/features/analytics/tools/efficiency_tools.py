@@ -73,18 +73,6 @@ EFFICIENCY_TOOLS = [
                     "items": {"type": "string"},
                     "description": "List of supplier names to analyze. Optional - analyzes all if not specified.",
                 },
-                "output_dir": {
-                    "type": "string",
-                    "description": "Output directory for reports. Optional, defaults to 'efficiency_results'.",
-                },
-                "save_csv": {
-                    "type": "boolean",
-                    "description": "Whether to save CSV results. Default: true.",
-                },
-                "save_html": {
-                    "type": "boolean",
-                    "description": "Whether to save HTML report with supplier rankings. Default: true.",
-                },
                 "normalization_method": {
                     "type": "string",
                     "description": "Score normalization method: 'z_score' (default), 'min_max', or 'percentile'.",
@@ -107,8 +95,8 @@ def run_efficiency_analysis(
     machine_ids: Optional[List[str]] = None,
     client: Optional[str] = None,
     output_dir: Optional[str] = None,
-    save_csv: Optional[bool] = True,
-    save_html: Optional[bool] = True,
+    save_csv: Optional[bool] = False,
+    save_html: Optional[bool] = False,
     normalization_method: Optional[str] = "z_score",
 ) -> dict:
     """Execute duration efficiency and supplier benchmarking analysis.
@@ -147,8 +135,9 @@ def run_efficiency_analysis(
             vendor_names=vendor_names,
             client=client,
             output_dir=output_dir,
-            save_csv=save_csv if save_csv is not None else True,
-            save_html=save_html if save_html is not None else True,
+            # Forced off for agent-driven runs; see deviation_tools for why.
+            save_csv=False,
+            save_html=False,
             normalization_method=normalization_method or "z_score",
         )
 
