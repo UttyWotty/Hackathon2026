@@ -197,7 +197,6 @@ def render_dimensional_drilldown():
 
     with col1:
         st.markdown("**Hour of Day**")
-        hour_note = st.empty()
         hourly = session.sql(f"""
             SELECT HOUR(SHOT_TIME) AS HOUR_OF_DAY,
                    ROUND(AVG(DURATION) - AVG(TARGET_DURATION), 2) AS AVG_DEVIATION
@@ -218,7 +217,10 @@ def render_dimensional_drilldown():
                 height=CHART_HEIGHT_SPARK,
             )
             st.altair_chart(chart, use_container_width=True)
-            hour_note.caption(
+            # Captioned after the chart, not into a placeholder above it: a
+            # reserved slot shifts this column's chart down relative to the
+            # one beside it.
+            st.caption(
                 f"{selected} recorded shots between "
                 f"{int(hourly['HOUR_OF_DAY'].min()):02d}:00 and "
                 f"{int(hourly['HOUR_OF_DAY'].max()):02d}:00 in this range."
@@ -254,10 +256,6 @@ def render_dimensional_drilldown():
 
     with col3:
         st.markdown("**By Shift**")
-        st.caption(
-            "Standard plant shift windows. Only shifts with recorded shots "
-            "appear, so a missing shift means the machine did not run then."
-        )
         shift = session.sql(f"""
             SELECT
                 CASE
@@ -284,6 +282,10 @@ def render_dimensional_drilldown():
                 height=CHART_HEIGHT_SPARK,
             )
             st.altair_chart(chart, use_container_width=True)
+            st.caption(
+                "Standard plant shift windows. Only shifts with recorded "
+                "shots appear."
+            )
 
     with col4:
         st.markdown("**By Product**")
