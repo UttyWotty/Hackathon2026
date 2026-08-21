@@ -8,9 +8,21 @@ from sqlalchemy import text  # type: ignore[import-untyped]
 
 
 def test_database_file_exists():
-    """Test that database file is created."""
-    db_path = Path("data/manufacturing.db")
-    assert db_path.exists(), "Database file should exist"
+    """The SQLite file is created on first use, at the module's own DATA_DIR.
+
+    The path is taken from models.database rather than assumed relative to the
+    working directory: the database lives under src/backend/data, so a
+    hardcoded "data/manufacturing.db" only resolves when pytest happens to run
+    from that directory. It is also created lazily, so a session is opened
+    first rather than assuming a previous test made the file.
+    """
+    from models.database import DATA_DIR, get_session
+
+    with get_session():
+        pass
+
+    db_path = Path(DATA_DIR) / "manufacturing.db"
+    assert db_path.exists(), f"Database file should exist at {db_path}"
 
 
 def test_database_connection():

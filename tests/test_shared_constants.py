@@ -363,7 +363,7 @@ class TestDatabaseConstants:
         """All table name constants are uppercase (Snowflake convention)."""
         tables = [
             DatabaseTables.SHOT_DATA,
-            DatabaseTables.PRODUduration,
+            DatabaseTables.PRODUCT,
             DatabaseTables.ANA_SHOT_MADE,
             DatabaseTables.ROI_TABLE,
             DatabaseTables.EQUIPMENT_MASTER,

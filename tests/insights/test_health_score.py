@@ -21,7 +21,7 @@ def test_full_components_weighted_average():
     score, missing = compute_health_score(
         {
             "run_efficiency": 100.0,
-            "ct_performance": 100.0,
+            "duration_performance": 100.0,
             "utilization": 100.0,
             "recency": 100.0,
         }
@@ -34,13 +34,13 @@ def test_missing_components_renormalize():
     score, missing = compute_health_score(
         {
             "run_efficiency": 80.0,
-            "ct_performance": None,
+            "duration_performance": None,
             "utilization": None,
             "recency": None,
         }
     )
     assert score == 80.0
-    assert set(missing) == {"ct_performance", "utilization", "recency"}
+    assert set(missing) == {"duration_performance", "utilization", "recency"}
 
 
 def test_all_missing_returns_none():
@@ -53,7 +53,7 @@ def test_values_clamped_to_range():
     score, _ = compute_health_score(
         {
             "run_efficiency": 250.0,
-            "ct_performance": -50.0,
+            "duration_performance": -50.0,
             "utilization": None,
             "recency": None,
         }
@@ -74,7 +74,7 @@ def test_build_equipment_health_shape():
     assert record["machine_id"] == "6377"
     assert record["score"] == 90.0
     assert record["grade"] == GRADE_HEALTHY
-    assert "ct_performance" in record["components"]
+    assert "duration_performance" in record["components"]
 
 
 def test_rank_by_health_worst_first_unscored_last():

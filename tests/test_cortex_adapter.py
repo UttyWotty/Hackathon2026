@@ -114,16 +114,25 @@ class TestToolConversion:
 
 class TestClientConfiguration:
     def test_missing_account_raises(self, monkeypatch):
-        # The module constants are read at import, so patch them rather than
-        # os.environ: a developer's real .env must not mask this test.
-        monkeypatch.setattr(cortex_client, "SNOWFLAKE_ACCOUNT", "")
+        # CortexClient falls back to os.getenv at construction time, so clear
+        # the variable rather than patching a module attribute: a developer's
+        # real .env must not mask this test.
+        monkeypatch.setenv("SNOWFLAKE_ACCOUNT", "")
         with pytest.raises(CortexConfigurationError):
             CortexClient(account=None, pat=PAT)
 
     def test_missing_pat_raises(self, monkeypatch):
-        monkeypatch.setattr(cortex_client, "SNOWFLAKE_PAT", "")
+        monkeypatch.setenv("SNOWFLAKE_PAT", "")
         with pytest.raises(CortexConfigurationError):
             CortexClient(account=ACCOUNT, pat=None)
+
+    def test_account_falls_back_to_the_environment(self, monkeypatch):
+        monkeypatch.setenv("SNOWFLAKE_ACCOUNT", "env-account")
+        assert CortexClient(account=None, pat=PAT).account == "env-account"
+
+    def test_pat_falls_back_to_the_environment(self, monkeypatch):
+        monkeypatch.setenv("SNOWFLAKE_PAT", "env-pat")
+        assert CortexClient(account=ACCOUNT, pat=None).pat == "env-pat"
 
     def test_url_is_the_verified_messages_endpoint(self):
         assert (

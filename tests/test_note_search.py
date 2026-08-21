@@ -37,7 +37,7 @@ NOTES = [
 
 class TestTokenize:
     def test_lowercases_and_splits(self):
-        assert "cycle" in tokenize("Duration")
+        assert tokenize("Duration Drift") == ["duration", "drift"]
 
     def test_drops_stop_words(self):
         # "the", "is", "shift" carry no signal in a corpus of shift notes.
